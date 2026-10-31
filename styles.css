@@ -173,6 +173,19 @@ body {
     padding-left: 1.5rem;
 }
 
+.setup-wizard-step h3 {
+    margin: 0 0 8px;
+    color: #004080;
+    font-size: 1.05rem;
+}
+
+.setup-wizard-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
 .install-banner li + li {
     margin-top: 10px;
 }
@@ -190,6 +203,12 @@ body {
     background: #004080;
     color: #ffffff;
     cursor: pointer;
+}
+
+.install-banner .setup-wizard-secondary {
+    border: 1px solid #004080;
+    background: #ffffff;
+    color: #004080;
 }
 
 @media (display-mode: standalone) {

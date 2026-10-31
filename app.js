@@ -6887,6 +6887,9 @@ const initializeApp = async () => {
   };
 
   const backupFileInput = document.getElementById("backup-file-input");
+  const quickBackupFileInput = document.getElementById(
+    "quick-backup-file-input",
+  );
   const contactFileInput = document.getElementById("contact-file-input");
   document
     .getElementById("btn-import-contact")
@@ -7153,22 +7156,38 @@ const initializeApp = async () => {
     return true;
   };
 
+  const restoreBackupFile = async (file) => {
+    if (!file) {
+      alert("Choose an encrypted backup file first.");
+      return false;
+    }
+
+    try {
+      const backup = JSON.parse(await file.text());
+      const restored = await restoreBackupObject(backup);
+      if (restored) backupFileInput.value = "";
+      return restored;
+    } catch (error) {
+      reportRestoreError(error);
+      return false;
+    }
+  };
+
   document
     .getElementById("btn-restore-backup")
-    .addEventListener("click", async () => {
-      const file = backupFileInput.files[0];
-      if (!file) {
-        alert("Choose an encrypted backup file first.");
-        return;
-      }
-
-      try {
-        const backup = JSON.parse(await file.text());
-        if (await restoreBackupObject(backup)) backupFileInput.value = "";
-      } catch (error) {
-        reportRestoreError(error);
-      }
-    });
+    .addEventListener("click", () =>
+      restoreBackupFile(backupFileInput.files[0]),
+    );
+  document
+    .getElementById("btn-quick-backup")
+    .addEventListener("click", () => downloadEncryptedBackup());
+  document
+    .getElementById("btn-quick-restore")
+    .addEventListener("click", () => quickBackupFileInput.click());
+  quickBackupFileInput.addEventListener("change", async () => {
+    const file = quickBackupFileInput.files[0];
+    if (await restoreBackupFile(file)) quickBackupFileInput.value = "";
+  });
 
   // ---- Cloud backup (Dropbox, optional) ----
   const DAY_MS = 24 * 60 * 60 * 1000;
@@ -7947,16 +7966,36 @@ document.addEventListener("DOMContentLoaded", () => {
   const installBanner = document.getElementById("install-banner");
   const installBannerKey = "return_visits_onboarding_v2_dismissed";
   const setupPendingKey = "return_visits_setup_pending";
+  const wizardStepKey = "return_visits_first_run_wizard_step_v1";
   let dismissed = false;
   let setupPending = false;
+  let wizardStep = 1;
   try {
     dismissed = localStorage.getItem(installBannerKey) === "true";
     setupPending = localStorage.getItem(setupPendingKey) === "true";
+    const savedWizardStep = Number(localStorage.getItem(wizardStepKey));
+    if (savedWizardStep === 2) wizardStep = savedWizardStep;
   } catch (error) {
     console.error("Unable to read the install tip status:", error);
   }
   installBanner.hidden = dismissed;
   document.getElementById("setup-next-steps-notice").hidden = !setupPending;
+
+  const showWizardStep = (step, shouldFocus = false) => {
+    wizardStep = step;
+    document.getElementById("setup-wizard-step-1").hidden = step !== 1;
+    document.getElementById("setup-wizard-step-2").hidden = step !== 2;
+    document.getElementById("setup-wizard-progress").textContent =
+      `Step ${step} of 2: ${
+        step === 1 ? "Add an app icon" : "Choose your setup"
+      }`;
+    if (shouldFocus && !installBanner.hidden) {
+      document
+        .querySelector(`#setup-wizard-step-${step} h3`)
+        .focus({ preventScroll: true });
+    }
+  };
+  showWizardStep(wizardStep);
 
   const goToView = (viewId) => {
     const navButton = Array.from(
@@ -7971,6 +8010,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       localStorage.setItem(installBannerKey, "true");
       localStorage.setItem(setupPendingKey, "true");
+      localStorage.removeItem(wizardStepKey);
     } catch (error) {
       console.error("Unable to save the setup status:", error);
     }
@@ -7978,6 +8018,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const defaults = document.getElementById("defaults-your-details-section");
     defaults.open = true;
     defaults.scrollIntoView({ block: "start" });
+  };
+  const skipSetup = () => {
+    installBanner.hidden = true;
+    try {
+      localStorage.setItem(installBannerKey, "true");
+      localStorage.removeItem(setupPendingKey);
+      localStorage.removeItem(wizardStepKey);
+    } catch (error) {
+      console.error("Unable to save the setup status:", error);
+    }
+    document.getElementById("setup-next-steps-notice").hidden = true;
+  };
+  const continueWizard = () => {
+    try {
+      localStorage.setItem(wizardStepKey, "2");
+    } catch (error) {
+      console.error("Unable to save the setup walkthrough progress:", error);
+    }
+    showWizardStep(2, true);
   };
   const openSettingsSection = (sectionId) => {
     goToView("settings-view");
@@ -8002,6 +8061,15 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("setup-next-steps-notice").hidden = true;
     goToView("contacts-view");
   };
+  document
+    .getElementById("btn-setup-wizard-next")
+    .addEventListener("click", continueWizard);
+  document
+    .getElementById("btn-setup-wizard-skip-icon")
+    .addEventListener("click", continueWizard);
+  document
+    .getElementById("btn-setup-wizard-skip")
+    .addEventListener("click", skipSetup);
   document
     .getElementById("btn-dismiss-install-banner")
     .addEventListener("click", startSetup);

@@ -186,38 +186,82 @@
         <!-- Contacts View -->
         <div id="contacts-view" class="view active">
           <aside id="install-banner" class="install-banner" hidden>
-            <h2>
-              First-time use: before entering contacts or return visits in Nice
-              Return Visits on this device
-            </h2>
-            <ol>
-              <li>
-                <strong>Add an app icon.</strong> On a phone or tablet, add
-                Nice Return Visits to your Home Screen. On a computer, install it
-                from your browser. If you already opened it from an icon, go
-                to the next step. You can also keep using it in your browser.
-                <a href="./help.html#install-guide">Show me how, with pictures</a>
-              </li>
-              <li>
-                <strong>Fill in Defaults &amp; Your Details.</strong> Set your
-                country, state or province, and city, then add the personal
-                details you want to share or use for your home map pin.
-              </li>
-              <li>
-                <strong>Set up Cities, Regions, and Areas.</strong> Add the
-                places you need now, or add them later as you go.
-              </li>
-            </ol>
-            <p>
-              Your information is saved on this device. If you choose Dropbox
-              sync, a copy is also saved in your Dropbox. Using the browser
-              and app icon separately may create separate copies.
+            <h2>Let's get Nice Return Visits ready for you</h2>
+            <p id="setup-wizard-progress" role="status" aria-live="polite">
+              Step 1 of 2: Add an app icon
             </p>
-            <button type="button" id="btn-dismiss-install-banner">
-              Start with Defaults
-            </button>
+            <section id="setup-wizard-step-1" class="setup-wizard-step">
+              <h3 tabindex="-1">Add an app icon (optional)</h3>
+              <p>
+                An icon makes the app easy to open. You can also keep using it
+                in this browser. The browser and installed app may keep separate
+                copies of your data, so choose one as your regular copy.
+                <a href="./help.html#install-guide" target="_blank" rel="noopener">
+                  Show me how, with pictures
+                </a>
+              </p>
+              <div class="setup-wizard-actions">
+                <button type="button" id="btn-setup-wizard-next">
+                  Continue
+                </button>
+                <button type="button" class="setup-wizard-secondary" id="btn-setup-wizard-skip-icon">
+                  Continue without an icon
+                </button>
+              </div>
+            </section>
+            <section id="setup-wizard-step-2" class="setup-wizard-step" hidden>
+              <h3 tabindex="-1">Choose your setup</h3>
+              <p>
+                Set your default country, state or province, and city. Your
+                name and home details are optional; add only what you want to
+                use or share. You can add Cities, Regions, and Areas now or
+                later as you go.
+              </p>
+              <p>
+                Your data stays on this device unless you choose optional
+                Dropbox backup in Settings. A passphrase is also optional; you
+                can turn it on in Settings to encrypt your data and new backups.
+                Before connecting Dropbox, the app explains the backup risks
+                and asks you to confirm.
+              </p>
+              <p>
+                You can change these choices later using the Settings gear.
+              </p>
+              <div class="setup-wizard-actions">
+                <button type="button" id="btn-dismiss-install-banner">
+                  Set up Defaults &amp; Your Details
+                </button>
+                <button type="button" class="setup-wizard-secondary" id="btn-setup-wizard-skip">
+                  Skip setup and start using Contacts
+                </button>
+              </div>
+            </section>
           </aside>
           <div class="contact-list-actions">
+            <button
+              type="button"
+              id="btn-quick-backup"
+              class="icon-action"
+              title="Back up everything"
+              aria-label="Back up everything"
+            >
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m-5 5 5-5 5 5M4 16v4h16v-4"/></svg>
+            </button>
+            <button
+              type="button"
+              id="btn-quick-restore"
+              class="icon-action"
+              title="Restore from a backup file"
+              aria-label="Restore from a backup file"
+            >
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12m-5-5 5 5 5-5M4 16v4h16v-4"/></svg>
+            </button>
+            <input
+              type="file"
+              id="quick-backup-file-input"
+              accept="application/json,.json"
+              hidden
+            />
             <button
               type="button"
               id="btn-open-modal"
@@ -302,12 +346,13 @@
             <details class="settings-section" id="defaults-your-details-section">
               <summary>Defaults &amp; Your Details</summary>
               <p id="setup-next-steps-notice" class="install-banner" role="status" hidden>
-                <strong>Defaults saved.</strong> Next, fill in
+                <strong>Defaults saved.</strong> Your Details are optional;
+                add the personal information you want to use or share with
                 <button type="button" class="inline-icon-link" id="btn-setup-your-details">Your Details</button>.
-                You can set up
+                You can also set up
                 <button type="button" class="inline-icon-link" id="btn-setup-locations">Cities, Regions, and Areas</button>
-                now or add them as needed. When you're ready, you can start
-                adding contacts.
+                now or add them as needed. When you're ready, start adding
+                contacts or use the Settings gear to make changes later.
                 <button type="button" id="btn-setup-finish">I'm ready — go to Contacts</button>
               </p>
               <h3>Defaults</h3>
