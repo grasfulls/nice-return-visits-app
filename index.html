@@ -76,7 +76,7 @@
             <strong>First-time use</strong>
             <p>
               Before adding return visits to this device, set up the app icon,
-              fill in Defaults and Your Details, and add any Cities, Regions,
+              fill in Defaults &amp; Your Details, and add any Cities, Regions,
               and Areas you need. You can add locations later, too.
             </p>
             <small>
@@ -193,7 +193,7 @@
                 <a href="./help.html#install-guide">Show me how, with pictures</a>
               </li>
               <li>
-                <strong>Fill in Defaults and Your Details.</strong> Set your
+                <strong>Fill in Defaults &amp; Your Details.</strong> Set your
                 country, state or province, and city, then add the personal
                 details you want to share or use for your home map pin.
               </li>
@@ -293,8 +293,8 @@
         <div id="settings-view" class="view">
           <div class="settings-container">
             <h2>Settings</h2>
-            <details class="settings-section" id="defaults-section">
-              <summary>Defaults</summary>
+            <details class="settings-section" id="defaults-your-details-section">
+              <summary>Defaults &amp; Your Details</summary>
               <p id="setup-next-steps-notice" class="install-banner" role="status" hidden>
                 <strong>Defaults saved.</strong> Next, fill in
                 <button type="button" class="inline-icon-link" id="btn-setup-your-details">Your Details</button>.
@@ -304,6 +304,7 @@
                 adding contacts.
                 <button type="button" id="btn-setup-finish">I'm ready — go to Contacts</button>
               </p>
+              <h3>Defaults</h3>
               <form id="settings-form">
                 <label>Default State / Province:</label>
                 <input type="text" id="setting-state" placeholder="State or province" />
@@ -330,9 +331,7 @@
                   💾 Save Settings
                 </button>
               </form>
-            </details>
-            <details class="settings-section" id="your-details-section">
-              <summary>Your Details</summary>
+              <h3 id="your-details-heading">Your Details</h3>
               <form id="me-form">
                 <label for="me-name">Name:</label>
                 <input type="text" id="me-name" autocomplete="name" />
@@ -409,109 +408,6 @@
                 <p id="me-status" role="status"></p>
               </form>
             </details>
-            <details class="settings-section" id="locations-section">
-              <summary>Cities, Regions &amp; Areas</summary>
-              <h3>Add New City to List</h3>
-              <p class="location-hint">
-                <strong>How locations work:</strong> A <strong>city</strong> is
-                divided into <strong>regions</strong>, which are large parts of
-                the city (such as North, South, East, and West). A region is
-                divided into <strong>areas</strong>, which are smaller
-                neighborhoods within that region. Cities, regions, and areas
-                are added as you enter them for yourself or a contact; use
-                each field's <strong>+ Add New</strong> choice to add one.
-              </p>
-              <div style="display: flex; gap: 8px">
-                <input
-                  type="text"
-                  id="setting-new-city"
-                  placeholder="New city name..."
-                />
-                <button
-                  type="button"
-                  id="btn-add-setting-city"
-                  style="
-                    background: #004080;
-                    color: white;
-                    border: none;
-                    padding: 8px 14px;
-                    border-radius: 4px;
-                    cursor: pointer;
-                  "
-                >
-                  Add City
-                </button>
-              </div>
-
-              <h3 style="margin-top: 15px">Add New Region</h3>
-              <div style="display: flex; gap: 8px">
-                <select id="setting-region-city" aria-label="City for new region">
-                  <option value="">Choose city</option>
-                </select>
-                <input
-                  type="text"
-                  id="setting-new-region"
-                  placeholder="New region name..."
-                />
-                <button
-                  type="button"
-                  id="btn-add-setting-region"
-                  style="
-                    background: #004080;
-                    color: white;
-                    border: none;
-                    padding: 8px 14px;
-                    border-radius: 4px;
-                    cursor: pointer;
-                  "
-                >
-                  Add Region
-                </button>
-              </div>
-              <p>
-                You can also add a region while adding a contact. Choose
-                <strong>+ Add New Region...</strong> in that contact's Region
-                list to add one under the selected City.
-              </p>
-              <h3 style="margin-top: 15px">Add New Area</h3>
-              <div style="display: flex; gap: 8px">
-                <select id="setting-area-city" aria-label="City for new area">
-                  <option value="">Choose city</option>
-                </select>
-                <select id="setting-area-region" aria-label="Region for new area" disabled>
-                  <option value="">Choose region</option>
-                </select>
-                <input
-                  type="text"
-                  id="setting-new-area"
-                  placeholder="New area name..."
-                />
-                <button
-                  type="button"
-                  id="btn-add-setting-area"
-                  style="
-                    background: #004080;
-                    color: white;
-                    border: none;
-                    padding: 8px 14px;
-                    border-radius: 4px;
-                    cursor: pointer;
-                  "
-                >
-                  Add Area
-                </button>
-              </div>
-              <h3 style="margin-top: 20px">Manage Cities, Regions, and Areas</h3>
-              <div id="region-area-list"></div>
-              <small>
-                Edit renames a location and updates its existing references.
-                Delete is blocked while any contact is assigned to it or to a
-                location beneath it. Deleting a city or region with no assigned
-                contacts also deletes the regions and areas under it, after you
-                confirm. Locations follow City → Region → Area; each level is optional
-                on a contact.
-              </small>
-            </details>
             <details class="settings-section" id="time-tracking-section">
               <summary>Time in Service</summary>
               <label class="checkbox-row">
@@ -534,6 +430,134 @@
                 <small>The service year runs September 1 to August 31.</small>
               </div>
             </details>
+            <details class="settings-section" id="choices-section">
+              <summary>Choices</summary>
+              <details class="settings-section">
+                <summary>Passphrase to Open App</summary>
+                <h3 id="passphrase-section-title">Passphrase</h3>
+                <p id="passphrase-section-description"></p>
+                <button type="button" id="btn-start-turn-on" hidden>
+                  Turn On Passphrase
+                </button>
+                <div id="passphrase-choices" hidden>
+                  <button type="button" id="btn-show-change">
+                    Change Passphrase
+                  </button>
+                  <button type="button" id="btn-show-turn-off">
+                    Turn Off Passphrase
+                  </button>
+                </div>
+                <form id="change-passphrase-form" hidden>
+                  <div id="current-passphrase-fields">
+                    <label for="current-passphrase">Current passphrase</label>
+                    <input
+                      type="text" data-secret
+                      id="current-passphrase"
+                      required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                    />
+                  </div>
+                  <label for="new-passphrase">New passphrase</label>
+                  <input
+                    type="text" data-secret
+                    id="new-passphrase"
+                    minlength="12"
+                    required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                  />
+                  <label for="confirm-new-passphrase">Confirm new passphrase</label>
+                  <input
+                    type="text" data-secret
+                    id="confirm-new-passphrase"
+                    minlength="12"
+                    required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                  />
+                  <div class="restore-dialog-actions">
+                    <button type="submit" id="btn-change-passphrase">
+                      Change Passphrase
+                    </button>
+                    <button type="button" id="btn-cancel-change-passphrase">
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+
+                <div id="turn-off-explain" hidden>
+                  <h3>Turn Off Passphrase?</h3>
+                  <p>If you turn the passphrase off:</p>
+                  <ul>
+                    <li>
+                      The contacts and settings on this device are decrypted and
+                      stored <strong>without encryption</strong>. Anyone who can
+                      open this browser or app on this device could read them.
+                    </li>
+                    <li>
+                      The app opens right away and no longer asks for a passphrase.
+                    </li>
+                    <li>
+                      Your recovery code stops working, because there is no
+                      passphrase left to recover.
+                    </li>
+                    <li>
+                      Backups you make from now on, including Dropbox backups, are
+                      not encrypted. Backups you already made keep the passphrase
+                      they were created with.
+                    </li>
+                    <li>You can turn a passphrase on again at any time.</li>
+                  </ul>
+                  <div class="restore-dialog-actions">
+                    <button type="button" id="btn-turn-off-continue">
+                      Continue
+                    </button>
+                    <button type="button" id="btn-turn-off-cancel">Cancel</button>
+                  </div>
+                </div>
+
+                <div id="turn-off-passphrase-section" hidden>
+                  <form id="turn-off-passphrase-form">
+                    <label for="turn-off-current-passphrase">
+                      Enter your current passphrase (or recovery code) to confirm
+                    </label>
+                    <input
+                      type="text" data-secret
+                      id="turn-off-current-passphrase"
+                      required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                    />
+                    <div class="restore-dialog-actions">
+                      <button type="submit" id="btn-turn-off-passphrase">
+                        Turn Off Passphrase
+                      </button>
+                      <button type="button" id="btn-turn-off-confirm-cancel">
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                <p id="change-passphrase-status" role="status" aria-live="polite"></p>
+                <p id="turn-off-passphrase-status" role="status" aria-live="polite"></p>
+
+                <div id="recovery-code-section">
+                  <h3>Recovery Code</h3>
+                  <p id="recovery-code-state"></p>
+                  <p>
+                    A recovery code is a long random code you keep somewhere safe,
+                    away from this device. If you forget your passphrase, type the
+                    code in place of the passphrase to open the app. Anyone with the
+                    code can open your data, so treat it like the passphrase.
+                  </p>
+                  <form id="recovery-code-form">
+                    <label for="recovery-current-passphrase">Current passphrase</label>
+                    <input
+                      type="text" data-secret
+                      id="recovery-current-passphrase"
+                      required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                    />
+                    <button type="submit" id="btn-make-recovery-code">
+                      Make a New Recovery Code
+                    </button>
+                    <p id="recovery-code-status" role="status" aria-live="polite"></p>
+                  </form>
+                </div>
+              </details>
             <details class="settings-section">
               <summary>Keep Your Data Safe</summary>
               <p class="settings-group-note">
@@ -673,131 +697,109 @@
               <p id="cloud-status" role="status" aria-live="polite"></p>
             </details>
             </details>
-            <details class="settings-section">
-              <summary>Passphrase to open app</summary>
-            <h3 id="passphrase-section-title">Passphrase</h3>
-            <p id="passphrase-section-description"></p>
-            <button type="button" id="btn-start-turn-on" hidden>
-              Turn On Passphrase
-            </button>
-            <div id="passphrase-choices" hidden>
-              <button type="button" id="btn-show-change">
-                Change Passphrase
-              </button>
-              <button type="button" id="btn-show-turn-off">
-                Turn Off Passphrase
-              </button>
-            </div>
-            <form id="change-passphrase-form" hidden>
-              <div id="current-passphrase-fields">
-                <label for="current-passphrase">Current passphrase</label>
-                <input
-                  type="text" data-secret
-                  id="current-passphrase"
-                  required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-                />
-              </div>
-              <label for="new-passphrase">New passphrase</label>
-              <input
-                type="text" data-secret
-                id="new-passphrase"
-                minlength="12"
-                required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-              />
-              <label for="confirm-new-passphrase">Confirm new passphrase</label>
-              <input
-                type="text" data-secret
-                id="confirm-new-passphrase"
-                minlength="12"
-                required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-              />
-              <div class="restore-dialog-actions">
-                <button type="submit" id="btn-change-passphrase">
-                  Change Passphrase
-                </button>
-                <button type="button" id="btn-cancel-change-passphrase">
-                  Cancel
-                </button>
-              </div>
-            </form>
-
-            <div id="turn-off-explain" hidden>
-              <h3>Turn Off Passphrase?</h3>
-              <p>If you turn the passphrase off:</p>
-              <ul>
-                <li>
-                  The contacts and settings on this device are decrypted and
-                  stored <strong>without encryption</strong>. Anyone who can
-                  open this browser or app on this device could read them.
-                </li>
-                <li>
-                  The app opens right away and no longer asks for a passphrase.
-                </li>
-                <li>
-                  Your recovery code stops working, because there is no
-                  passphrase left to recover.
-                </li>
-                <li>
-                  Backups you make from now on, including Dropbox backups, are
-                  not encrypted. Backups you already made keep the passphrase
-                  they were created with.
-                </li>
-                <li>You can turn a passphrase on again at any time.</li>
-              </ul>
-              <div class="restore-dialog-actions">
-                <button type="button" id="btn-turn-off-continue">
-                  Continue
-                </button>
-                <button type="button" id="btn-turn-off-cancel">Cancel</button>
-              </div>
-            </div>
-
-            <div id="turn-off-passphrase-section" hidden>
-              <form id="turn-off-passphrase-form">
-                <label for="turn-off-current-passphrase">
-                  Enter your current passphrase (or recovery code) to confirm
-                </label>
-                <input
-                  type="text" data-secret
-                  id="turn-off-current-passphrase"
-                  required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-                />
-                <div class="restore-dialog-actions">
-                  <button type="submit" id="btn-turn-off-passphrase">
-                    Turn Off Passphrase
-                  </button>
-                  <button type="button" id="btn-turn-off-confirm-cancel">
-                    Cancel
+              <details class="settings-section" id="locations-section">
+                <summary>Cities, Regions &amp; Areas</summary>
+                <h3>Add New City to List</h3>
+                <p class="location-hint">
+                  <strong>How locations work:</strong> A <strong>city</strong> is
+                  divided into <strong>regions</strong>, which are large parts of
+                  the city (such as North, South, East, and West). A region is
+                  divided into <strong>areas</strong>, which are smaller
+                  neighborhoods within that region. Cities, regions, and areas
+                  are added as you enter them for yourself or a contact; use
+                  each field's <strong>+ Add New</strong> choice to add one.
+                </p>
+                <div style="display: flex; gap: 8px">
+                  <input
+                    type="text"
+                    id="setting-new-city"
+                    placeholder="New city name..."
+                  />
+                  <button
+                    type="button"
+                    id="btn-add-setting-city"
+                    style="
+                      background: #004080;
+                      color: white;
+                      border: none;
+                      padding: 8px 14px;
+                      border-radius: 4px;
+                      cursor: pointer;
+                    "
+                  >
+                    Add City
                   </button>
                 </div>
-              </form>
-            </div>
 
-            <p id="change-passphrase-status" role="status" aria-live="polite"></p>
-            <p id="turn-off-passphrase-status" role="status" aria-live="polite"></p>
-
-            <div id="recovery-code-section">
-              <h3>Recovery Code</h3>
-              <p id="recovery-code-state"></p>
-              <p>
-                A recovery code is a long random code you keep somewhere safe,
-                away from this device. If you forget your passphrase, type the
-                code in place of the passphrase to open the app. Anyone with the
-                code can open your data, so treat it like the passphrase.
-              </p>
-              <form id="recovery-code-form">
-                <label for="recovery-current-passphrase">Current passphrase</label>
-                <input
-                  type="text" data-secret
-                  id="recovery-current-passphrase"
-                  required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-                />
-                <button type="submit" id="btn-make-recovery-code">
-                  Make a New Recovery Code
-                </button>
-                <p id="recovery-code-status" role="status" aria-live="polite"></p>
-              </form>
-            </div>
+                <h3 style="margin-top: 15px">Add New Region</h3>
+                <div style="display: flex; gap: 8px">
+                  <select id="setting-region-city" aria-label="City for new region">
+                    <option value="">Choose city</option>
+                  </select>
+                  <input
+                    type="text"
+                    id="setting-new-region"
+                    placeholder="New region name..."
+                  />
+                  <button
+                    type="button"
+                    id="btn-add-setting-region"
+                    style="
+                      background: #004080;
+                      color: white;
+                      border: none;
+                      padding: 8px 14px;
+                      border-radius: 4px;
+                      cursor: pointer;
+                    "
+                  >
+                    Add Region
+                  </button>
+                </div>
+                <p>
+                  You can also add a region while adding a contact. Choose
+                  <strong>+ Add New Region...</strong> in that contact's Region
+                  list to add one under the selected City.
+                </p>
+                <h3 style="margin-top: 15px">Add New Area</h3>
+                <div style="display: flex; gap: 8px">
+                  <select id="setting-area-city" aria-label="City for new area">
+                    <option value="">Choose city</option>
+                  </select>
+                  <select id="setting-area-region" aria-label="Region for new area" disabled>
+                    <option value="">Choose region</option>
+                  </select>
+                  <input
+                    type="text"
+                    id="setting-new-area"
+                    placeholder="New area name..."
+                  />
+                  <button
+                    type="button"
+                    id="btn-add-setting-area"
+                    style="
+                      background: #004080;
+                      color: white;
+                      border: none;
+                      padding: 8px 14px;
+                      border-radius: 4px;
+                      cursor: pointer;
+                    "
+                  >
+                    Add Area
+                  </button>
+                </div>
+                <h3 style="margin-top: 20px">Manage Cities, Regions, and Areas</h3>
+                <div id="region-area-list"></div>
+                <small>
+                  Edit renames a location and updates its existing references.
+                  Delete is blocked while any contact is assigned to it or to a
+                  location beneath it. Deleting a city or region with no assigned
+                  contacts also deletes the regions and areas under it, after you
+                  confirm. Locations follow City → Region → Area; each level is optional
+                  on a contact.
+                </small>
+              </details>
             </details>
             <details class="settings-section">
               <summary>Help</summary>

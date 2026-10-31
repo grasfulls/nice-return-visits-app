@@ -157,13 +157,14 @@ matching the current search and filters, and indicates when matching contacts
 have no saved coordinates. Whenever the Map is open with no visible contact
 pins, it centers approximately on the Default City and State from Settings.
 
-Settings -> Your Details stores your name, address and a home pin. The home pin
-appears on the Map as a house icon (draggable), the Map opens fitted to include
-it, and the details are included in backups and the Settings printout. If you
-enter your name, it is added as "Shared by [your name]" to a message when you
-choose Share on a contact. The app prepares the message; you decide whether and
-to whom to send it. Your address and home pin are not included in that message.
-The address lookup is sent to OpenStreetMap Nominatim only when you choose it.
+Settings -> Defaults & Your Details stores your name, address and a home pin.
+The home pin appears on the Map as a house icon (draggable), the Map opens
+fitted to include it, and the details are included in backups and the Settings
+printout. If you enter your name, it is added as "Shared by [your name]" to a
+message when you choose Share on a contact. The app prepares the message; you
+decide whether and to whom to send it. Your address and home pin are not
+included in that message. The address lookup is sent to OpenStreetMap Nominatim
+only when you choose it.
 
 Address text (including partial street-name and city searches) and cross-street
 text are sent to OpenStreetMap Nominatim when you choose the corresponding
