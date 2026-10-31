@@ -3927,7 +3927,7 @@ const initializeApp = async () => {
       ? document.getElementById("modal-title").textContent
       : names[currentViewId] || "Contacts";
     const h1 = document.getElementById("app-title");
-    if (h1) h1.textContent = `Nice Return Visits - ${name}`;
+    if (h1) h1.textContent = `NRV - ${name}`;
   };
 
   const renderBottomNav = () => {
@@ -3937,7 +3937,7 @@ const initializeApp = async () => {
       "time-view": "Time",
       "settings-view": "Settings",
     };
-    document.title = `Nice Return Visits - ${pageNames[currentViewId] || "Contacts"}`;
+    document.title = `NRV - ${pageNames[currentViewId] || "Contacts"}`;
     updateHeaderTitle();
     document.body.classList.toggle(
       "settings-open",
