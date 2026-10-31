@@ -279,6 +279,9 @@ header {
     padding: 10px;
     text-align: center;
     position: relative;
+    isolation: isolate;
+    box-sizing: border-box;
+    min-height: 80px;
 }
 
 #app-title {
@@ -287,22 +290,25 @@ header {
     margin: 0;
     font-size: 1.4rem;
     line-height: 1.2;
+    text-shadow: 0 1px 3px rgb(0 24 56 / 90%);
 }
 
 .app-header-logo {
     position: absolute;
-    top: 4px;
+    z-index: 0;
+    top: 0;
     left: 50%;
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     transform: translateX(-50%);
     object-fit: contain;
-    opacity: 0.08;
+    opacity: 0.3;
     pointer-events: none;
 }
 
 #sync-status {
     position: absolute;
+    z-index: 2;
     top: 6px;
     right: 8px;
     width: 44px;
@@ -318,6 +324,8 @@ header {
 }
 
 #filters-bar {
+    position: relative;
+    z-index: 1;
     display: flex;
     justify-content: center;
     flex-wrap: wrap;

@@ -1,4 +1,4 @@
-const CACHE_NAME = "return-visits-shell-v110";
+const CACHE_NAME = "return-visits-shell-v111";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -15,6 +15,7 @@ const APP_SHELL = [
   "./icons/icon-180.png?v=2",
   "./icons/icon-192.png?v=2",
   "./icons/icon-512.png?v=2",
+  "./icons/header-watermark.png",
 ];
 
 self.addEventListener("install", (event) => {
