@@ -408,6 +408,109 @@
                 <p id="me-status" role="status"></p>
               </form>
             </details>
+            <details class="settings-section" id="locations-section">
+              <summary>Cities, Regions &amp; Areas</summary>
+              <h3>Add New City to List</h3>
+              <p class="location-hint">
+                <strong>How locations work:</strong> A <strong>city</strong> is
+                divided into <strong>regions</strong>, which are large parts of
+                the city (such as North, South, East, and West). A region is
+                divided into <strong>areas</strong>, which are smaller
+                neighborhoods within that region. Cities, regions, and areas
+                are added as you enter them for yourself or a contact; use
+                each field's <strong>+ Add New</strong> choice to add one.
+              </p>
+              <div style="display: flex; gap: 8px">
+                <input
+                  type="text"
+                  id="setting-new-city"
+                  placeholder="New city name..."
+                />
+                <button
+                  type="button"
+                  id="btn-add-setting-city"
+                  style="
+                    background: #004080;
+                    color: white;
+                    border: none;
+                    padding: 8px 14px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                  "
+                >
+                  Add City
+                </button>
+              </div>
+
+              <h3 style="margin-top: 15px">Add New Region</h3>
+              <div style="display: flex; gap: 8px">
+                <select id="setting-region-city" aria-label="City for new region">
+                  <option value="">Choose city</option>
+                </select>
+                <input
+                  type="text"
+                  id="setting-new-region"
+                  placeholder="New region name..."
+                />
+                <button
+                  type="button"
+                  id="btn-add-setting-region"
+                  style="
+                    background: #004080;
+                    color: white;
+                    border: none;
+                    padding: 8px 14px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                  "
+                >
+                  Add Region
+                </button>
+              </div>
+              <p>
+                You can also add a region while adding a contact. Choose
+                <strong>+ Add New Region...</strong> in that contact's Region
+                list to add one under the selected City.
+              </p>
+              <h3 style="margin-top: 15px">Add New Area</h3>
+              <div style="display: flex; gap: 8px">
+                <select id="setting-area-city" aria-label="City for new area">
+                  <option value="">Choose city</option>
+                </select>
+                <select id="setting-area-region" aria-label="Region for new area" disabled>
+                  <option value="">Choose region</option>
+                </select>
+                <input
+                  type="text"
+                  id="setting-new-area"
+                  placeholder="New area name..."
+                />
+                <button
+                  type="button"
+                  id="btn-add-setting-area"
+                  style="
+                    background: #004080;
+                    color: white;
+                    border: none;
+                    padding: 8px 14px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                  "
+                >
+                  Add Area
+                </button>
+              </div>
+              <h3 style="margin-top: 20px">Manage Cities, Regions, and Areas</h3>
+              <div id="region-area-list"></div>
+              <small>
+                Edit renames a location and updates its existing references.
+                Delete is blocked while any contact is assigned to it or to a
+                location beneath it. Deleting a city or region with no assigned
+                contacts also deletes the regions and areas under it, after you
+                confirm. Locations follow City → Region → Area; each level is optional
+                on a contact.
+              </small>
+            </details>
             <details class="settings-section" id="time-tracking-section">
               <summary>Time in Service</summary>
               <label class="checkbox-row">
@@ -697,109 +800,6 @@
               <p id="cloud-status" role="status" aria-live="polite"></p>
             </details>
             </details>
-              <details class="settings-section" id="locations-section">
-                <summary>Cities, Regions &amp; Areas</summary>
-                <h3>Add New City to List</h3>
-                <p class="location-hint">
-                  <strong>How locations work:</strong> A <strong>city</strong> is
-                  divided into <strong>regions</strong>, which are large parts of
-                  the city (such as North, South, East, and West). A region is
-                  divided into <strong>areas</strong>, which are smaller
-                  neighborhoods within that region. Cities, regions, and areas
-                  are added as you enter them for yourself or a contact; use
-                  each field's <strong>+ Add New</strong> choice to add one.
-                </p>
-                <div style="display: flex; gap: 8px">
-                  <input
-                    type="text"
-                    id="setting-new-city"
-                    placeholder="New city name..."
-                  />
-                  <button
-                    type="button"
-                    id="btn-add-setting-city"
-                    style="
-                      background: #004080;
-                      color: white;
-                      border: none;
-                      padding: 8px 14px;
-                      border-radius: 4px;
-                      cursor: pointer;
-                    "
-                  >
-                    Add City
-                  </button>
-                </div>
-
-                <h3 style="margin-top: 15px">Add New Region</h3>
-                <div style="display: flex; gap: 8px">
-                  <select id="setting-region-city" aria-label="City for new region">
-                    <option value="">Choose city</option>
-                  </select>
-                  <input
-                    type="text"
-                    id="setting-new-region"
-                    placeholder="New region name..."
-                  />
-                  <button
-                    type="button"
-                    id="btn-add-setting-region"
-                    style="
-                      background: #004080;
-                      color: white;
-                      border: none;
-                      padding: 8px 14px;
-                      border-radius: 4px;
-                      cursor: pointer;
-                    "
-                  >
-                    Add Region
-                  </button>
-                </div>
-                <p>
-                  You can also add a region while adding a contact. Choose
-                  <strong>+ Add New Region...</strong> in that contact's Region
-                  list to add one under the selected City.
-                </p>
-                <h3 style="margin-top: 15px">Add New Area</h3>
-                <div style="display: flex; gap: 8px">
-                  <select id="setting-area-city" aria-label="City for new area">
-                    <option value="">Choose city</option>
-                  </select>
-                  <select id="setting-area-region" aria-label="Region for new area" disabled>
-                    <option value="">Choose region</option>
-                  </select>
-                  <input
-                    type="text"
-                    id="setting-new-area"
-                    placeholder="New area name..."
-                  />
-                  <button
-                    type="button"
-                    id="btn-add-setting-area"
-                    style="
-                      background: #004080;
-                      color: white;
-                      border: none;
-                      padding: 8px 14px;
-                      border-radius: 4px;
-                      cursor: pointer;
-                    "
-                  >
-                    Add Area
-                  </button>
-                </div>
-                <h3 style="margin-top: 20px">Manage Cities, Regions, and Areas</h3>
-                <div id="region-area-list"></div>
-                <small>
-                  Edit renames a location and updates its existing references.
-                  Delete is blocked while any contact is assigned to it or to a
-                  location beneath it. Deleting a city or region with no assigned
-                  contacts also deletes the regions and areas under it, after you
-                  confirm. Locations follow City → Region → Area; each level is optional
-                  on a contact.
-                </small>
-              </details>
             </details>
             <details class="settings-section">
               <summary>Help</summary>

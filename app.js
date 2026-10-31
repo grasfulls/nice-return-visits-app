@@ -7197,7 +7197,7 @@ const initializeApp = async () => {
     if (cloudPaused) {
       return {
         icon: "⚠️",
-        text: "Dropbox sync is paused. Open Settings → Cloud backup for details.",
+        text: "Dropbox sync is paused. Open Settings → Choices → Keep Your Data Safe → Cloud Backup for details.",
       };
     }
     if (!navigator.onLine) {

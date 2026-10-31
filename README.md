@@ -34,16 +34,16 @@ when possible, since browser and Home Screen copies may keep separate data.
 Contacts and settings are stored on the current browser and device in IndexedDB
 and, when a passphrase is turned on, encrypted with AES-GCM. A passphrase is
 optional: by default the app opens without one and stores data unencrypted. To
-turn it on, use **Settings → Passphrase → Turn On Passphrase**, enter and confirm a passphrase of at
+turn it on, use **Settings → Choices → Passphrase to Open App → Turn On Passphrase**, enter and confirm a passphrase of at
 least 12 characters; it is then required whenever opening the app. The app shows a
 recovery code once; typing that code in place of the passphrase unlocks the app (and
 also unlocks backups, because a locked copy of the passphrase is stored inside the backup
 file). If both the passphrase and the code are lost, the encrypted data cannot be unlocked.
-Anyone with the code can open the data, so keep it private. **Settings → Passphrase →
+Anyone with the code can open the data, so keep it private. **Settings → Choices → Passphrase to Open App →
 Make a New Recovery Code** replaces it (needed once for passphrases created before this feature).
 Keep the passphrase safe and separate from any backup or contact file. Once on,
-use **Settings → Passphrase → Change Passphrase** and verify the current passphrase first. To stop requiring
-one, use **Settings → Passphrase → Turn Off Passphrase**; the app explains the consequences
+use **Settings → Choices → Passphrase to Open App → Change Passphrase** and verify the current passphrase first. To stop requiring
+one, use **Settings → Choices → Passphrase to Open App → Turn Off Passphrase**; the app explains the consequences
 (unencrypted storage, recovery code stops working, later backups unencrypted) and offers
 **Continue** or **Cancel**. Continuing asks for the current passphrase once to decrypt the data;
 it can be turned on again later.
@@ -179,7 +179,7 @@ Maps to open directions.
 ## Full backup and restore
 
 Use the export icon in the contacts page's bottom bar (with no filter active),
-or **Settings → Backup & Restore → Back up everything**, to download a JSON backup
+or **Settings → Choices → Keep Your Data Safe → Backup & Restore → Back up everything**, to download a JSON backup
 of all contacts and settings. Encryption is your choice: with a passphrase on, a
 tick box (on by default) lets you encrypt the file or export it unencrypted; with
 no passphrase the file is unencrypted. Anyone who obtains an unencrypted file can
@@ -187,7 +187,7 @@ read it, so store and send it only where you trust the recipient. The browser sa
 location—for example, **Files → Downloads** on iPhone or the browser’s
 **Downloads** location on other devices. The app cannot choose a save folder.
 At app start it asks the browser to protect its storage from automatic clearing
-(persistent storage); the result is shown at the top of **Settings → Backup & Restore**.
+(persistent storage); the result is shown at the top of **Settings → Choices → Keep Your Data Safe → Backup & Restore**.
 This lowers but does not remove the risk of data loss, so keep backups.
 
 To restore, select the backup and, if it is encrypted, enter the passphrase used
@@ -217,7 +217,7 @@ successful backup resets the count.
 
 ## Cloud backup (optional)
 
-**Settings → Cloud backup (optional)** can keep a copy of your contacts and
+**Settings → Choices → Keep Your Data Safe → Cloud Backup (optional)** can keep a copy of your contacts and
 settings in your own Dropbox. It is off unless you turn it on, and file backups
 keep working. Dropbox is entirely optional: the app works fully without it, and all
 your data can stay only on this device. You need a Dropbox account (the free Basic plan is enough); the app
@@ -309,7 +309,7 @@ asks "Discard unsaved changes?" (OK discards, Cancel stays so you can finish). T
 while keeping the contacts and settings stored in that app copy on the device.
 After the reload, unlock with the same passphrase if one is turned on.
 
-The plain-language user guide is available from **Settings → Help & Privacy** or directly at
+The plain-language user guide is available from **Settings → Help → User Guide & Privacy Notice** or directly at
 **https://grasfulls.github.io/return-visits-app/help.html**. It is an
 accessible, responsive HTML page that can be read in a standard web browser.
 The combined Setup and User Guide PDF is in the [docs/](./docs) folder and linked from the page.
