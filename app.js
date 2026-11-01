@@ -2382,6 +2382,7 @@ const initializeApp = async () => {
         populateDropdowns();
         alert(`City "${val}" added.`);
       } else if (val) {
+        input.value = "";
         alert("That city already exists.");
       }
     });
@@ -2417,6 +2418,7 @@ const initializeApp = async () => {
         populateDropdowns();
         alert(`Area "${val}" added to ${region}, ${city}.`);
       } else if (val) {
+        input.value = "";
         alert("That area already exists in this region and city.");
       }
     });
@@ -2447,6 +2449,7 @@ const initializeApp = async () => {
         populateDropdowns();
         alert(`Region "${region}" added to ${city}.`);
       } else if (region) {
+        if (city) input.value = "";
         alert(
           city
             ? "That region already exists in this city."
@@ -5056,6 +5059,39 @@ const initializeApp = async () => {
           (settings.me?.[input.id.replace("me-", "")] || "");
       } else if (input.type === "file") {
         changed = input.files.length > 0;
+      } else if (input.id === "setting-new-city") {
+        const name = toTitleCase(input.value).toLowerCase();
+        changed =
+          input.value.trim() !== "" &&
+          !settings.cities.some((city) => city.toLowerCase() === name);
+      } else if (input.id === "setting-new-region") {
+        const city = document.getElementById("setting-region-city").value;
+        const name = toTitleCase(input.value).toLowerCase();
+        changed =
+          input.value.trim() !== "" &&
+          !(
+            city &&
+            settings.regions.some(
+              (region) =>
+                region.city === city && region.name.toLowerCase() === name,
+            )
+          );
+      } else if (input.id === "setting-new-area") {
+        const city = document.getElementById("setting-area-city").value;
+        const region = document.getElementById("setting-area-region").value;
+        const name = toTitleCase(input.value).toLowerCase();
+        changed =
+          input.value.trim() !== "" &&
+          !(
+            city &&
+            region &&
+            settings.areas.some(
+              (area) =>
+                area.city === city &&
+                area.region === region &&
+                area.name.toLowerCase() === name,
+            )
+          );
       } else {
         changed = input.value.trim() !== "";
       }
