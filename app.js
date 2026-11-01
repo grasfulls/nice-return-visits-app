@@ -6656,7 +6656,8 @@ const initializeApp = async () => {
         '<span style="color: #888;">No visit logs recorded yet.</span>';
     }
 
-    document.getElementById("modal-title").textContent = "Edit Contact";
+    document.getElementById("modal-title").textContent =
+      view === "visits" ? "Add/Edit Visit" : "Edit Contact";
     const lat = Number.parseFloat(contact.lat);
     const lng = Number.parseFloat(contact.lng);
     await openModalWithCoords(
