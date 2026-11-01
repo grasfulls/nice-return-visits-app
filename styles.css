@@ -608,17 +608,38 @@ main {
 
 @media (max-width: 420px) {
     .contact-list-actions {
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(98px, 1fr) 64px minmax(104px, 1fr);
+        gap: 4px;
     }
 
     .contact-toolbar-actions {
-        grid-column: 2;
+        grid-column: 3;
+    }
+
+    .contact-toolbar-actions .icon-action {
+        box-sizing: border-box;
     }
 
     #btn-time-toggle:not([hidden]) {
-        grid-column: 1 / -1;
-        grid-row: 2;
+        grid-column: 2;
+        grid-row: 1;
+        width: 64px;
+        min-width: 0;
+        padding: 4px;
         justify-self: center;
+        white-space: normal;
+        text-align: center;
+        line-height: 1.1;
+    }
+
+    .contact-add-button {
+        width: 98px !important;
+        min-width: 0;
+        box-sizing: border-box;
+        padding: 4px 6px !important;
+        gap: 6px;
+        white-space: normal;
+        font-size: 0.9rem;
     }
 }
 
