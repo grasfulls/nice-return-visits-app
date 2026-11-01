@@ -5036,7 +5036,11 @@ const initializeApp = async () => {
     const inputs = Array.from(
       document.querySelectorAll("#settings-view input"),
     ).filter(
-      (input) => !["checkbox", "radio", "hidden", "button", "submit"].includes(input.type),
+      (input) =>
+        !["checkbox", "radio", "hidden", "button", "submit"].includes(
+          input.type,
+        ) &&
+        !input.closest("[hidden]"),
     );
     for (const input of inputs) {
       let changed;
