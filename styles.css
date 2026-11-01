@@ -523,6 +523,11 @@ main {
     gap: 8px;
 }
 
+.install-banner:not([hidden]) + .contact-list-actions .contact-add-button,
+.install-banner:not([hidden]) + .contact-list-actions .contact-toolbar-actions {
+    display: none !important;
+}
+
 #btn-time-toggle {
     grid-column: 2;
     grid-row: 1;
