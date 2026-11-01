@@ -8470,13 +8470,6 @@ document.addEventListener("DOMContentLoaded", () => {
     .getElementById("btn-dismiss-install-banner")
     .addEventListener("click", startSetup);
   document
-    .getElementById("btn-setup-your-details")
-    .addEventListener("click", () =>
-      document
-        .getElementById("your-details-heading")
-        .scrollIntoView({ block: "start" }),
-    );
-  document
     .getElementById("btn-setup-locations")
     .addEventListener("click", () => openSettingsSection("locations-section"));
   document
