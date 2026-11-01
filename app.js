@@ -8112,7 +8112,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const installBanner = document.getElementById("install-banner");
   const installBannerKey = "return_visits_onboarding_v2_dismissed";
   const setupPendingKey = "return_visits_setup_pending";
-  const wizardStepKey = "return_visits_first_run_wizard_step_v1";
+  const wizardStepKey = "return_visits_first_run_wizard_step_v2";
   let dismissed = false;
   let setupPending = false;
   let wizardStep = 1;
@@ -8127,13 +8127,207 @@ document.addEventListener("DOMContentLoaded", () => {
   installBanner.hidden = dismissed;
   document.getElementById("setup-next-steps-notice").hidden = !setupPending;
 
+  const deviceTypeSelect = document.getElementById("setup-device-type");
+  const deviceSystemSelect = document.getElementById("setup-device-system");
+  const deviceBrowserSelect = document.getElementById("setup-device-browser");
+  const bookmarkInstructions = document.getElementById(
+    "setup-bookmark-instructions",
+  );
+  const deviceSystems = {
+    phone: [
+      { value: "ios", label: "iPhone or iPad" },
+      { value: "android", label: "Android" },
+      { value: "other-mobile", label: "Another phone or tablet" },
+    ],
+    computer: [
+      { value: "windows", label: "Windows" },
+      { value: "mac", label: "Mac" },
+      { value: "chromeos", label: "Chromebook" },
+      { value: "other-computer", label: "Another computer" },
+    ],
+  };
+  const getDeviceHint = () => {
+    const userAgent = navigator.userAgent || "";
+    if (
+      /iPad|iPhone|iPod/i.test(userAgent) ||
+      (/Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1)
+    ) {
+      return { type: "phone", system: "ios" };
+    }
+    if (/Android/i.test(userAgent)) {
+      return { type: "phone", system: "android" };
+    }
+    if (/CrOS/i.test(userAgent)) {
+      return { type: "computer", system: "chromeos" };
+    }
+    if (/Windows/i.test(userAgent)) {
+      return { type: "computer", system: "windows" };
+    }
+    if (/Macintosh|Mac OS/i.test(userAgent)) {
+      return { type: "computer", system: "mac" };
+    }
+    return { type: "computer", system: "other-computer" };
+  };
+  const getBrowserHint = (system) => {
+    const userAgent = navigator.userAgent || "";
+    if (/SamsungBrowser/i.test(userAgent)) return "samsung";
+    if (/Edg|EdgiOS|EdgA/i.test(userAgent)) return "edge";
+    if (/FxiOS|Firefox/i.test(userAgent)) return "firefox";
+    if (/CriOS|Chrome|Chromium/i.test(userAgent)) return "chrome";
+    if (/Safari/i.test(userAgent) || system === "ios" || system === "mac") {
+      return "safari";
+    }
+    return "other";
+  };
+  const getBrowserChoices = (system) => {
+    if (system === "ios") {
+      return [
+        { value: "safari", label: "Safari" },
+        { value: "chrome", label: "Chrome" },
+        { value: "firefox", label: "Firefox" },
+        { value: "edge", label: "Microsoft Edge" },
+        { value: "other", label: "Another browser" },
+      ];
+    }
+    if (system === "android") {
+      return [
+        { value: "chrome", label: "Chrome" },
+        { value: "samsung", label: "Samsung Internet" },
+        { value: "firefox", label: "Firefox" },
+        { value: "edge", label: "Microsoft Edge" },
+        { value: "other", label: "Another browser" },
+      ];
+    }
+    if (system === "mac") {
+      return [
+        { value: "safari", label: "Safari" },
+        { value: "chrome", label: "Chrome" },
+        { value: "edge", label: "Microsoft Edge" },
+        { value: "firefox", label: "Firefox" },
+        { value: "other", label: "Another browser" },
+      ];
+    }
+    return [
+      { value: "chrome", label: "Chrome" },
+      { value: "edge", label: "Microsoft Edge" },
+      { value: "firefox", label: "Firefox" },
+      { value: "other", label: "Another browser" },
+    ];
+  };
+  const setSelectOptions = (select, options, selectedValue) => {
+    select.replaceChildren(
+      ...options.map((option) => {
+        const element = document.createElement("option");
+        element.value = option.value;
+        element.textContent = option.label;
+        return element;
+      }),
+    );
+    select.value = options.some((option) => option.value === selectedValue)
+      ? selectedValue
+      : options[0].value;
+  };
+  const getBookmarkSteps = (system, browser) => {
+    if (system === "ios" && browser === "safari") {
+      return [
+        "Tap the Share button (the square with an arrow pointing up).",
+        "In the menu, tap Add Bookmark. Scroll the menu if you do not see it.",
+        "Tap Save. The bookmark is now in Safari.",
+      ];
+    }
+    if (system === "ios" && browser === "chrome") {
+      return [
+        "Tap the three-dot menu in Chrome.",
+        "Tap Add to Bookmarks (look for the star).",
+        "If asked, tap Save or Done.",
+      ];
+    }
+    if (system === "android" && browser === "chrome") {
+      return [
+        "Tap the three-dot menu near the top of Chrome.",
+        "Tap the star or Add to bookmarks.",
+        "The bookmark is saved in Chrome.",
+      ];
+    }
+    if (system === "android" && browser === "samsung") {
+      return [
+        "Tap the browser menu (usually three lines or three dots).",
+        "Choose Add page to, then Bookmarks (or tap the star).",
+        "If asked, tap Save or Done.",
+      ];
+    }
+    if (system === "ios" || system === "android" || system === "other-mobile") {
+      return [
+        "Open this browser's menu or Share button.",
+        "Choose Bookmark, Add Bookmark, or the star icon.",
+        "Tap Save or Done if the browser asks.",
+      ];
+    }
+    const shortcut = system === "mac" ? "Command + D" : "Ctrl + D";
+    if (browser === "safari" && system === "mac") {
+      return [
+        `Press ${shortcut}, or choose Bookmarks in the menu bar.`,
+        "Choose Add Bookmark.",
+        "Choose where to save it, then click Add.",
+      ];
+    }
+    return [
+      `Press ${shortcut}. In most browsers, you can also select the star near the address bar.`,
+      "If a small box opens, choose where to save this page.",
+      "Select Done, Save, or Add.",
+    ];
+  };
+  const updateBookmarkInstructions = () => {
+    const steps = getBookmarkSteps(
+      deviceSystemSelect.value,
+      deviceBrowserSelect.value,
+    );
+    bookmarkInstructions.replaceChildren();
+    const intro = document.createElement("p");
+    intro.textContent = "In this browser:";
+    const list = document.createElement("ol");
+    steps.forEach((step) => {
+      const item = document.createElement("li");
+      item.textContent = step;
+      list.appendChild(item);
+    });
+    bookmarkInstructions.append(intro, list);
+  };
+  const setDeviceSystem = (system) => {
+    const deviceType = deviceTypeSelect.value;
+    setSelectOptions(deviceSystemSelect, deviceSystems[deviceType], system);
+    const browserChoices = getBrowserChoices(deviceSystemSelect.value);
+    setSelectOptions(
+      deviceBrowserSelect,
+      browserChoices,
+      getBrowserHint(deviceSystemSelect.value),
+    );
+    updateBookmarkInstructions();
+  };
+  const deviceHint = getDeviceHint();
+  deviceTypeSelect.value = deviceHint.type;
+  setDeviceSystem(deviceHint.system);
+  deviceTypeSelect.addEventListener("change", () => {
+    setDeviceSystem(deviceSystems[deviceTypeSelect.value][0].value);
+  });
+  deviceSystemSelect.addEventListener("change", () => {
+    const browserChoices = getBrowserChoices(deviceSystemSelect.value);
+    setSelectOptions(
+      deviceBrowserSelect,
+      browserChoices,
+      getBrowserHint(deviceSystemSelect.value),
+    );
+    updateBookmarkInstructions();
+  });
+  deviceBrowserSelect.addEventListener("change", updateBookmarkInstructions);
+
   const showWizardStep = (step, shouldFocus = false) => {
     wizardStep = step;
     document.getElementById("setup-wizard-step-1").hidden = step !== 1;
     document.getElementById("setup-wizard-step-2").hidden = step !== 2;
     document.getElementById("setup-wizard-progress").textContent =
       `Step ${step} of 2: ${
-        step === 1 ? "Add an app icon" : "Choose your setup"
+        step === 1 ? "Save a bookmark" : "Choose your setup"
       }`;
     if (shouldFocus && !installBanner.hidden) {
       document

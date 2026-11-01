@@ -188,24 +188,35 @@
           <aside id="install-banner" class="install-banner" hidden>
             <h2>Let's get Nice Return Visits ready for you</h2>
             <p id="setup-wizard-progress" role="status" aria-live="polite">
-              Step 1 of 2: Add an app icon
+              Step 1 of 2: Save a bookmark
             </p>
             <section id="setup-wizard-step-1" class="setup-wizard-step">
-              <h3 tabindex="-1">Add an app icon (optional)</h3>
+              <h3 tabindex="-1">Save a bookmark so you can find us again</h3>
               <p>
-                An icon makes the app easy to open. You can also keep using it
-                in this browser. The browser and installed app may keep separate
-                copies of your data, so choose one as your regular copy.
-                <a href="./help.html#install-guide" target="_blank" rel="noopener">
-                  Show me how, with pictures
-                </a>
+                We'll show you what to tap in this browser. Keep this page open
+                while you follow the steps. A bookmark saves this page in your
+                browser; it does not install a separate app or move your data.
+                If you do not see browser controls, this page may be open in an
+                app window; you can skip for now and bookmark it from your
+                regular browser later.
               </p>
+              <p>We guessed your device and browser. Check the choices below; you can change them.</p>
+              <label for="setup-device-type">What are you using?</label>
+              <select id="setup-device-type">
+                <option value="phone">A phone or tablet</option>
+                <option value="computer">A computer</option>
+              </select>
+              <label for="setup-device-system">Which kind?</label>
+              <select id="setup-device-system"></select>
+              <label for="setup-device-browser">Which browser is open now?</label>
+              <select id="setup-device-browser"></select>
+              <div id="setup-bookmark-instructions" class="setup-bookmark-instructions" role="status" aria-live="polite"></div>
               <div class="setup-wizard-actions">
                 <button type="button" id="btn-setup-wizard-next">
-                  Continue
+                  I saved the bookmark — continue
                 </button>
                 <button type="button" class="setup-wizard-secondary" id="btn-setup-wizard-skip-icon">
-                  Continue without an icon
+                  Skip for now
                 </button>
               </div>
             </section>
