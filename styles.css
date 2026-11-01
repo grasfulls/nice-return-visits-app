@@ -225,6 +225,33 @@ body {
     margin-top: 6px;
 }
 
+#setup-next-steps-dialog {
+    width: min(440px, calc(100vw - 32px));
+    border: none;
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+
+#setup-next-steps-dialog form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#setup-next-steps-dialog h2,
+#setup-next-steps-dialog p {
+    margin: 0;
+}
+
+.setup-next-steps-actions {
+    flex-wrap: wrap;
+}
+
+.setup-next-steps-actions button {
+    flex: 1 1 100%;
+}
+
 .install-banner li + li {
     margin-top: 10px;
 }

@@ -3923,6 +3923,60 @@ const initializeApp = async () => {
     if (h1) h1.textContent = `NRV - ${name}`;
   };
 
+  const setupNextStepsDialog = document.getElementById(
+    "setup-next-steps-dialog",
+  );
+  const setupNextStepsNotice = document.getElementById(
+    "setup-next-steps-notice",
+  );
+  const showSetupNextStepsIfReady = () => {
+    try {
+      if (
+        localStorage.getItem("return_visits_setup_pending") === "true" &&
+        !setupNextStepsNotice.hidden
+      ) {
+        setupNextStepsDialog.showModal();
+      }
+    } catch (error) {
+      console.error("Unable to read the first-use setup status:", error);
+    }
+  };
+  document
+    .getElementById("btn-setup-add-first-contact")
+    .addEventListener("click", () => {
+      setupNextStepsDialog.close();
+      setupNextStepsNotice.hidden = true;
+      try {
+        localStorage.removeItem("return_visits_setup_pending");
+      } catch (error) {
+        console.error("Unable to save the setup status:", error);
+      }
+      document.getElementById("btn-open-modal").click();
+    });
+  document
+    .getElementById("btn-setup-add-more-details")
+    .addEventListener("click", () => {
+      setupNextStepsDialog.close();
+      document
+        .querySelector('#bottom-nav .nav-btn[title^="settings"]')
+        ?.click();
+      const detailsHeading = document.getElementById("your-details-heading");
+      if (detailsHeading) {
+        document.getElementById("defaults-your-details-section").open = true;
+        detailsHeading.scrollIntoView({ block: "start" });
+      }
+    });
+  document
+    .getElementById("btn-setup-continue-later")
+    .addEventListener("click", () => {
+      setupNextStepsNotice.hidden = true;
+      try {
+        localStorage.removeItem("return_visits_setup_pending");
+      } catch (error) {
+        console.error("Unable to save the setup status:", error);
+      }
+    });
+
   const renderBottomNav = () => {
     const pageNames = {
       "contacts-view": "Contacts",
@@ -4006,6 +4060,10 @@ const initializeApp = async () => {
           }
 
           if (currentViewId === "time-view") renderTimeView();
+
+          if (currentViewId === "contacts-view") {
+            showSetupNextStepsIfReady();
+          }
 
           if (currentViewId === "map-view") {
             if (!map) {
@@ -8393,12 +8451,10 @@ document.addEventListener("DOMContentLoaded", () => {
   };
   const finishSetup = () => {
     try {
-      localStorage.removeItem(setupPendingKey);
       localStorage.setItem(installBannerKey, "true");
     } catch (error) {
       console.error("Unable to save the setup status:", error);
     }
-    document.getElementById("setup-next-steps-notice").hidden = true;
     goToView("contacts-view");
   };
   document
