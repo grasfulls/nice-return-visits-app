@@ -3551,11 +3551,10 @@ const initializeApp = async () => {
 
   const updatePrintVisibleButton = () => {
     const count = visibleContacts.length;
-    ["btn-print-visible", "btn-export-visible"].forEach((id) => {
-      const button = document.getElementById(id);
-      if (!button) return;
-      button.disabled = count === 0;
-    });
+    const printButton = document.getElementById("btn-print-visible");
+    if (printButton) printButton.disabled = count === 0;
+    const exportButton = document.getElementById("btn-export-visible");
+    if (exportButton) exportButton.disabled = count === 0;
     const badge = document.querySelector("#btn-print-visible .nav-action-count");
     if (badge) {
       badge.textContent = count;
@@ -3881,12 +3880,6 @@ const initializeApp = async () => {
           icon: "print",
           title: "Print the contacts shown",
           onClick: () => printVisibleContacts(),
-        },
-        {
-          id: "btn-export-visible",
-          icon: "export",
-          title: "Export the contacts shown",
-          onClick: () => exportVisibleContacts(),
         },
       ];
     }
@@ -6720,25 +6713,192 @@ const initializeApp = async () => {
       exportEncryptDialog.showModal();
     });
 
-  // Exports exactly what the Contacts page shows: everything as a full backup
-  // when unfiltered, otherwise just the shown contacts.
-  const exportVisibleContacts = async () => {
+  const exportSelectionDialog = document.getElementById(
+    "export-selection-dialog",
+  );
+  const exportSelectionAll = document.getElementById("export-selection-all");
+  const exportSelectionSome = document.getElementById("export-selection-some");
+  const exportSelectionNumbers = document.getElementById(
+    "export-selection-numbers",
+  );
+  const exportSelectionStatus = document.getElementById(
+    "export-selection-status",
+  );
+  const exportSelectionFileButton = document.getElementById(
+    "export-selection-file",
+  );
+  const exportShareLinks = [
+    document.getElementById("export-selection-sms"),
+    document.getElementById("export-selection-whatsapp"),
+    document.getElementById("export-selection-email"),
+  ];
+  const maxShareLinkLength = 5000;
+  let exportContactsInView = [];
+
+  const getExportSelection = () => {
+    if (exportSelectionAll.checked) {
+      return { contacts: exportContactsInView, error: "" };
+    }
+
+    if (!exportSelectionNumbers.value.trim()) {
+      return { contacts: [], error: "Choose at least one contact number." };
+    }
+    const entries = exportSelectionNumbers.value.split(",");
+    const selectedNumbers = new Set();
+    for (const rawEntry of entries) {
+      const entry = rawEntry.trim();
+      const match = entry.match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+      if (!match) {
+        return {
+          contacts: [],
+          error: "Enter numbers like 3, 4-7, 9.",
+        };
+      }
+      const start = Number(match[1]);
+      const end = match[2] ? Number(match[2]) : start;
+      if (
+        !Number.isSafeInteger(start) ||
+        !Number.isSafeInteger(end) ||
+        start < 1 ||
+        end < start ||
+        end > exportContactsInView.length
+      ) {
+        return {
+          contacts: [],
+          error: `Use contact numbers from 1 to ${exportContactsInView.length}.`,
+        };
+      }
+      for (let number = start; number <= end; number += 1) {
+        selectedNumbers.add(number);
+      }
+    }
+
+    if (!selectedNumbers.size) {
+      return { contacts: [], error: "Choose at least one contact number." };
+    }
+    return {
+      contacts: [...selectedNumbers]
+        .sort((a, b) => a - b)
+        .map((number) => exportContactsInView[number - 1]),
+      error: "",
+    };
+  };
+
+  const updateExportSelection = () => {
+    const useAll = exportSelectionAll.checked;
+    exportSelectionNumbers.disabled = useAll;
+    if (useAll) exportSelectionNumbers.value = "";
+    document.getElementById("export-selection-all-label").textContent =
+      `All contacts shown (${exportContactsInView.length})`;
+
+    const selection = getExportSelection();
+    exportSelectionStatus.textContent = selection.error
+      ? selection.error
+      : `${selection.contacts.length} contact${
+          selection.contacts.length === 1 ? "" : "s"
+        } selected.`;
+    exportSelectionFileButton.disabled =
+      Boolean(selection.error) || selection.contacts.length === 0;
+
+    const senderName = settings.me?.name?.trim();
+    const messageParts = [];
+    let encodedLength = 0;
+    for (const contact of selection.contacts) {
+      const part = getContactShareText(contact);
+      encodedLength += encodeURIComponent(part).length + 18;
+      if (encodedLength > maxShareLinkLength) break;
+      messageParts.push(part);
+    }
+    if (senderName) {
+      encodedLength += encodeURIComponent(senderName).length + 18;
+    }
+    const shareTooLong = encodedLength > maxShareLinkLength;
+    const shareText = [
+      ...messageParts,
+      ...(senderName ? [`Shared by ${senderName}`] : []),
+    ].join("\n\n---\n\n");
+    const encodedText = shareTooLong ? "" : encodeURIComponent(shareText);
+    exportShareLinks.forEach((link) => {
+      const disabled =
+        Boolean(selection.error) ||
+        selection.contacts.length === 0 ||
+        shareTooLong;
+      link.setAttribute("aria-disabled", String(disabled));
+      link.href = disabled ? "" : `#`;
+    });
+    if (!selection.error && selection.contacts.length > 0 && !shareTooLong) {
+      const subject = encodeURIComponent(
+        `Contacts (${selection.contacts.length})`,
+      );
+      document.getElementById("export-selection-sms").href =
+        `sms:?body=${encodedText}`;
+      document.getElementById("export-selection-whatsapp").href =
+        `https://wa.me/?text=${encodedText}`;
+      document.getElementById("export-selection-email").href =
+        `mailto:?subject=${subject}&body=${encodedText}`;
+    } else if (
+      !selection.error &&
+      selection.contacts.length > 0 &&
+      shareTooLong
+    ) {
+      exportSelectionStatus.textContent =
+        "That selection is too long to share as a message. Export a file instead.";
+      exportSelectionFileButton.disabled = false;
+    }
+  };
+
+  const openExportSelection = () => {
     if (!visibleContacts.length) return;
-    let encrypt = false;
+    exportContactsInView = [...visibleContacts];
+    exportSelectionAll.checked = true;
+    exportSelectionSome.checked = false;
+    exportSelectionNumbers.value = "";
+    updateExportSelection();
+    exportSelectionDialog.showModal();
+  };
+
+  document
+    .getElementById("export-selection-form")
+    .addEventListener("submit", (event) => event.preventDefault());
+  exportSelectionAll.addEventListener("change", updateExportSelection);
+  exportSelectionSome.addEventListener("change", updateExportSelection);
+  exportSelectionNumbers.addEventListener("input", () => {
+    if (exportSelectionNumbers.value) exportSelectionSome.checked = true;
+    updateExportSelection();
+  });
+  exportShareLinks.forEach((link) => {
+    link.addEventListener("click", (event) => {
+      if (link.getAttribute("aria-disabled") === "true") {
+        event.preventDefault();
+        return;
+      }
+      exportSelectionDialog.close();
+    });
+  });
+  document
+    .getElementById("cancel-export-selection")
+    .addEventListener("click", () => exportSelectionDialog.close());
+  exportSelectionFileButton.addEventListener("click", async () => {
+    const selection = getExportSelection();
+    if (selection.error || !selection.contacts.length) {
+      updateExportSelection();
+      return;
+    }
+    exportSelectionDialog.close();
+    let encrypt = Boolean(encryptionKey);
     if (encryptionKey) {
       encrypt = await requestExportEncryption();
       if (encrypt === null) return;
     }
-    if (visibleContacts.length === contacts.length) {
-      await downloadEncryptedBackup(encrypt);
-    } else {
-      await downloadContactsSubset(visibleContacts, encrypt);
-    }
-  };
+    await downloadContactsSubset(selection.contacts, encrypt);
+  });
 
   document
     .getElementById("btn-export-backup")
     .addEventListener("click", () => downloadEncryptedBackup());
+  document
+    .getElementById("btn-export-visible")
+    .addEventListener("click", openExportSelection);
 
   const contactTransferDialog = document.getElementById(
     "contact-transfer-dialog",
@@ -6887,9 +7047,6 @@ const initializeApp = async () => {
   };
 
   const backupFileInput = document.getElementById("backup-file-input");
-  const quickBackupFileInput = document.getElementById(
-    "quick-backup-file-input",
-  );
   const contactFileInput = document.getElementById("contact-file-input");
   document
     .getElementById("btn-import-contact")
@@ -7178,17 +7335,6 @@ const initializeApp = async () => {
     .addEventListener("click", () =>
       restoreBackupFile(backupFileInput.files[0]),
     );
-  document
-    .getElementById("btn-quick-backup")
-    .addEventListener("click", () => downloadEncryptedBackup());
-  document
-    .getElementById("btn-quick-restore")
-    .addEventListener("click", () => quickBackupFileInput.click());
-  quickBackupFileInput.addEventListener("change", async () => {
-    const file = quickBackupFileInput.files[0];
-    if (await restoreBackupFile(file)) quickBackupFileInput.value = "";
-  });
-
   // ---- Cloud backup (Dropbox, optional) ----
   const DAY_MS = 24 * 60 * 60 * 1000;
   const CLOUD_LAST_KEY = "return_visits_cloud_last_backup";

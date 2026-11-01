@@ -178,13 +178,13 @@ Maps to open directions.
 
 ## Full backup and restore
 
-Use the export icon in the contacts page's bottom bar (with no filter active),
-or **Settings → Choices → Keep Your Data Safe → Backup & Restore → Back up everything**, to download a JSON backup
-of all contacts and settings. Encryption is your choice: with a passphrase on, a
-tick box (on by default) lets you encrypt the file or export it unencrypted; with
-no passphrase the file is unencrypted. Anyone who obtains an unencrypted file can
-read it, so store and send it only where you trust the recipient. The browser saves it to its usual download
-location—for example, **Files → Downloads** on iPhone or the browser’s
+Use **Settings → Choices → Keep Your Data Safe → Backup & Restore → Back up
+everything** to download a JSON backup of all contacts and settings. Encryption
+is your choice: with a passphrase on, a tick box (on by default) lets you
+encrypt the file or export it unencrypted; with no passphrase the file is
+unencrypted. Anyone who obtains an unencrypted file can read it, so store and
+send it only where you trust the recipient. The browser saves it to its usual
+download location—for example, **Files → Downloads** on iPhone or the browser’s
 **Downloads** location on other devices. The app cannot choose a save folder.
 At app start it asks the browser to protect its storage from automatic clearing
 (persistent storage); the result is shown at the top of **Settings → Choices → Keep Your Data Safe → Backup & Restore**.
@@ -271,13 +271,16 @@ import. It adds new contacts without replacing existing contacts.
 
 ## Export several contacts
 
-On the contacts page, the export icon in the bottom bar exports exactly what is
-shown. With no search or filter active it downloads a full backup. With a
-filter active it downloads a contacts file (`return-visits-contacts`, or
-`return-visits-encrypted-contacts` when encrypted, both version 1) holding only
-the shown contacts. With no passphrase it downloads immediately; with a
-passphrase, a tick box (on by default) chooses whether to encrypt, with a
-warning if unticked.
+On the contacts page, choose the export icon at the far right of the toolbar.
+Export all contacts currently shown, or choose numbers/ranges such as
+`3, 4-7, 9`. Numbers match the current filtered and sorted list and map pins.
+Selected contacts can be exported to a file or shared by SMS, WhatsApp, or
+email. Large selections may exceed messaging app limits; use a file instead.
+With a passphrase on, file export lets you choose whether to encrypt; with no
+passphrase, the file is unencrypted. Use **Settings → Choices → Keep Your Data
+Safe → Backup & Restore → Back up everything** for a full backup of contacts
+and settings. The Import icon beside Export adds every contact from the selected
+contact file or files without replacing existing contacts.
 
 ## Stop using the app and remove data
 

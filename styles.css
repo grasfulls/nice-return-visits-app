@@ -487,9 +487,10 @@ main {
 }
 
 .contact-list-actions {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     gap: 8px;
+    align-items: center;
     margin-bottom: 12px;
 }
 
@@ -497,8 +498,57 @@ main {
     min-height: 44px;
 }
 
-#btn-import-contact {
-    margin-left: auto;
+.contact-add-button {
+    justify-self: start;
+    width: auto !important;
+    min-width: 48px;
+    padding: 0 12px !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.contact-add-button .icon {
+    width: 22px;
+    height: 22px;
+}
+
+.contact-toolbar-actions {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    display: flex;
+    gap: 8px;
+}
+
+#btn-time-toggle {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    margin: 0;
+}
+
+#btn-export-visible:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+@media (max-width: 420px) {
+    .contact-list-actions {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .contact-toolbar-actions {
+        grid-column: 2;
+    }
+
+    #btn-time-toggle:not([hidden]) {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-self: center;
+    }
 }
 
 #btn-print-visible:disabled,
@@ -1539,7 +1589,6 @@ textarea {
 }
 
 .time-toggle {
-    margin-left: auto;
     min-width: 88px;
     padding: 0 12px;
     border: none;
@@ -1556,6 +1605,64 @@ textarea {
 
 .time-toggle.running {
     background: #2e9e4f;
+}
+
+#export-selection-dialog {
+    width: min(440px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    border: none;
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    overflow-y: auto;
+}
+
+#export-selection-dialog form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#export-selection-dialog h2,
+#export-selection-dialog p {
+    margin: 0;
+}
+
+#export-selection-dialog fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#export-selection-dialog fieldset label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#export-selection-numbers {
+    width: 100%;
+    min-height: 44px;
+    padding: 8px;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font: inherit;
+}
+
+#export-selection-status {
+    min-height: 1.4em;
+}
+
+.export-selection-actions {
+    flex-wrap: wrap;
+}
+
+.export-selection-actions .dialog-action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 100px;
 }
 
 .time-today-label {

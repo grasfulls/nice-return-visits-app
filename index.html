@@ -240,47 +240,36 @@
           <div class="contact-list-actions">
             <button
               type="button"
-              id="btn-quick-backup"
-              class="icon-action"
-              title="Back up everything"
-              aria-label="Back up everything"
-            >
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m-5 5 5-5 5 5M4 16v4h16v-4"/></svg>
-            </button>
-            <button
-              type="button"
-              id="btn-quick-restore"
-              class="icon-action"
-              title="Restore from a backup file"
-              aria-label="Restore from a backup file"
-            >
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12m-5-5 5 5 5-5M4 16v4h16v-4"/></svg>
-            </button>
-            <input
-              type="file"
-              id="quick-backup-file-input"
-              accept="application/json,.json"
-              hidden
-            />
-            <button
-              type="button"
               id="btn-open-modal"
-              class="icon-action icon-action-add"
-              title="Add contact"
-              aria-label="Add contact"
+              class="icon-action icon-action-add contact-add-button"
+              title="Add a Contact"
+              aria-label="Add a Contact"
             >
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              <span>Add a Contact</span>
             </button>
             <button type="button" id="btn-time-toggle" class="time-toggle" hidden></button>
-            <button
-              type="button"
-              id="btn-import-contact"
-              class="icon-action"
-              title="Import contacts from file"
-              aria-label="Import contacts from file"
-            >
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 11l4 4 4-4M4 14v6h16v-6"/></svg>
-            </button>
+            <div class="contact-toolbar-actions">
+              <button
+                type="button"
+                id="btn-import-contact"
+                class="icon-action"
+                title="Import contacts from file"
+                aria-label="Import contacts from file"
+              >
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 11l4 4 4-4M4 14v6h16v-6"/></svg>
+              </button>
+              <button
+                type="button"
+                id="btn-export-visible"
+                class="icon-action"
+                title="Export contacts from this view"
+                aria-label="Export contacts from this view"
+                disabled
+              >
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m-5 5 5-5 5 5M4 16v4h16v-4"/></svg>
+              </button>
+            </div>
             <input
               type="file"
               id="contact-file-input"
@@ -911,6 +900,64 @@
         <div class="restore-dialog-actions">
           <button type="submit">Print</button>
           <button type="button" id="cancel-map-print">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="export-selection-dialog">
+      <form id="export-selection-form">
+        <h2>Export Contacts</h2>
+        <p>
+          Contact numbers match the current list and map pins. Filtering or
+          sorting can change them.
+        </p>
+        <fieldset>
+          <legend>Choose contacts</legend>
+          <label class="checkbox-row">
+            <input
+              type="radio"
+              name="export-selection-mode"
+              id="export-selection-all"
+              value="all"
+              checked
+            />
+            <span id="export-selection-all-label">All contacts shown</span>
+          </label>
+          <label class="checkbox-row">
+            <input
+              type="radio"
+              name="export-selection-mode"
+              id="export-selection-some"
+              value="some"
+            />
+            One or more
+          </label>
+          <label for="export-selection-numbers">Numbers or ranges</label>
+          <input
+            type="text"
+            id="export-selection-numbers"
+            placeholder="For example: 3, 4-7, 9"
+            inputmode="text"
+            autocomplete="off"
+            disabled
+          />
+        </fieldset>
+        <p id="export-selection-status" role="status" aria-live="polite"></p>
+        <p>
+          Large selections may exceed SMS, email, or WhatsApp limits. Exporting
+          a file is better for large lists.
+        </p>
+        <div class="restore-dialog-actions export-selection-actions">
+          <button type="button" id="export-selection-file">Export File</button>
+          <a id="export-selection-sms" class="dialog-action-button">Text / SMS</a>
+          <a
+            id="export-selection-whatsapp"
+            class="dialog-action-button"
+            target="_blank"
+            rel="noopener noreferrer"
+          >WhatsApp</a>
+          <a id="export-selection-email" class="dialog-action-button">Email</a>
+          <button type="button" id="cancel-export-selection">Cancel</button>
         </div>
       </form>
     </dialog>
