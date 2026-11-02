@@ -178,7 +178,7 @@ Maps to open directions.
 
 ## Full backup and restore
 
-Use **Settings → Choices → Keep Your Data Safe → Backup & Restore → Back up
+Use **Settings → Choices → Backup or Restore → Local Backup/Restore → Back up
 everything** to download a JSON backup of all contacts and settings. Encryption
 is your choice: with a passphrase on, a tick box (on by default) lets you
 encrypt the file or export it unencrypted; with no passphrase the file is
@@ -187,7 +187,7 @@ send it only where you trust the recipient. The browser saves it to its usual
 download location—for example, **Files → Downloads** on iPhone or the browser’s
 **Downloads** location on other devices. The app cannot choose a save folder.
 At app start it asks the browser to protect its storage from automatic clearing
-(persistent storage); the result is shown at the top of **Settings → Choices → Keep Your Data Safe → Backup & Restore**.
+(persistent storage); the result is shown at the top of **Settings → Choices → Backup or Restore → Local Backup/Restore**.
 This lowers but does not remove the risk of data loss, so keep backups.
 
 To restore, select the backup and, if it is encrypted, enter the passphrase used
@@ -217,7 +217,7 @@ successful backup resets the count.
 
 ## Cloud backup (optional)
 
-**Settings → Choices → Keep Your Data Safe → Cloud Backup (optional)** can keep a copy of your contacts and
+**Settings → Choices → Backup or Restore → Cloud Backup/Restore (Dropbox)** can keep a copy of your contacts and
 settings in your own Dropbox. It is off unless you turn it on, and file backups
 keep working. Dropbox is entirely optional: the app works fully without it, and all
 your data can stay only on this device. You need a Dropbox account (the free Basic plan is enough); the app

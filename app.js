@@ -7498,7 +7498,7 @@ const initializeApp = async () => {
     if (cloudPaused) {
       return {
         icon: "⚠️",
-        text: "Dropbox sync is paused. Open Settings → Data/Security → Keep Your Data Safe → Cloud Backup for details.",
+        text: "Dropbox sync is paused. Open Settings → Data/Security → Backup or Restore → Cloud Backup/Restore (Dropbox) for details.",
       };
     }
     if (!navigator.onLine) {
@@ -7538,11 +7538,23 @@ const initializeApp = async () => {
     button.setAttribute("aria-label", summary.text);
   };
 
+  let cloudChosen = false;
   const refreshCloudUi = async () => {
     refreshSyncIcon();
     const connected = dropbox.isConnected();
     document.getElementById("cloud-off").hidden = connected;
     document.getElementById("cloud-on").hidden = !connected;
+    cloudSection.hidden = !connected && !cloudChosen;
+    document.getElementById("backup-mode-status").textContent = connected
+      ? "You are using Dropbox cloud backup. Local backup files are still available below."
+      : cloudChosen
+        ? "You are using Local backup. Finish the Dropbox steps below, or go back to local only."
+        : "You are using Local backup (files saved on this device).";
+    document.getElementById("btn-backup-mode-switch").textContent = connected
+      ? "Stop using Dropbox (use local only)"
+      : cloudChosen
+        ? "Cancel (use local only)"
+        : "Switch to Dropbox cloud backup";
     if (!connected) return;
     const last = Number(localStorage.getItem(CLOUD_LAST_KEY) || 0);
     document.getElementById("cloud-last-backup").textContent = last
@@ -8035,9 +8047,27 @@ const initializeApp = async () => {
       localStorage.removeItem(CLOUD_SEEN_KEY);
       localStorage.removeItem(CLOUD_DIRTY_KEY);
       setCloudStatus("Dropbox disconnected.");
+      cloudChosen = false;
       document.getElementById("btn-cloud-begin").hidden = false;
       showCloudStep("");
       await refreshCloudUi();
+    });
+
+  document
+    .getElementById("btn-backup-mode-switch")
+    .addEventListener("click", async () => {
+      if (dropbox.isConnected()) {
+        document.getElementById("btn-cloud-disconnect").click();
+        return;
+      }
+      cloudChosen = !cloudChosen;
+      document.getElementById("btn-cloud-begin").hidden = false;
+      showCloudStep("");
+      await refreshCloudUi();
+      if (cloudChosen) {
+        cloudSection.open = true;
+        cloudSection.scrollIntoView({ block: "nearest" });
+      }
     });
 
   const cloudRestoreDialog = document.getElementById("cloud-restore-dialog");
@@ -8108,6 +8138,7 @@ const initializeApp = async () => {
     const result = dropbox.takeConnectResult();
     if (!result) return;
     showSettingsView();
+    cloudChosen = true;
     cloudSection.open = true;
     if (!result.ok) {
       await refreshCloudUi();

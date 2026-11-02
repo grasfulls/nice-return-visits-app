@@ -733,12 +733,14 @@
                 </div>
               </details>
             <details class="settings-section">
-              <summary>Keep Your Data Safe</summary>
+              <summary>Backup or Restore</summary>
               <p class="settings-group-note">
                 Backups protect you from losing your contacts.
               </p>
+              <p id="backup-mode-status" role="status"></p>
+              <button type="button" id="btn-backup-mode-switch"></button>
             <details class="settings-section">
-              <summary>Backup &amp; Restore</summary>
+              <summary>Local Backup/Restore</summary>
               <p id="storage-protection-status" role="status"></p>
               <button type="button" id="btn-export-backup">
                 Back up everything
@@ -760,8 +762,8 @@
                 Cancel / Clear Selected File
               </button>
             </details>
-            <details class="settings-section" id="cloud-section">
-              <summary>Cloud Backup (optional)</summary>
+            <details class="settings-section" id="cloud-section" hidden>
+              <summary>Cloud Backup/Restore (Dropbox)</summary>
               <div id="cloud-off">
                 <p>
                   Cloud backup keeps a copy of your contacts outside this
