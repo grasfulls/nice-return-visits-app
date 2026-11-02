@@ -1578,7 +1578,7 @@ const initializeAppData = async () => {
           if (newRecoveryCode) await showRecoveryCodeDialog(newRecoveryCode);
           if (usedRecoveryCode) {
             alert(
-              "Unlocked with your recovery code. Open Settings → Data Choices → Passphrase to Open App and choose a new passphrase; you can enter your recovery code as the current passphrase. You will also get a new recovery code.",
+              "Unlocked with your recovery code. Open Settings → Data/Security → Passphrase to Open App and choose a new passphrase; you can enter your recovery code as the current passphrase. You will also get a new recovery code.",
             );
           }
           resolve({ database, settings, contacts, encryptionKey, metadata });
@@ -7417,7 +7417,7 @@ const initializeApp = async () => {
     markBackupDone();
     alert(
       encryptionKey && !restored.metadata?.recovery
-        ? "Backup restored. It has no recovery code yet; open Settings → Data Choices → Passphrase to Open App and choose Make a New Recovery Code."
+        ? "Backup restored. It has no recovery code yet; open Settings → Data/Security → Passphrase to Open App and choose Make a New Recovery Code."
         : "Backup restored successfully.",
     );
     return true;
@@ -7490,7 +7490,7 @@ const initializeApp = async () => {
     if (cloudPaused) {
       return {
         icon: "⚠️",
-        text: "Dropbox sync is paused. Open Settings → Data Choices → Keep Your Data Safe → Cloud Backup for details.",
+        text: "Dropbox sync is paused. Open Settings → Data/Security → Keep Your Data Safe → Cloud Backup for details.",
       };
     }
     if (!navigator.onLine) {
@@ -7958,7 +7958,7 @@ const initializeApp = async () => {
     .addEventListener("click", async () => {
       const encryptionWarning = encryptionKey
         ? "Your Dropbox backups will be encrypted with this app's passphrase before they are uploaded. Keep that passphrase and your recovery code safe; anyone who obtains an unencrypted export or a copy made before encryption may still read it."
-        : "No app passphrase is on, so backups in Dropbox will not be encrypted. Anyone who can access those Dropbox files may be able to read them. Turning on a passphrase first (Settings → Data Choices → Passphrase to Open App) is optional and will encrypt new backups; existing unencrypted Dropbox copies remain readable until you delete them.";
+        : "No app passphrase is on, so backups in Dropbox will not be encrypted. Anyone who can access those Dropbox files may be able to read them. Turning on a passphrase first (Settings → Data/Security → Passphrase to Open App) is optional and will encrypt new backups; existing unencrypted Dropbox copies remain readable until you delete them.";
       if (
         !confirm(
           `Dropbox is optional. Connecting sends Nice Return Visits backups to the Dropbox folder named Return Visits in your account. ${encryptionWarning} You can also protect your Dropbox account with a strong password and two-step verification. Dropbox account or device security can still be compromised. Continue to Dropbox sign-in?`,
