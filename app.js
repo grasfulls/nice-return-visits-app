@@ -4051,6 +4051,13 @@ const initializeApp = async () => {
             return;
           }
           if (currentViewId === "map-view") stopMapLocationWatch();
+          if (currentViewId === "settings-view") {
+            document
+              .querySelectorAll("#settings-view details[open]")
+              .forEach((section) => {
+                section.open = false;
+              });
+          }
           currentViewId = btnConfig.id;
           document
             .querySelectorAll(".view")
