@@ -188,8 +188,40 @@
           <aside id="copy-notice" class="copy-notice" role="status" hidden>
             <p id="copy-notice-text"></p>
             <a id="copy-notice-link" href="./help.html#install-guide">See the steps</a>
-            <button type="button" id="btn-copy-notice-setup" hidden>Set up here in the browser</button>
             <button type="button" id="btn-copy-notice-dismiss">Got it</button>
+          </aside>
+          <aside id="browser-first-notice" class="browser-first-notice" role="status" hidden>
+            <h2>Welcome to Nice Return Visits</h2>
+            <p>
+              You're using NRV in a web browser, so the guided setup was
+              skipped. You have two choices:
+            </p>
+            <section class="bfn-option">
+              <h3>Option 1 (recommended): Put NRV on your Home Screen</h3>
+              <p>This makes NRV work like a regular app.</p>
+              <ol id="bfn-steps-apple" hidden>
+                <li>Use Safari (the blue compass icon), not a private tab.</li>
+                <li>Tap the Share button (a square with an arrow pointing up).</li>
+                <li>Scroll down and tap <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>.</li>
+                <li>Close Safari, then tap the new NRV icon. The guided setup starts.</li>
+              </ol>
+              <p id="bfn-steps-other" hidden>
+                Tap <strong>See the steps</strong> below for steps for your device and browser,
+                then open NRV from its new icon. The guided setup starts.
+              </p>
+              <a class="bfn-link" href="./help.html#install-guide">See the steps</a>
+            </section>
+            <section class="bfn-option">
+              <h3>Option 2: Set up here in the browser</h3>
+              <p>You get the same setup without adding an icon.</p>
+              <button type="button" id="btn-copy-notice-setup">Set up here in the browser</button>
+            </section>
+            <p class="bfn-note">
+              <strong>Good to know:</strong> contacts are stored separately in
+              the browser and in the Home Screen icon. Pick one and keep using
+              it. You can back up and restore later in Settings.
+            </p>
+            <button type="button" id="btn-bfn-dismiss">Got it</button>
           </aside>
           <div class="contact-list-actions">
             <button

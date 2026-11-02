@@ -1,4 +1,4 @@
-const CACHE_NAME = "return-visits-shell-v130";
+const CACHE_NAME = "return-visits-shell-v131";
 const APP_SHELL = [
   "./",
   "./index.html",

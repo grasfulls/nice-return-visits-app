@@ -232,12 +232,57 @@ body {
     margin: 0 0 8px;
 }
 
-.copy-notice[data-kind="browser-first"] p {
-    white-space: pre-line;
+.browser-first-notice {
+    margin: 0 0 16px;
+    padding: 16px;
+    border-left: 4px solid #e0a800;
+    border-radius: 4px;
+    background: #fff8e1;
+    line-height: 1.5;
 }
 
-.copy-notice[data-kind="browser-first"] button {
-    margin: 8px 12px 0 0;
+.browser-first-notice[hidden] {
+    display: none;
+}
+
+.browser-first-notice h2 {
+    margin: 0 0 8px;
+    font-size: 1.2em;
+}
+
+.browser-first-notice h3 {
+    margin: 0 0 6px;
+    font-size: 1.05em;
+}
+
+.browser-first-notice p {
+    margin: 0 0 8px;
+}
+
+.browser-first-notice ol {
+    margin: 0 0 10px;
+    padding-left: 22px;
+}
+
+.browser-first-notice li {
+    margin-bottom: 6px;
+}
+
+.bfn-option {
+    margin: 12px 0;
+    padding: 12px;
+    border: 1px solid #e0c36a;
+    border-radius: 6px;
+    background: #fffdf5;
+}
+
+.bfn-link {
+    display: inline-block;
+    margin-top: 4px;
+}
+
+.bfn-note {
+    margin-top: 12px;
 }
 
 .copy-notice button {
