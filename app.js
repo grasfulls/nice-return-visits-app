@@ -5711,15 +5711,7 @@ const initializeApp = async () => {
     let kind = "";
     if (isInstalled && !contacts.length) kind = "empty-installed";
     else if (!isInstalled && contacts.length) kind = "browser-copy";
-    else if (!isInstalled && !contacts.length) {
-      try {
-        if (localStorage.getItem(INSTALLED_SETUP_COMPLETE_KEY) !== "true") {
-          kind = "browser-first";
-        }
-      } catch (error) {
-        console.error("Unable to read the setup status:", error);
-      }
-    }
+
     try {
       if (kind && localStorage.getItem(`return_visits_copy_notice_${kind}`)) {
         kind = "";
@@ -5727,20 +5719,9 @@ const initializeApp = async () => {
     } catch (error) {
       console.error("Unable to read the copy notice status:", error);
     }
-    const firstNotice = document.getElementById("browser-first-notice");
-    firstNotice.hidden = kind !== "browser-first";
     notice.dataset.kind = kind;
-    notice.hidden = !kind || kind === "browser-first";
+    notice.hidden = !kind;
     if (!kind) return;
-    if (kind === "browser-first") {
-      const ua = navigator.userAgent || "";
-      const isApple =
-        /iPad|iPhone|iPod/i.test(ua) ||
-        (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
-      document.getElementById("bfn-steps-apple").hidden = !isApple;
-      document.getElementById("bfn-steps-other").hidden = isApple;
-      return;
-    }
     document.getElementById("copy-notice-link").href =
       kind === "empty-installed"
         ? "./help.html#backup"
@@ -5753,17 +5734,13 @@ const initializeApp = async () => {
   document
     .getElementById("btn-copy-notice-setup")
     .addEventListener("click", () => {
-      document.getElementById("browser-first-notice").hidden = true;
-      showInstallScreen(false);
+      showInstallScreen("install");
     });
-  document.getElementById("btn-bfn-dismiss").addEventListener("click", () => {
-    try {
-      localStorage.setItem("return_visits_copy_notice_browser-first", "1");
-    } catch (error) {
-      console.error("Unable to save the copy notice status:", error);
-    }
-    document.getElementById("browser-first-notice").hidden = true;
-  });
+  document
+    .getElementById("btn-bfn-dismiss")
+    .addEventListener("click", () =>
+      document.getElementById("btn-setup-wizard-skip").click(),
+    );
   document
     .getElementById("btn-copy-notice-dismiss")
     .addEventListener("click", () => {
@@ -8320,16 +8297,30 @@ const initializeApp = async () => {
 
   renderContacts();
   const installScreen = document.getElementById("install-screen");
-  const showInstallScreen = (hasExistingData) => {
+  // mode: "welcome" (browser first run), "existing" (data found), "install"
+  const showInstallScreen = (mode) => {
     const appContainer = document.getElementById("app-container");
     appContainer.hidden = true;
     appContainer.inert = true;
     appContainer.setAttribute("aria-hidden", "true");
-    document.getElementById("setup-existing-data").hidden = !hasExistingData;
-    document.getElementById("setup-wizard-step-1").hidden = hasExistingData;
+    const step2 = document.getElementById("setup-wizard-step-2");
+    document.getElementById("setup-welcome").hidden = mode !== "welcome";
+    document.getElementById("setup-existing-data").hidden = mode !== "existing";
+    document.getElementById("setup-wizard-step-1").hidden =
+      mode !== "install" || !step2.hidden;
+    if (mode !== "install") step2.hidden = true;
+    document.getElementById("setup-wizard-progress").hidden = mode !== "install";
+    const name = mode === "welcome" ? "NRV-Welcome" : "NRV-Install";
+    document.getElementById("install-screen-title").textContent = name;
+    document.title = name;
     installScreen.hidden = false;
-    document.title = "NRV-Install";
   };
+  const ua = navigator.userAgent || "";
+  const isApplePhone =
+    /iPad|iPhone|iPod/i.test(ua) ||
+    (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+  document.getElementById("bfn-steps-apple").hidden = !isApplePhone;
+  document.getElementById("bfn-steps-other").hidden = isApplePhone;
   const eraseAllData = async () => {
     try {
       database.close();
@@ -8389,7 +8380,7 @@ const initializeApp = async () => {
   }
   if (contacts.length > 0) {
     if (isInstalledApp() && !setupDoneFlag) {
-      showInstallScreen(true);
+      showInstallScreen("existing");
     } else {
       markInstalledSetupComplete();
       installScreen.hidden = true;
@@ -8414,7 +8405,13 @@ const initializeApp = async () => {
       !setupComplete &&
       (!previousOnboardingDismissed || setupPending)
     ) {
-      showInstallScreen(false);
+      showInstallScreen("install");
+    } else if (
+      !isInstalledApp() &&
+      !setupComplete &&
+      (!previousOnboardingDismissed || setupPending)
+    ) {
+      showInstallScreen("welcome");
     } else {
       installScreen.hidden = true;
     }
