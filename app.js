@@ -28,6 +28,19 @@ class NewerDataVersionError extends Error {
   }
 }
 const APP_UPDATE_PENDING_KEY = "return_visits_app_update_pending";
+const INSTALLED_SETUP_COMPLETE_KEY = "nrv_installed_setup_completed";
+const isInstalledApp = () =>
+  window.matchMedia("(display-mode: standalone)").matches ||
+  navigator.standalone === true;
+const markInstalledSetupComplete = () => {
+  try {
+    localStorage.setItem(INSTALLED_SETUP_COMPLETE_KEY, "true");
+    return true;
+  } catch (error) {
+    console.error("Unable to save the installed-app setup status:", error);
+    return false;
+  }
+};
 let appUpdateAvailable = false;
 let appReadyForUpdates = false;
 let appUpdatePromptDismissed = false;
@@ -1261,7 +1274,9 @@ const encryptStoredValue = async (database, storageKey, value, encryptionKey) =>
 
 const dismissUnlockScreen = (screen) => {
   screen.remove();
-  document.getElementById("app-container").removeAttribute("inert");
+  const appContainer = document.getElementById("app-container");
+  appContainer.removeAttribute("inert");
+  appContainer.setAttribute("aria-hidden", "false");
 };
 
 // Update this version when the Terms of Use or Privacy & Data Notice changes.
@@ -3919,9 +3934,11 @@ const initializeApp = async () => {
     const contactModal = document.getElementById("contact-modal");
     const modalOpen =
       contactModal && contactModal.style.display === "flex";
-    const name = modalOpen
-      ? document.getElementById("modal-title").textContent
-      : names[currentViewId] || "Contacts";
+    const name = document.body.classList.contains("install-setup-in-progress")
+      ? "Install"
+      : modalOpen
+        ? document.getElementById("modal-title").textContent
+        : names[currentViewId] || "Contacts";
     const h1 = document.getElementById("app-title");
     if (h1) h1.textContent = `NRV - ${name}`;
   };
@@ -3932,6 +3949,10 @@ const initializeApp = async () => {
   const setupNextStepsNotice = document.getElementById(
     "setup-next-steps-notice",
   );
+  const notifySetupSaveFailure = () =>
+    alert(
+      "We could not save your setup progress on this device. Check device storage and try again.",
+    );
   const showSetupNextStepsIfReady = () => {
     try {
       if (
@@ -3947,6 +3968,10 @@ const initializeApp = async () => {
   document
     .getElementById("btn-setup-add-first-contact")
     .addEventListener("click", () => {
+      if (!markInstalledSetupComplete()) {
+        notifySetupSaveFailure();
+        return;
+      }
       setupNextStepsDialog.close();
       setupNextStepsNotice.hidden = true;
       try {
@@ -3954,6 +3979,7 @@ const initializeApp = async () => {
       } catch (error) {
         console.error("Unable to save the setup status:", error);
       }
+      document.body.classList.remove("install-setup-in-progress");
       document.getElementById("btn-open-modal").click();
     });
   document
@@ -3972,12 +3998,17 @@ const initializeApp = async () => {
   document
     .getElementById("btn-setup-continue-later")
     .addEventListener("click", () => {
+      if (!markInstalledSetupComplete()) {
+        notifySetupSaveFailure();
+        return;
+      }
       setupNextStepsNotice.hidden = true;
       try {
         localStorage.removeItem("return_visits_setup_pending");
       } catch (error) {
         console.error("Unable to save the setup status:", error);
       }
+      document.body.classList.remove("install-setup-in-progress");
     });
 
   const renderBottomNav = () => {
@@ -3988,6 +4019,9 @@ const initializeApp = async () => {
       "settings-view": "Settings",
     };
     document.title = `NRV - ${pageNames[currentViewId] || "Contacts"}`;
+    if (document.body.classList.contains("install-setup-in-progress")) {
+      document.title = "NRV-Install";
+    }
     updateHeaderTitle();
     document.body.classList.toggle(
       "settings-open",
@@ -5672,13 +5706,10 @@ const initializeApp = async () => {
   // Render Contacts List
   const updateCopyNotice = () => {
     const notice = document.getElementById("copy-notice");
-    const isInstalled =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      navigator.standalone === true;
+    const isInstalled = isInstalledApp();
     let kind = "";
     if (isInstalled && !contacts.length) kind = "empty-installed";
     else if (!isInstalled && contacts.length) kind = "browser-copy";
-    if (!document.getElementById("install-banner").hidden) kind = "";
     try {
       if (kind && localStorage.getItem(`return_visits_copy_notice_${kind}`)) {
         kind = "";
@@ -8253,14 +8284,39 @@ const initializeApp = async () => {
   refreshCloudUi();
 
   renderContacts();
+  const installScreen = document.getElementById("install-screen");
   if (contacts.length > 0) {
-    // Existing users don't need the first-run setup banner.
+    markInstalledSetupComplete();
+    installScreen.hidden = true;
+  } else {
+    let setupComplete = false;
+    let setupPending = false;
+    let previousOnboardingDismissed = false;
     try {
-      localStorage.setItem("return_visits_onboarding_v2_dismissed", "true");
+      setupComplete =
+        localStorage.getItem(INSTALLED_SETUP_COMPLETE_KEY) === "true";
+      setupPending =
+        localStorage.getItem("return_visits_setup_pending") === "true";
+      previousOnboardingDismissed =
+        localStorage.getItem("return_visits_onboarding_v2_dismissed") ===
+        "true";
     } catch (error) {
-      console.error("Unable to save the install tip status:", error);
+      console.error("Unable to read the installed-app setup status:", error);
     }
-    document.getElementById("install-banner").hidden = true;
+    if (
+      isInstalledApp() &&
+      !setupComplete &&
+      (!previousOnboardingDismissed || setupPending)
+    ) {
+      const appContainer = document.getElementById("app-container");
+      appContainer.hidden = true;
+      appContainer.inert = true;
+      appContainer.setAttribute("aria-hidden", "true");
+      installScreen.hidden = false;
+      document.title = "NRV-Install";
+    } else {
+      installScreen.hidden = true;
+    }
   }
   // Remind after 10 days without a backup, at most once a day. Only a
   // successful backup resets the count.
@@ -8324,22 +8380,20 @@ const initializeApp = async () => {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  const installBanner = document.getElementById("install-banner");
+  const installBanner = document.getElementById("install-screen");
   const installBannerKey = "return_visits_onboarding_v2_dismissed";
   const setupPendingKey = "return_visits_setup_pending";
   const wizardStepKey = "return_visits_first_run_wizard_step_v2";
-  let dismissed = false;
   let setupPending = false;
   let wizardStep = 1;
   try {
-    dismissed = localStorage.getItem(installBannerKey) === "true";
     setupPending = localStorage.getItem(setupPendingKey) === "true";
     const savedWizardStep = Number(localStorage.getItem(wizardStepKey));
     if (savedWizardStep === 2) wizardStep = savedWizardStep;
   } catch (error) {
-    console.error("Unable to read the install tip status:", error);
+    console.error("Unable to read the install setup status:", error);
   }
-  installBanner.hidden = dismissed;
+  installBanner.hidden = true;
   document.getElementById("setup-next-steps-notice").hidden = !setupPending;
 
   const deviceTypeSelect = document.getElementById("setup-device-type");
@@ -8542,11 +8596,11 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("setup-wizard-step-2").hidden = step !== 2;
     document.getElementById("setup-wizard-progress").textContent =
       `Step ${step} of 2: ${
-        step === 1 ? "Save a bookmark" : "Choose your setup"
+        step === 1 ? "Welcome" : "Choose your setup"
       }`;
     if (shouldFocus && !installBanner.hidden) {
       document
-        .querySelector(`#setup-wizard-step-${step} h3`)
+        .querySelector(`#setup-wizard-step-${step} h2`)
         .focus({ preventScroll: true });
     }
   };
@@ -8568,14 +8622,29 @@ document.addEventListener("DOMContentLoaded", () => {
       localStorage.removeItem(wizardStepKey);
     } catch (error) {
       console.error("Unable to save the setup status:", error);
+      alert(
+        "We could not save your setup progress. Please check device storage and try again.",
+      );
+      installBanner.hidden = false;
+      return;
     }
+    const appContainer = document.getElementById("app-container");
+    appContainer.hidden = false;
+    appContainer.inert = false;
+    appContainer.setAttribute("aria-hidden", "false");
+    document.body.classList.add("install-setup-in-progress");
     goToView("settings-view");
     const defaults = document.getElementById("defaults-your-details-section");
     defaults.open = true;
     defaults.scrollIntoView({ block: "start" });
   };
   const skipSetup = () => {
-    installBanner.hidden = true;
+    if (!markInstalledSetupComplete()) {
+      alert(
+        "We could not save your setup progress on this device. Check device storage and try again.",
+      );
+      return;
+    }
     try {
       localStorage.setItem(installBannerKey, "true");
       localStorage.removeItem(setupPendingKey);
@@ -8583,7 +8652,16 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       console.error("Unable to save the setup status:", error);
     }
+    installBanner.hidden = true;
+    const appContainer = document.getElementById("app-container");
+    appContainer.hidden = false;
+    appContainer.inert = false;
+    appContainer.setAttribute("aria-hidden", "false");
     document.getElementById("setup-next-steps-notice").hidden = true;
+    document.body.classList.remove("install-setup-in-progress");
+    document.title = "NRV - Contacts";
+    document.getElementById("app-title").textContent = "NRV - Contacts";
+    goToView("contacts-view");
   };
   const continueWizard = () => {
     try {
@@ -8607,11 +8685,20 @@ document.addEventListener("DOMContentLoaded", () => {
     section.scrollIntoView({ block: "start" });
   };
   const finishSetup = () => {
+    if (!markInstalledSetupComplete()) {
+      alert(
+        "We could not save your setup progress on this device. Check device storage and try again.",
+      );
+      return;
+    }
     try {
       localStorage.setItem(installBannerKey, "true");
+      localStorage.removeItem(setupPendingKey);
     } catch (error) {
       console.error("Unable to save the setup status:", error);
     }
+    document.getElementById("setup-next-steps-notice").hidden = true;
+    document.body.classList.remove("install-setup-in-progress");
     goToView("contacts-view");
   };
   document

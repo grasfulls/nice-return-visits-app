@@ -190,69 +190,6 @@
             <a id="copy-notice-link" href="./help.html#install-guide">See the steps</a>
             <button type="button" id="btn-copy-notice-dismiss">Got it</button>
           </aside>
-          <aside id="install-banner" class="install-banner" hidden>
-            <h2>Let's get Nice Return Visits ready for you</h2>
-            <p id="setup-wizard-progress" role="status" aria-live="polite">
-              Step 1 of 2: Save a bookmark
-            </p>
-            <section id="setup-wizard-step-1" class="setup-wizard-step">
-              <h3 tabindex="-1">Save a bookmark so you can find us again</h3>
-              <p>
-                We'll show you what to tap in this browser. Keep this page open
-                while you follow the steps. A bookmark saves this page in your
-                browser; it does not install a separate app or move your data.
-                If you do not see browser controls, this page may be open in an
-                app window; you can skip for now and bookmark it from your
-                regular browser later.
-              </p>
-              <p>We guessed your device and browser. Check the choices below; you can change them.</p>
-              <label for="setup-device-type">What are you using?</label>
-              <select id="setup-device-type">
-                <option value="phone">A phone or tablet</option>
-                <option value="computer">A computer</option>
-              </select>
-              <label for="setup-device-system">Which kind?</label>
-              <select id="setup-device-system"></select>
-              <label for="setup-device-browser">Which browser is open now?</label>
-              <select id="setup-device-browser"></select>
-              <div id="setup-bookmark-instructions" class="setup-bookmark-instructions" role="status" aria-live="polite"></div>
-              <div class="setup-wizard-actions">
-                <button type="button" id="btn-setup-wizard-next">
-                  I saved the bookmark — continue
-                </button>
-                <button type="button" class="setup-wizard-secondary" id="btn-setup-wizard-skip-icon">
-                  Skip for now
-                </button>
-              </div>
-            </section>
-            <section id="setup-wizard-step-2" class="setup-wizard-step" hidden>
-              <h3 tabindex="-1">Choose your setup</h3>
-              <p>
-                Set your default country, state or province, and city. Your
-                name and home details are optional; add only what you want to
-                use or share. You can add Cities, Regions, and Areas now or
-                later as you go.
-              </p>
-              <p>
-                Your data stays on this device unless you choose optional
-                Dropbox backup in Settings. A passphrase is also optional; you
-                can turn it on in Settings to encrypt your data and new backups.
-                Before connecting Dropbox, the app explains the backup risks
-                and asks you to confirm.
-              </p>
-              <p>
-                You can change these choices later using the Settings gear.
-              </p>
-              <div class="setup-wizard-actions">
-                <button type="button" id="btn-dismiss-install-banner">
-                  Set up Defaults &amp; Your Details
-                </button>
-                <button type="button" class="setup-wizard-secondary" id="btn-setup-wizard-skip">
-                  Skip setup and start using Contacts
-                </button>
-              </div>
-            </section>
-          </aside>
           <div class="contact-list-actions">
             <button
               type="button"
@@ -926,6 +863,69 @@
       <!-- Bottom Navigation Bar -->
       <nav id="bottom-nav"></nav>
     </div>
+
+    <section
+      id="install-screen"
+      class="install-screen"
+      aria-labelledby="install-screen-title"
+      hidden
+    >
+      <div class="install-screen-card">
+        <h1 id="install-screen-title">NRV-Install</h1>
+        <p id="setup-wizard-progress" role="status" aria-live="polite"></p>
+        <section id="setup-wizard-step-1" class="setup-wizard-step">
+          <h2 tabindex="-1">Welcome to Nice Return Visits</h2>
+          <p>
+            Before adding contacts, you can set default location details and
+            optional information about yourself. These choices help prepare
+            contact forms and can be changed later in Settings.
+          </p>
+          <p>
+            Your setup and contacts stay on this device unless you choose an
+            optional backup feature.
+          </p>
+          <div class="install-screen-actions">
+            <button type="button" id="btn-setup-wizard-next">
+              Continue
+            </button>
+          </div>
+        </section>
+        <section
+          id="setup-wizard-step-2"
+          class="setup-wizard-step"
+          hidden
+        >
+          <h2 tabindex="-1">Choose your setup</h2>
+          <p>
+            Set your default country, state or province, and city. Your name
+            and home details are optional. You can add Cities, Regions, and
+            Areas now or later as you go.
+          </p>
+          <div class="install-screen-actions">
+            <button type="button" id="btn-dismiss-install-banner">
+              Set up Defaults &amp; Your Details
+            </button>
+            <button
+              type="button"
+              id="btn-setup-wizard-skip"
+              class="install-screen-secondary"
+            >
+              Skip setup and start using Contacts
+            </button>
+          </div>
+        </section>
+        <div hidden aria-hidden="true">
+          <button type="button" id="btn-setup-wizard-skip-icon"></button>
+          <select id="setup-device-type">
+            <option value="phone">A phone or tablet</option>
+            <option value="computer">A computer</option>
+          </select>
+          <select id="setup-device-system"></select>
+          <select id="setup-device-browser"></select>
+          <div id="setup-bookmark-instructions"></div>
+        </div>
+      </div>
+    </section>
 
     <dialog id="map-print-dialog">
       <form id="map-print-form">
