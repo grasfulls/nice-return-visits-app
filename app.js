@@ -5710,6 +5710,15 @@ const initializeApp = async () => {
     let kind = "";
     if (isInstalled && !contacts.length) kind = "empty-installed";
     else if (!isInstalled && contacts.length) kind = "browser-copy";
+    else if (!isInstalled && !contacts.length) {
+      try {
+        if (localStorage.getItem(INSTALLED_SETUP_COMPLETE_KEY) !== "true") {
+          kind = "browser-first";
+        }
+      } catch (error) {
+        console.error("Unable to read the setup status:", error);
+      }
+    }
     try {
       if (kind && localStorage.getItem(`return_visits_copy_notice_${kind}`)) {
         kind = "";
@@ -5720,15 +5729,25 @@ const initializeApp = async () => {
     notice.dataset.kind = kind;
     notice.hidden = !kind;
     if (!kind) return;
+    document.getElementById("btn-copy-notice-setup").hidden =
+      kind !== "browser-first";
     document.getElementById("copy-notice-link").href =
       kind === "empty-installed"
         ? "./help.html#backup"
         : "./help.html#install-guide";
     document.getElementById("copy-notice-text").textContent =
-      kind === "empty-installed"
+      kind === "browser-first"
+        ? "Welcome! You're using NRV in a browser, so the guided NRV-Install setup is skipped. For the full setup, add NRV to your Home Screen and open it from the icon (see the steps). Or set up here now."
+        : kind === "empty-installed"
         ? "This installed copy is empty. If you already added contacts in your browser, open the app in that browser, go to Settings → Backup or Restore and back up, then restore here. Or connect Dropbox in both copies."
         : "Tip: for the best experience, add this app to your Home Screen or install it and use only that icon. Browser and installed copies keep separate contacts, so using one keeps all your data in one place.";
   };
+  document
+    .getElementById("btn-copy-notice-setup")
+    .addEventListener("click", () => {
+      document.getElementById("copy-notice").hidden = true;
+      showInstallScreen(false);
+    });
   document
     .getElementById("btn-copy-notice-dismiss")
     .addEventListener("click", () => {
