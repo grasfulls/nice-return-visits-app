@@ -8321,6 +8321,7 @@ const initializeApp = async () => {
     (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
   document.getElementById("bfn-steps-apple").hidden = !isApplePhone;
   document.getElementById("bfn-steps-other").hidden = isApplePhone;
+  document.getElementById("bfn-steps-link").hidden = isApplePhone;
   const eraseAllData = async () => {
     try {
       database.close();
