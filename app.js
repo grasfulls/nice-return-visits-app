@@ -7483,6 +7483,7 @@ const initializeApp = async () => {
   const cloudStatus = document.getElementById("cloud-status");
   const setCloudStatus = (message) => {
     cloudStatus.textContent = message;
+    if (message) cloudStatus.scrollIntoView({ block: "nearest" });
   };
   const showCloudStep = (stepId) => {
     ["cloud-question", "cloud-signup", "cloud-connect"].forEach((id) => {
