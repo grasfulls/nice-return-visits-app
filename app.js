@@ -4023,6 +4023,9 @@ const initializeApp = async () => {
           icon.appendChild(pin);
         } else {
           icon.textContent = btnConfig.icon;
+          if (btnConfig.id === "settings-view") {
+            icon.classList.add("nav-settings-icon");
+          }
         }
         btn.appendChild(icon);
         btn.title = btnConfig.id.replace("-view", "");

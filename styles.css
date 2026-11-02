@@ -1680,6 +1680,17 @@ textarea {
     line-height: 1;
 }
 
+.nav-settings-icon {
+    display: inline-grid;
+    box-sizing: border-box;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border-radius: 50%;
+    background: #2b3a4f;
+    font-size: 20px;
+}
+
 .nav-timer-dot {
     position: absolute;
     top: -4px;
