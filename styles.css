@@ -232,6 +232,14 @@ body {
     margin: 0 0 8px;
 }
 
+.copy-notice[data-kind="browser-first"] p {
+    white-space: pre-line;
+}
+
+.copy-notice[data-kind="browser-first"] button {
+    margin: 8px 12px 0 0;
+}
+
 .copy-notice button {
     margin-left: 12px;
 }

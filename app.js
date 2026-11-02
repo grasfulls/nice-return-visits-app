@@ -5704,6 +5704,18 @@ const initializeApp = async () => {
     });
 
   // Render Contacts List
+  const browserFirstNoticeText = () => {
+    const ua = navigator.userAgent || "";
+    const isApple =
+      /iPad|iPhone|iPod/i.test(ua) ||
+      (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+    const steps = isApple
+      ? "Option 1 (recommended): put NRV on your Home Screen like a regular app.\n1. Make sure you are using Safari (the blue compass icon), not a private tab.\n2. Tap the Share button (a square with an arrow pointing up) at the bottom of the screen.\n3. Scroll down and tap \"Add to Home Screen\", then tap \"Add\".\n4. Close Safari, then tap the new NRV icon on your Home Screen. The guided setup (NRV-Install) will start."
+      : "Option 1 (recommended): add NRV to your device like a regular app. Tap \"See the steps\" below for instructions for your device and browser, then open NRV from its new icon. The guided setup (NRV-Install) will start.";
+    return `Welcome to Nice Return Visits! You are using NRV in a web browser, so the guided setup was skipped.\n\n${steps}\n\nOption 2: do the same setup right here by tapping \"Set up here in the browser\" below.\n\nGood to know: contacts are stored separately in the browser and in the Home Screen icon. Pick one and keep using it. You can back up and restore later in Settings.`;
+  };
+
+  // Render Contacts List
   const updateCopyNotice = () => {
     const notice = document.getElementById("copy-notice");
     const isInstalled = isInstalledApp();
@@ -5737,7 +5749,7 @@ const initializeApp = async () => {
         : "./help.html#install-guide";
     document.getElementById("copy-notice-text").textContent =
       kind === "browser-first"
-        ? "Welcome! You're using NRV in a browser, so the guided NRV-Install setup is skipped. For the full setup, add NRV to your Home Screen and open it from the icon (see the steps). Or set up here now."
+        ? browserFirstNoticeText()
         : kind === "empty-installed"
         ? "This installed copy is empty. If you already added contacts in your browser, open the app in that browser, go to Settings → Backup or Restore and back up, then restore here. Or connect Dropbox in both copies."
         : "Tip: for the best experience, add this app to your Home Screen or install it and use only that icon. Browser and installed copies keep separate contacts, so using one keeps all your data in one place.";
