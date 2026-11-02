@@ -806,6 +806,15 @@ main {
     margin-bottom: 12px;
 }
 
+#cloud-status:not(:empty) {
+    background: #fff3cd;
+    border: 2px solid #e0a800;
+    border-radius: 6px;
+    color: #212529;
+    font-weight: bold;
+    padding: 10px 12px;
+}
+
 #btn-restore-backup {
     align-self: flex-start;
     background: #6c757d;
