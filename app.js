@@ -5689,6 +5689,10 @@ const initializeApp = async () => {
     notice.dataset.kind = kind;
     notice.hidden = !kind;
     if (!kind) return;
+    document.getElementById("copy-notice-link").href =
+      kind === "empty-installed"
+        ? "./help.html#backup"
+        : "./help.html#install-guide";
     document.getElementById("copy-notice-text").textContent =
       kind === "empty-installed"
         ? "This installed copy is empty. If you already added contacts in your browser, open the app in that browser, go to Settings → Backup or Restore and back up, then restore here. Or connect Dropbox in both copies."
