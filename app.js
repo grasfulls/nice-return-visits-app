@@ -1578,7 +1578,7 @@ const initializeAppData = async () => {
           if (newRecoveryCode) await showRecoveryCodeDialog(newRecoveryCode);
           if (usedRecoveryCode) {
             alert(
-              "Unlocked with your recovery code. Open Settings → Choices → Passphrase to Open App and choose a new passphrase; you can enter your recovery code as the current passphrase. You will also get a new recovery code.",
+              "Unlocked with your recovery code. Open Settings → Data Choices → Passphrase to Open App and choose a new passphrase; you can enter your recovery code as the current passphrase. You will also get a new recovery code.",
             );
           }
           resolve({ database, settings, contacts, encryptionKey, metadata });
@@ -5118,6 +5118,7 @@ const initializeApp = async () => {
     document.querySelectorAll("#settings-view input").forEach((input) => {
       if (["checkbox", "radio", "hidden", "button", "submit"].includes(input.type)) return;
       input.value = "";
+      if (input.type === "file") input.dispatchEvent(new Event("change"));
     });
     populateMeForm();
     settingStateInput.value = settings.state;
@@ -5126,9 +5127,13 @@ const initializeApp = async () => {
   confirmLeaveSettings = () => {
     const pending = findPendingSettingsEdit();
     if (!pending) return true;
+    const pendingDescription =
+      pending.input.type === "file"
+        ? "A backup file is selected but has not been restored."
+        : `"${pending.field}" in ${pending.section} has not been saved.`;
     if (
       confirm(
-        `Discard unsaved changes?\n\n"${pending.field}" in ${pending.section} has not been saved.\n\nChoose OK to discard, or Cancel to go back and finish it.`,
+        `Discard unsaved changes?\n\n${pendingDescription}\n\nChoose OK to discard, or Cancel to go back and finish it.`,
       )
     ) {
       discardSettingsEdits();
@@ -5642,7 +5647,10 @@ const initializeApp = async () => {
     initialFormState = captureFormState();
 
     editContact(targetId, contactVisitsSection.open ? "visits" : "info");
+    // Re-baseline right after the form is repopulated so a quick close is not seen as unsaved.
+    initialFormState = captureFormState();
     alert("Contact saved successfully!");
+    initialFormState = captureFormState();
   });
 
   document
@@ -7406,7 +7414,7 @@ const initializeApp = async () => {
     markBackupDone();
     alert(
       encryptionKey && !restored.metadata?.recovery
-        ? "Backup restored. It has no recovery code yet; open Settings → Choices → Passphrase to Open App and choose Make a New Recovery Code."
+        ? "Backup restored. It has no recovery code yet; open Settings → Data Choices → Passphrase to Open App and choose Make a New Recovery Code."
         : "Backup restored successfully.",
     );
     return true;
@@ -7421,7 +7429,10 @@ const initializeApp = async () => {
     try {
       const backup = JSON.parse(await file.text());
       const restored = await restoreBackupObject(backup);
-      if (restored) backupFileInput.value = "";
+      if (restored) {
+        backupFileInput.value = "";
+        backupFileInput.dispatchEvent(new Event("change"));
+      }
       return restored;
     } catch (error) {
       reportRestoreError(error);
@@ -7434,6 +7445,20 @@ const initializeApp = async () => {
     .addEventListener("click", () =>
       restoreBackupFile(backupFileInput.files[0]),
     );
+  const clearRestoreFileButton = document.getElementById(
+    "btn-clear-restore-file",
+  );
+  const restoreBackupButton = document.getElementById("btn-restore-backup");
+  const syncRestoreFileUi = () => {
+    const hasFile = backupFileInput.files.length > 0;
+    restoreBackupButton.classList.toggle("has-file", hasFile);
+    clearRestoreFileButton.hidden = !hasFile;
+  };
+  backupFileInput.addEventListener("change", syncRestoreFileUi);
+  clearRestoreFileButton.addEventListener("click", () => {
+    backupFileInput.value = "";
+    syncRestoreFileUi();
+  });
   // ---- Cloud backup (Dropbox, optional) ----
   const DAY_MS = 24 * 60 * 60 * 1000;
   const CLOUD_LAST_KEY = "return_visits_cloud_last_backup";
@@ -7453,6 +7478,7 @@ const initializeApp = async () => {
     ["cloud-question", "cloud-signup", "cloud-connect"].forEach((id) => {
       document.getElementById(id).hidden = id !== stepId;
     });
+    document.getElementById("btn-cloud-cancel-setup").hidden = !stepId;
   };
 
   // Small status icon in the header: synced, syncing, waiting or offline.
@@ -7461,7 +7487,7 @@ const initializeApp = async () => {
     if (cloudPaused) {
       return {
         icon: "⚠️",
-        text: "Dropbox sync is paused. Open Settings → Choices → Keep Your Data Safe → Cloud Backup for details.",
+        text: "Dropbox sync is paused. Open Settings → Data Choices → Keep Your Data Safe → Cloud Backup for details.",
       };
     }
     if (!navigator.onLine) {
@@ -7911,6 +7937,10 @@ const initializeApp = async () => {
     document.getElementById("btn-cloud-begin").hidden = true;
     showCloudStep("cloud-question");
   });
+  document.getElementById("btn-cloud-cancel-setup").addEventListener("click", () => {
+    document.getElementById("btn-cloud-begin").hidden = false;
+    showCloudStep("");
+  });
   document
     .getElementById("btn-cloud-have")
     .addEventListener("click", () => showCloudStep("cloud-connect"));
@@ -7925,7 +7955,7 @@ const initializeApp = async () => {
     .addEventListener("click", async () => {
       const encryptionWarning = encryptionKey
         ? "Your Dropbox backups will be encrypted with this app's passphrase before they are uploaded. Keep that passphrase and your recovery code safe; anyone who obtains an unencrypted export or a copy made before encryption may still read it."
-        : "No app passphrase is on, so backups in Dropbox will not be encrypted. Anyone who can access those Dropbox files may be able to read them. Turning on a passphrase first (Settings → Choices → Passphrase to Open App) is optional and will encrypt new backups; existing unencrypted Dropbox copies remain readable until you delete them.";
+        : "No app passphrase is on, so backups in Dropbox will not be encrypted. Anyone who can access those Dropbox files may be able to read them. Turning on a passphrase first (Settings → Data Choices → Passphrase to Open App) is optional and will encrypt new backups; existing unencrypted Dropbox copies remain readable until you delete them.";
       if (
         !confirm(
           `Dropbox is optional. Connecting sends Nice Return Visits backups to the Dropbox folder named Return Visits in your account. ${encryptionWarning} You can also protect your Dropbox account with a strong password and two-step verification. Dropbox account or device security can still be compromised. Continue to Dropbox sign-in?`,

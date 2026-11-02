@@ -817,6 +817,24 @@ main {
     font-size: 16px;
 }
 
+#btn-restore-backup.has-file {
+    background: #0a6b2d;
+    font-weight: 700;
+    box-shadow: 0 0 0 3px #b7e4c7;
+}
+
+#btn-clear-restore-file {
+    align-self: flex-start;
+    background: #fff;
+    color: #8a1f11;
+    padding: 10px 14px;
+    border: 2px solid #8a1f11;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+}
+
 #restore-passphrase-dialog {
     width: calc(100% - 40px);
     max-width: 420px;

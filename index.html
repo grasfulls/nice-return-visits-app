@@ -605,7 +605,7 @@
               </div>
             </details>
             <details class="settings-section" id="choices-section">
-              <summary>Choices</summary>
+              <summary>Data Choices</summary>
               <details class="settings-section">
                 <summary>Passphrase to Open App</summary>
                 <h3 id="passphrase-section-title">Passphrase</h3>
@@ -756,6 +756,9 @@
               <button type="button" id="btn-restore-backup">
                 Restore Selected Backup
               </button>
+              <button type="button" id="btn-clear-restore-file" hidden>
+                Cancel / Clear Selected File
+              </button>
             </details>
             <details class="settings-section" id="cloud-section">
               <summary>Cloud Backup (optional)</summary>
@@ -830,6 +833,9 @@
                     Connect to Dropbox
                   </button>
                 </div>
+                <button type="button" id="btn-cloud-cancel-setup" hidden>
+                  Cancel Setup
+                </button>
               </div>
               <div id="cloud-on" hidden>
                 <p id="cloud-account-status" role="status"></p>
