@@ -8859,7 +8859,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       alert(
-        "The app could not open its on-device database. Your existing browser data has not been deleted. Please reload and try again.",
+        "NRV could not open its storage. If you are in a Private tab, close it and open NRV in a normal Safari tab. Otherwise, close and reopen the browser, then try again. Nothing has been deleted.",
       );
     });
 });
