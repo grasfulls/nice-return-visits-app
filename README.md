@@ -299,7 +299,7 @@ wherever you saved or shared them.
 
 The app is published on GitHub Pages:
 
-**https://grasfulls.github.io/return-visits-app/**
+**https://grasfulls.github.io/nice-return-visits-app/**
 
 The app checks for updates when it opens and shows any update prompt once it has
 finished opening (after unlocking, if a passphrase is on). If an update is ready, it prompts you to update now or later; an
@@ -313,12 +313,12 @@ while keeping the contacts and settings stored in that app copy on the device.
 After the reload, unlock with the same passphrase if one is turned on.
 
 The plain-language user guide is available from **Settings → Help → User Guide & Privacy Notice** or directly at
-**https://grasfulls.github.io/return-visits-app/help.html**. It is an
+**https://grasfulls.github.io/nice-return-visits-app/help.html**. It is an
 accessible, responsive HTML page that can be read in a standard web browser.
 The combined Setup and User Guide PDF is in the [docs/](./docs) folder and linked from the page.
 
 The **Privacy & Data Notice** is available from Settings or directly at
-**https://grasfulls.github.io/return-visits-app/privacy.html**. The page also
+**https://grasfulls.github.io/nice-return-visits-app/privacy.html**. The page also
 provides a downloadable PDF copy. It explains what information the app stores
 on the user's device, what may be sent to hosting and mapping providers, and
 that the app owner does not collect information identifying who downloads or
