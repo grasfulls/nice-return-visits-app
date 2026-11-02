@@ -157,6 +157,27 @@ body {
     display: none;
 }
 
+.copy-notice {
+    margin: 0 0 16px;
+    padding: 12px;
+    border-left: 4px solid #e0a800;
+    border-radius: 4px;
+    background: #fff8e1;
+    line-height: 1.4;
+}
+
+.copy-notice[hidden] {
+    display: none;
+}
+
+.copy-notice p {
+    margin: 0 0 8px;
+}
+
+.copy-notice button {
+    margin-left: 12px;
+}
+
 .install-banner p {
     margin: 8px 0;
 }
