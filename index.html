@@ -821,6 +821,19 @@
               </div>
             </details>
             </details>
+            <details class="settings-section">
+              <summary>Erase All Data / Start Fresh</summary>
+              <p>
+                This permanently deletes all contacts, settings, and saved
+                choices from this copy of the app on this device, including any
+                Dropbox connection. Backup files and copies already in your
+                Dropbox are not deleted. Back up first if you want to keep
+                your contacts.
+              </p>
+              <button type="button" id="btn-erase-all-data">
+                Erase All Data on This Device
+              </button>
+            </details>
             </details>
             <details class="settings-section">
               <summary>Help</summary>
@@ -873,6 +886,25 @@
       <div class="install-screen-card">
         <h1 id="install-screen-title">NRV-Install</h1>
         <p id="setup-wizard-progress" role="status" aria-live="polite"></p>
+        <section id="setup-existing-data" class="setup-wizard-step" hidden>
+          <h2 tabindex="-1">We found existing NRV data</h2>
+          <p>
+            This copy of the app already has saved contacts or settings. You
+            can open that data, or erase it and start a new installation.
+          </p>
+          <div class="install-screen-actions">
+            <button type="button" id="btn-install-open-existing">
+              Open my existing data
+            </button>
+            <button
+              type="button"
+              id="btn-install-start-new"
+              class="install-screen-secondary"
+            >
+              Erase it and start a new installation
+            </button>
+          </div>
+        </section>
         <section id="setup-wizard-step-1" class="setup-wizard-step">
           <h2 tabindex="-1">Welcome to Nice Return Visits</h2>
           <p>
@@ -888,6 +920,19 @@
             <button type="button" id="btn-setup-wizard-next">
               Continue
             </button>
+            <button
+              type="button"
+              id="btn-install-restore"
+              class="install-screen-secondary"
+            >
+              Restore from a backup file
+            </button>
+            <input
+              type="file"
+              id="install-backup-file-input"
+              accept="application/json,.json"
+              hidden
+            />
           </div>
         </section>
         <section

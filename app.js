@@ -8285,9 +8285,80 @@ const initializeApp = async () => {
 
   renderContacts();
   const installScreen = document.getElementById("install-screen");
+  const showInstallScreen = (hasExistingData) => {
+    const appContainer = document.getElementById("app-container");
+    appContainer.hidden = true;
+    appContainer.inert = true;
+    appContainer.setAttribute("aria-hidden", "true");
+    document.getElementById("setup-existing-data").hidden = !hasExistingData;
+    document.getElementById("setup-wizard-step-1").hidden = hasExistingData;
+    installScreen.hidden = false;
+    document.title = "NRV-Install";
+  };
+  const eraseAllData = async () => {
+    try {
+      database.close();
+      await new Promise((resolve) => {
+        const request = indexedDB.deleteDatabase("return-visits-app");
+        request.onsuccess = request.onerror = request.onblocked = resolve;
+      });
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (error) {
+      console.error("Unable to erase app data:", error);
+    }
+    window.location.reload();
+  };
+  const confirmEraseAllData = () => {
+    if (
+      !confirm(
+        "Erase ALL contacts, settings and saved choices on this device? This cannot be undone. Backups you saved elsewhere are not deleted.",
+      )
+    ) {
+      return;
+    }
+    if (!confirm("Last check: really erase everything and start fresh?")) return;
+    eraseAllData();
+  };
+  document
+    .getElementById("btn-erase-all-data")
+    .addEventListener("click", confirmEraseAllData);
+  document
+    .getElementById("btn-install-start-new")
+    .addEventListener("click", confirmEraseAllData);
+  document
+    .getElementById("btn-install-open-existing")
+    .addEventListener("click", () =>
+      document.getElementById("btn-setup-wizard-skip").click(),
+    );
+  const installRestoreInput = document.getElementById(
+    "install-backup-file-input",
+  );
+  document
+    .getElementById("btn-install-restore")
+    .addEventListener("click", () => installRestoreInput.click());
+  installRestoreInput.addEventListener("change", async () => {
+    const file = installRestoreInput.files[0];
+    installRestoreInput.value = "";
+    if (!file) return;
+    if (await restoreBackupFile(file)) {
+      document.getElementById("btn-setup-wizard-skip").click();
+    }
+  });
+  let setupDoneFlag = false;
+  try {
+    setupDoneFlag =
+      localStorage.getItem(INSTALLED_SETUP_COMPLETE_KEY) === "true";
+  } catch (error) {
+    console.error("Unable to read the installed-app setup status:", error);
+  }
   if (contacts.length > 0) {
-    markInstalledSetupComplete();
-    installScreen.hidden = true;
+    if (isInstalledApp() && !setupDoneFlag) {
+      showInstallScreen(true);
+    } else {
+      markInstalledSetupComplete();
+      installScreen.hidden = true;
+    }
   } else {
     let setupComplete = false;
     let setupPending = false;
@@ -8308,12 +8379,7 @@ const initializeApp = async () => {
       !setupComplete &&
       (!previousOnboardingDismissed || setupPending)
     ) {
-      const appContainer = document.getElementById("app-container");
-      appContainer.hidden = true;
-      appContainer.inert = true;
-      appContainer.setAttribute("aria-hidden", "true");
-      installScreen.hidden = false;
-      document.title = "NRV-Install";
+      showInstallScreen(false);
     } else {
       installScreen.hidden = true;
     }
