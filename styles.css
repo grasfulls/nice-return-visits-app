@@ -573,28 +573,40 @@ header {
 }
 
 .hierarchy-city,
-.hierarchy-region {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    font-weight: 700;
-}
-
-.hierarchy-city {
-    margin-top: 6px;
-}
-
-.hierarchy-region {
-    padding-left: 12px;
-}
-
+.hierarchy-region,
 .hierarchy-area {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding-left: 24px;
+}
+
+.hierarchy-city,
+.hierarchy-region {
+    font-weight: 700;
+}
+
+.hierarchy-heading {
+    margin: 12px 0 2px;
+    font-size: 15px;
+    color: #004080;
+}
+
+.hierarchy-cities {
+    font-weight: 400;
+    color: #6c757d;
+}
+
+.hierarchy-editor {
+    flex: 1;
+    min-width: 0;
+}
+
+.hierarchy-editor fieldset {
+    margin: 8px 0 0;
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
 }
 
 .hierarchy-actions {

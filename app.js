@@ -1031,7 +1031,7 @@ const normalizeRegionData = (settings, contacts) => {
   const legacyAreaDefinitions = (settings.areas || []).map((area) =>
     typeof area === "string"
       ? { name: area, region: "Unassigned" }
-      : { name: area.name, region: area.region || "Unassigned", city: area.city },
+      : { name: area.name, region: area.region || "", city: area.city },
   );
   const originalRegions = Array.isArray(settings.regions)
     ? settings.regions
@@ -1048,24 +1048,17 @@ const normalizeRegionData = (settings, contacts) => {
       regionDefinitions.push({ name, city });
     }
   };
-  const addArea = (name, region, city) => {
-    if (!name || !region || !city) return;
-    addRegion(region, city);
-    if (
-      !areaDefinitions.some(
-        (area) =>
-          area.name === name && area.region === region && area.city === city,
-      )
-    ) {
-      areaDefinitions.push({ name, region, city });
+  // An area belongs to a city only; it is independent of any region.
+  const addArea = (name, city) => {
+    if (!name || !city) return;
+    if (!areaDefinitions.some((area) => area.name === name && area.city === city)) {
+      areaDefinitions.push({ name, city });
     }
   };
   if (typeof settings.me?.city === "string" && settings.me.city) {
     if (!cities.includes(settings.me.city)) cities.push(settings.me.city);
     if (settings.me.region) addRegion(settings.me.region, settings.me.city);
-    if (settings.me.area && settings.me.region) {
-      addArea(settings.me.area, settings.me.region, settings.me.city);
-    }
+    if (settings.me.area) addArea(settings.me.area, settings.me.city);
   }
 
   if (
@@ -1103,7 +1096,7 @@ const normalizeRegionData = (settings, contacts) => {
         ? contact.region
         : areaDefinition?.region || "";
     if (region) addRegion(region, city);
-    if (firstArea && region) addArea(firstArea, region, city);
+    if (firstArea) addArea(firstArea, city);
   });
 
   legacyAreaDefinitions.forEach((area) => {
@@ -1115,12 +1108,17 @@ const normalizeRegionData = (settings, contacts) => {
           : [];
       return assignedAreas.includes(area.name);
     });
-    const areaCities = matchingContacts.length
-      ? matchingContacts.map((contact) => contact.city || defaultCity)
-      : [area.city || defaultCity];
+    const areaCities = area.city
+      ? [area.city]
+      : matchingContacts.length
+        ? matchingContacts.map((contact) => contact.city || defaultCity)
+        : [defaultCity];
     areaCities.forEach((city) => {
       if (city && !cities.includes(city)) cities.push(city);
-      addArea(area.name, area.region, city);
+      if (area.region && area.region !== "Unassigned") {
+        addRegion(area.region, city);
+      }
+      addArea(area.name, city);
     });
   });
 
@@ -1133,17 +1131,15 @@ const normalizeRegionData = (settings, contacts) => {
     const areaName =
       legacyAreaNames.find((area) => typeof area === "string") || "";
     const city = typeof contact.city === "string" ? contact.city : defaultCity;
-    const areaDefinition = areaDefinitions.find(
-      (area) => area.name === areaName && area.city === city,
-    );
-    const region =
-      (typeof contact.region === "string" &&
-        regionDefinitions.some(
-          (item) => item.name === contact.region && item.city === city,
-        ) &&
-        contact.region) ||
-      areaDefinition?.region ||
+    const candidateRegion =
+      (typeof contact.region === "string" && contact.region) ||
+      legacyAreaDefinitions.find((area) => area.name === areaName)?.region ||
       "";
+    const region = regionDefinitions.some(
+      (item) => item.name === candidateRegion && item.city === city,
+    )
+      ? candidateRegion
+      : "";
     const rest = { ...contact };
     delete rest.areas;
     delete rest.areaAssignments;
@@ -1152,7 +1148,11 @@ const normalizeRegionData = (settings, contacts) => {
       country: normalizeCountry(contact.country || defaultCountry),
       city,
       region,
-      area: areaDefinition && areaDefinition.region === region ? areaName : "",
+      area: areaDefinitions.some(
+        (area) => area.name === areaName && area.city === city,
+      )
+        ? areaName
+        : "",
       streetAddress: getStreetAddress(contact),
       updatedAt: contact.updatedAt || getContactLastActivity(contact),
     };
@@ -1802,10 +1802,7 @@ const initializeApp = async () => {
       (a, b) => compareNames(a.city, b.city) || compareNames(a.name, b.name),
     );
     settings.areas.sort(
-      (a, b) =>
-        compareNames(a.city, b.city) ||
-        compareNames(a.region, b.region) ||
-        compareNames(a.name, b.name),
+      (a, b) => compareNames(a.city, b.city) || compareNames(a.name, b.name),
     );
   };
   const addCity = (cityName) => {
@@ -1885,9 +1882,7 @@ const initializeApp = async () => {
 
       meArea.innerHTML = '<option value="">Choose an area (optional)</option>';
       settings.areas
-        .filter(
-          (area) => area.city === city && area.region === meRegion.value,
-        )
+        .filter((area) => area.city === city)
         .forEach((area) => {
           const option = document.createElement("option");
           option.value = area.name;
@@ -1898,7 +1893,7 @@ const initializeApp = async () => {
       addArea.value = "__ADD_NEW__";
       addArea.textContent = "+ Add New Area...";
       meArea.appendChild(addArea);
-      meArea.disabled = meRegion.disabled || !meRegion.value;
+      meArea.disabled = meRegion.disabled;
       meArea.value = selectedArea;
     };
     const populateContactRegionArea = (
@@ -1930,9 +1925,7 @@ const initializeApp = async () => {
       contactArea.innerHTML =
         '<option value="">Choose an area (optional)</option>';
       settings.areas
-        .filter(
-          (area) => area.city === city && area.region === contactRegion.value,
-        )
+        .filter((area) => area.city === city)
         .forEach((area) => {
           const option = document.createElement("option");
           option.value = area.name;
@@ -1943,7 +1936,7 @@ const initializeApp = async () => {
       addAreaOption.value = "__ADD_NEW__";
       addAreaOption.textContent = "+ Add New Area...";
       contactArea.appendChild(addAreaOption);
-      contactArea.disabled = contactRegion.disabled || !contactRegion.value;
+      contactArea.disabled = contactRegion.disabled;
       contactArea.value = selectedArea;
       selectedContactArea = contactArea.value;
       selectedContactRegion = contactRegion.value;
@@ -1954,16 +1947,20 @@ const initializeApp = async () => {
     const filterRegion = document.getElementById("filter-region");
     const currentRegionFilter = filterRegion.value;
     filterRegion.innerHTML = '<option value="">All Regions</option>';
-    settings.regions
-      .filter(
-        (region) => !filterCity.value || region.city === filterCity.value,
-      )
-      .forEach((region) => {
+    [
+      ...new Set(
+        settings.regions
+          .filter(
+            (region) => !filterCity.value || region.city === filterCity.value,
+          )
+          .map((region) => region.name),
+      ),
+    ]
+      .sort(compareNames)
+      .forEach((name) => {
         const option = document.createElement("option");
-        option.value = JSON.stringify([region.city, region.name]);
-        option.textContent = filterCity.value
-          ? region.name
-          : `${region.name} (${region.city})`;
+        option.value = name;
+        option.textContent = name;
         filterRegion.appendChild(option);
       });
     filterRegion.value = Array.from(filterRegion.options).some(
@@ -1975,32 +1972,18 @@ const initializeApp = async () => {
     const filterArea = document.getElementById("filter-area");
     let currentAreaFilter = filterArea.value;
     filterArea.innerHTML = '<option value="">All Areas</option>';
-    settings.areas
-      .filter((area) => {
-        let selectedRegion = null;
-        if (filterRegion.value) {
-          try {
-            selectedRegion = JSON.parse(filterRegion.value);
-          } catch (error) {
-            console.error("Invalid region filter value:", error);
-          }
-        }
-        return (
-          (!filterCity.value || area.city === filterCity.value) &&
-          (!filterRegion.value ||
-            (Array.isArray(selectedRegion) &&
-              area.city === selectedRegion[0] &&
-              area.region === selectedRegion[1]))
-        );
-      })
-      .forEach((area) => {
+    [
+      ...new Set(
+        settings.areas
+          .filter((area) => !filterCity.value || area.city === filterCity.value)
+          .map((area) => area.name),
+      ),
+    ]
+      .sort(compareNames)
+      .forEach((name) => {
         const opt = document.createElement("option");
-        opt.value = JSON.stringify([area.city, area.region, area.name]);
-        opt.textContent = filterRegion.value
-          ? area.name
-          : filterCity.value
-            ? `${area.name} (${area.region})`
-            : `${area.name} (${area.region}, ${area.city})`;
+        opt.value = name;
+        opt.textContent = name;
         filterArea.appendChild(opt);
       });
     if (
@@ -2015,28 +1998,6 @@ const initializeApp = async () => {
 
     const settingRegionCity = document.getElementById("setting-region-city");
     const settingAreaCity = document.getElementById("setting-area-city");
-    const settingAreaRegion = document.getElementById("setting-area-region");
-    const populateSettingRegionOptions = () => {
-      const city = settingAreaCity.value;
-      const previousRegion = settingAreaRegion.value;
-      settingAreaRegion.innerHTML = '<option value="">Choose region</option>';
-      settings.regions
-        .filter((region) => region.city === city)
-        .forEach((region) => {
-          const option = document.createElement("option");
-          option.value = region.name;
-          option.textContent = region.name;
-          settingAreaRegion.appendChild(option);
-        });
-      settingAreaRegion.disabled = !city;
-      if (
-        settings.regions.some(
-          (region) => region.city === city && region.name === previousRegion,
-        )
-      ) {
-        settingAreaRegion.value = previousRegion;
-      }
-    };
     [settingRegionCity, settingAreaCity].forEach((select) => {
       const previousCity = select.value;
       select.innerHTML = '<option value="">Choose city</option>';
@@ -2048,15 +2009,27 @@ const initializeApp = async () => {
       });
       if (settings.cities.includes(previousCity)) select.value = previousCity;
     });
-    populateSettingRegionOptions();
 
     const hierarchyList = document.getElementById("region-area-list");
     hierarchyList.innerHTML = "";
-    const addHierarchyRow = (type, labelText, className, location) => {
+    const addHierarchyHeading = (text) => {
+      const heading = document.createElement("h4");
+      heading.className = "hierarchy-heading";
+      heading.textContent = text;
+      hierarchyList.appendChild(heading);
+    };
+    const addHierarchyRow = (type, name, className, usedIn) => {
+      const location = { name };
       const item = document.createElement("div");
       item.className = className;
       const label = document.createElement("span");
-      label.textContent = labelText;
+      label.textContent = name;
+      if (usedIn) {
+        const cityNote = document.createElement("small");
+        cityNote.className = "hierarchy-cities";
+        cityNote.textContent = usedIn;
+        label.append(document.createElement("br"), cityNote);
+      }
       item.appendChild(label);
 
       const actions = document.createElement("div");
@@ -2067,7 +2040,7 @@ const initializeApp = async () => {
         button.textContent = action;
         button.setAttribute(
           "aria-label",
-          `${action} ${type.toLowerCase()} ${location.name}`,
+          `${action} ${type.toLowerCase()} ${name}`,
         );
         button.addEventListener("click", () => {
           if (action === "Edit")
@@ -2079,41 +2052,43 @@ const initializeApp = async () => {
       item.appendChild(actions);
       hierarchyList.appendChild(item);
     };
+    const addNameRows = (type, items, className) => {
+      const citiesByName = new Map();
+      items.forEach((item) => {
+        if (!citiesByName.has(item.name)) citiesByName.set(item.name, []);
+        citiesByName.get(item.name).push(item.city);
+      });
+      [...citiesByName.keys()].sort(compareNames).forEach((name) =>
+        addHierarchyRow(
+          type,
+          name,
+          className,
+          `Cities: ${citiesByName.get(name).sort(compareNames).join(", ")}`,
+        ),
+      );
+    };
 
-    settings.cities.forEach((city) => {
-      addHierarchyRow("City", city, "hierarchy-city", { name: city });
-      settings.regions
-        .filter((region) => region.city === city)
-        .forEach((region) => {
-          addHierarchyRow(
-            "Region",
-            `${city} → ${region.name}`,
-            "hierarchy-region",
-            { name: region.name, city },
-          );
-          settings.areas
-            .filter(
-              (area) => area.city === city && area.region === region.name,
-            )
-            .forEach((area) =>
-              addHierarchyRow(
-                "Area",
-                `${region.name} → ${area.name}`,
-                "hierarchy-area",
-                { name: area.name, region: region.name, city },
-              ),
-            );
-        });
-    });
     if (!settings.cities.length) {
       hierarchyList.textContent =
-        "Add a city, then add regions and areas beneath it.";
+        "Add a city, then assign regions and areas to it.";
+    } else {
+      addHierarchyHeading("Cities");
+      settings.cities.forEach((city) =>
+        addHierarchyRow("City", city, "hierarchy-city"),
+      );
+      if (settings.regions.length) {
+        addHierarchyHeading("Regions");
+        addNameRows("Region", settings.regions, "hierarchy-region");
+      }
+      if (settings.areas.length) {
+        addHierarchyHeading("Areas");
+        addNameRows("Area", settings.areas, "hierarchy-area");
+      }
     }
 
     return {
       populateContactRegionArea,
       populateMeRegionArea,
-      populateSettingRegionOptions,
     };
   };
   const dropdownHelpers = populateDropdowns();
@@ -2337,7 +2312,6 @@ const initializeApp = async () => {
     pendingContactCitySave = commitContactCity();
   });
   contactRegionSelect.addEventListener("change", () => {
-    document.getElementById("new-contact-area-container").hidden = true;
     if (contactRegionSelect.value === "__ADD_NEW__") {
       contactRegionSelect.value = selectedContactRegion;
       newContactRegionContainer.hidden = false;
@@ -2348,7 +2322,10 @@ const initializeApp = async () => {
       newRegionInput.focus();
       return;
     }
-    dropdownHelpers.populateContactRegionArea(contactRegionSelect.value, "");
+    dropdownHelpers.populateContactRegionArea(
+      contactRegionSelect.value,
+      contactAreaSelect.value,
+    );
   });
   contactAreaSelect.addEventListener("change", () => {
     const newAreaContainer = document.getElementById(
@@ -2426,24 +2403,22 @@ const initializeApp = async () => {
         input.focus();
         return;
       }
-      if (!city || !region) {
-        alert("Choose a city and region before adding an area.");
+      if (!city) {
+        alert("Choose a city before adding an area.");
         return;
       }
       const existingArea = settings.areas.find(
         (area) =>
-          area.city === city &&
-          area.region === region &&
-          area.name.toLowerCase() === name.toLowerCase(),
+          area.city === city && area.name.toLowerCase() === name.toLowerCase(),
       );
       if (existingArea) {
         dropdownHelpers.populateContactRegionArea(region, existingArea.name);
         document.getElementById("new-contact-area-container").hidden = true;
-        alert("That area already exists in this region and city.");
+        alert("That area already exists in this city.");
         return;
       }
 
-      const newArea = { name, region, city };
+      const newArea = { name, city };
       settings.areas.push(newArea);
       try {
         await saveSettings();
@@ -2465,11 +2440,6 @@ const initializeApp = async () => {
       document.getElementById("input-new-contact-area").value = "";
       contactAreaSelect.value = selectedContactArea;
     });
-  document
-    .getElementById("setting-area-city")
-    .addEventListener("change", () =>
-      dropdownHelpers.populateSettingRegionOptions(),
-    );
   document
     .getElementById("setting-new-city")
     .addEventListener("blur", (event) => {
@@ -2525,9 +2495,8 @@ const initializeApp = async () => {
       const input = settingAreaInput;
       const val = toTitleCase(input.value);
       const city = document.getElementById("setting-area-city").value;
-      const region = document.getElementById("setting-area-region").value;
-      if (!city || !region) {
-        alert("Choose a city and region for this area first.");
+      if (!city) {
+        alert("Choose a city for this area first.");
         return;
       }
       if (
@@ -2535,11 +2504,10 @@ const initializeApp = async () => {
         !settings.areas.some(
           (area) =>
             area.city === city &&
-            area.region === region &&
             area.name.toLowerCase() === val.toLowerCase(),
         )
       ) {
-        settings.areas.push({ name: val, region, city });
+        settings.areas.push({ name: val, city });
         try {
           await saveSettings();
         } catch (error) {
@@ -2550,10 +2518,10 @@ const initializeApp = async () => {
         input.value = "";
         updateAddAreaButton();
         populateDropdowns();
-        alert(`Area "${val}" added to ${region}, ${city}.`);
+        alert(`Area "${val}" added to ${city}.`);
       } else if (val) {
         input.value = "";
-        alert("That area already exists in this region and city.");
+        alert("That area already exists in this city.");
       }
     });
 
@@ -2738,8 +2706,10 @@ const initializeApp = async () => {
         .getElementById("input-new-me-region")
         .focus({ preventScroll: true });
     } else {
-      meFields.area.value = "";
-      dropdownHelpers.populateMeRegionArea(meFields.region.value, "");
+      dropdownHelpers.populateMeRegionArea(
+        meFields.region.value,
+        meFields.area.value,
+      );
     }
   });
   meFields.area.addEventListener("change", () => {
@@ -2803,25 +2773,23 @@ const initializeApp = async () => {
       const name = toTitleCase(input.value);
       const city = meFields.city.value.trim();
       const region = meFields.region.value;
-      if (!name || !city || !region) {
-        alert("Enter an area name after choosing a city and region.");
+      if (!name || !city) {
+        alert("Enter an area name after choosing a city.");
         input.focus({ preventScroll: true });
         return;
       }
       const existing = settings.areas.find(
         (area) =>
-          area.city === city &&
-          area.region === region &&
-          area.name.toLowerCase() === name.toLowerCase(),
+          area.city === city && area.name.toLowerCase() === name.toLowerCase(),
       );
       if (existing) {
         populateDropdowns();
         meFields.area.value = existing.name;
         document.getElementById("new-me-area-container").hidden = true;
-        alert("That area already exists in this region and city.");
+        alert("That area already exists in this city.");
         return;
       }
-      const area = { name, region, city };
+      const area = { name, city };
       settings.areas.push(area);
       try {
         await saveSettings();
@@ -2955,10 +2923,7 @@ const initializeApp = async () => {
         )) ||
       (me.area &&
         !settings.areas.some(
-          (area) =>
-            area.city === me.city &&
-            area.region === me.region &&
-            area.name === me.area,
+          (area) => area.city === me.city && area.name === me.area,
         ))
     ) {
       meStatus.textContent = "Choose a valid country, city, region, and area.";
@@ -3049,24 +3014,14 @@ const initializeApp = async () => {
     contacts: JSON.parse(JSON.stringify(contacts)),
   });
 
-  const updateLocationFilter = (filterId, tupleIndex, oldValue, newValue) => {
+  const renameFilterValue = (filterId, oldValue, newValue) => {
     const filter = document.getElementById(filterId);
-    if (!filter.value) return;
-    try {
-      const previousFilterValue = filter.value;
-      const location = JSON.parse(filter.value);
-      if (Array.isArray(location) && location[tupleIndex] === oldValue) {
-        location[tupleIndex] = newValue;
-        const updatedFilterValue = JSON.stringify(location);
-        const selectedOption = Array.from(filter.options).find(
-          (option) => option.value === previousFilterValue,
-        );
-        if (selectedOption) selectedOption.value = updatedFilterValue;
-        filter.value = updatedFilterValue;
-      }
-    } catch (error) {
-      console.error(`Invalid ${filterId} value:`, error);
-    }
+    if (filter.value !== oldValue) return;
+    const selectedOption = Array.from(filter.options).find(
+      (option) => option.value === oldValue,
+    );
+    if (selectedOption) selectedOption.value = newValue;
+    filter.value = newValue;
   };
 
   const startEditingLocation = (type, location, row, label, actions) => {
@@ -3075,14 +3030,53 @@ const initializeApp = async () => {
     input.type = "text";
     input.value = location.name;
     input.setAttribute("aria-label", `New ${type.toLowerCase()} name`);
-    label.replaceWith(input);
     actions.innerHTML = "";
+
+    let getSelectedCities = null;
+    if (type === "City") {
+      label.replaceWith(input);
+    } else {
+      const listKey = type === "Region" ? "regions" : "areas";
+      const assigned = new Set(
+        settings[listKey]
+          .filter((item) => item.name === location.name)
+          .map((item) => item.city),
+      );
+      const editor = document.createElement("div");
+      editor.className = "hierarchy-editor";
+      const cityGroup = document.createElement("fieldset");
+      const legend = document.createElement("legend");
+      legend.textContent = "Assigned to cities";
+      cityGroup.appendChild(legend);
+      const checkboxes = settings.cities.map((city) => {
+        const cityLabel = document.createElement("label");
+        cityLabel.className = "checkbox-row";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = city;
+        checkbox.checked = assigned.has(city);
+        cityLabel.append(checkbox, ` ${city}`);
+        cityGroup.appendChild(cityLabel);
+        return checkbox;
+      });
+      editor.append(input, cityGroup);
+      label.replaceWith(editor);
+      getSelectedCities = () =>
+        checkboxes.filter((box) => box.checked).map((box) => box.value);
+    }
 
     const saveButton = document.createElement("button");
     saveButton.type = "button";
     saveButton.textContent = "Save";
     saveButton.addEventListener("click", async () => {
-      await renameLocation(type, location, input.value);
+      if (type === "City") await renameLocation(type, location, input.value);
+      else
+        await saveLocationAssignments(
+          type,
+          location.name,
+          input.value,
+          getSelectedCities(),
+        );
     });
     const cancelButton = document.createElement("button");
     cancelButton.type = "button";
@@ -3126,25 +3120,11 @@ const initializeApp = async () => {
     }
     if (name === location.name) return true;
 
-    const duplicate =
-      type === "City"
-        ? settings.cities.some(
-            (city) => city.toLowerCase() === name.toLowerCase(),
-          )
-        : type === "Region"
-          ? settings.regions.some(
-              (region) =>
-                region.city === location.city &&
-                region.name.toLowerCase() === name.toLowerCase(),
-            )
-          : settings.areas.some(
-              (area) =>
-                area.city === location.city &&
-                area.region === location.region &&
-                area.name.toLowerCase() === name.toLowerCase(),
-            );
+    const duplicate = settings.cities.some(
+      (city) => city.toLowerCase() === name.toLowerCase(),
+    );
     if (duplicate) {
-      alert(`A ${type.toLowerCase()} with that name already exists here.`);
+      alert("A city with that name already exists.");
       return false;
     }
 
@@ -3194,113 +3174,110 @@ const initializeApp = async () => {
         if (selectedOption) selectedOption.value = name;
         cityFilter.value = name;
       }
-      updateLocationFilter("filter-region", 0, location.name, name);
-      updateLocationFilter("filter-area", 0, location.name, name);
       if (settings.defaultCity === name) {
         document.getElementById("setting-default-city").value = name;
       }
-    } else if (type === "Region") {
-      settings.regions = settings.regions.map((region) =>
-        region.city === location.city && region.name === location.name
-          ? { ...region, name }
-          : region,
+    }
+    return persistLocationChanges(previousState);
+  };
+
+  // Renames a region or area everywhere it is used and updates the cities it
+  // is assigned to.
+  const saveLocationAssignments = async (
+    type,
+    oldName,
+    proposedName,
+    selectedCities,
+  ) => {
+    const name = toTitleCase(proposedName);
+    const typeLabel = type.toLowerCase();
+    if (!name) {
+      alert(`A ${typeLabel} name cannot be blank.`);
+      return false;
+    }
+    if (!selectedCities.length) {
+      alert(
+        `Choose at least one city for this ${typeLabel}, or use Delete to remove it.`,
       );
-      settings.areas = settings.areas.map((area) =>
-        area.city === location.city && area.region === location.name
-          ? { ...area, region: name }
-          : area,
+      return false;
+    }
+    const listKey = type === "Region" ? "regions" : "areas";
+    const contactField = type === "Region" ? "region" : "area";
+    const currentCities = settings[listKey]
+      .filter((item) => item.name === oldName)
+      .map((item) => item.city);
+
+    const clashCity = selectedCities.find((city) =>
+      settings[listKey].some(
+        (item) =>
+          item.city === city &&
+          item.name !== oldName &&
+          item.name.toLowerCase() === name.toLowerCase(),
+      ),
+    );
+    if (clashCity) {
+      alert(`${clashCity} already has a ${typeLabel} named "${name}".`);
+      return false;
+    }
+    const blockedCity = currentCities.find(
+      (city) =>
+        !selectedCities.includes(city) &&
+        contacts.some(
+          (contact) =>
+            contact.city === city && contact[contactField] === oldName,
+        ),
+    );
+    if (blockedCity) {
+      alert(
+        `Cannot remove "${oldName}" from ${blockedCity} while contacts there use it. Reassign those contacts first.`,
       );
+      return false;
+    }
+
+    const previousState = cloneLocationState();
+    settings[listKey] = settings[listKey]
+      .filter((item) => item.name !== oldName || selectedCities.includes(item.city))
+      .map((item) => (item.name === oldName ? { ...item, name } : item));
+    selectedCities
+      .filter((city) => !currentCities.includes(city))
+      .forEach((city) => settings[listKey].push({ name, city }));
+    if (name !== oldName) {
       contacts = contacts.map((contact) =>
-        contact.city === location.city && contact.region === location.name
-          ? { ...contact, region: name }
+        contact[contactField] === oldName
+          ? { ...contact, [contactField]: name }
           : contact,
       );
-      if (
-        citySelect.value === location.city &&
-        contactRegionSelect.value === location.name
-      ) {
-        contactRegionSelect.value = name;
-        selectedContactRegion = name;
-      }
-      const settingAreaRegion = document.getElementById("setting-area-region");
-      if (
-        document.getElementById("setting-area-city").value === location.city &&
-        settingAreaRegion.value === location.name
-      ) {
-        settingAreaRegion.value = name;
-      }
-      updateLocationFilter("filter-region", 1, location.name, name);
-      updateLocationFilter("filter-area", 1, location.name, name);
-    } else {
-      settings.areas = settings.areas.map((area) =>
-        area.city === location.city &&
-        area.region === location.region &&
-        area.name === location.name
-          ? { ...area, name }
-          : area,
-      );
-      contacts = contacts.map((contact) =>
-        contact.city === location.city &&
-        contact.region === location.region &&
-        contact.area === location.name
-          ? { ...contact, area: name }
-          : contact,
-      );
-      if (
-        citySelect.value === location.city &&
-        contactRegionSelect.value === location.region &&
-        document.getElementById("contact-area-select").value === location.name
-      ) {
-        document.getElementById("contact-area-select").value = name;
-        selectedContactArea = name;
-      }
-      updateLocationFilter("filter-area", 2, location.name, name);
+      renameFilterValue(`filter-${contactField}`, oldName, name);
     }
     return persistLocationChanges(previousState);
   };
 
   const deleteLocation = async (type, location) => {
+    const contactField = type === "Region" ? "region" : "area";
     const assignedContacts =
       type === "City"
         ? contacts.filter((contact) => contact.city === location.name)
-        : type === "Region"
-          ? contacts.filter(
-              (contact) =>
-                contact.city === location.city &&
-                contact.region === location.name,
-            )
-          : contacts.filter(
-              (contact) =>
-                contact.city === location.city &&
-                contact.region === location.region &&
-                contact.area === location.name,
-            );
+        : contacts.filter((contact) => contact[contactField] === location.name);
     const childLocations =
       type === "City"
         ? settings.regions.filter((region) => region.city === location.name)
             .length +
           settings.areas.filter((area) => area.city === location.name).length
-        : type === "Region"
-          ? settings.areas.filter(
-              (area) =>
-                area.city === location.city && area.region === location.name,
-            ).length
-          : 0;
+        : 0;
     if (assignedContacts.length) {
       alert(
         `Cannot delete this ${type.toLowerCase()} while it has ${assignedContacts.length} assigned contact${assignedContacts.length === 1 ? "" : "s"}. Reassign those contacts first.`,
       );
       return;
     }
-    const childDescription =
-      type === "City"
-        ? `${settings.regions.filter((region) => region.city === location.name).length} region(s) and ${settings.areas.filter((area) => area.city === location.name).length} area(s)`
-        : `${childLocations} area(s)`;
+    const childDescription = `${settings.regions.filter((region) => region.city === location.name).length} region(s) and ${settings.areas.filter((area) => area.city === location.name).length} area(s)`;
     if (
       !confirm(
         childLocations
           ? `Delete ${type.toLowerCase()} "${location.name}" and its ${childDescription}? No contacts are assigned to them.`
-          : `Delete ${type.toLowerCase()} "${location.name}"?`,
+          : type === "City"
+            ? `Delete ${type.toLowerCase()} "${location.name}"?`
+            : `Delete ${type.toLowerCase()} "${location.name}" from every city?`,
       )
     ) {
       return;
@@ -3322,21 +3299,10 @@ const initializeApp = async () => {
         document.getElementById("setting-default-city").value =
           settings.defaultCity;
       }
-    } else if (type === "Region") {
-      settings.regions = settings.regions.filter(
-        (region) =>
-          region.city !== location.city || region.name !== location.name,
-      );
-      settings.areas = settings.areas.filter(
-        (area) =>
-          area.city !== location.city || area.region !== location.name,
-      );
     } else {
-      settings.areas = settings.areas.filter(
-        (area) =>
-          area.city !== location.city ||
-          area.region !== location.region ||
-          area.name !== location.name,
+      const listKey = type === "Region" ? "regions" : "areas";
+      settings[listKey] = settings[listKey].filter(
+        (item) => item.name !== location.name,
       );
     }
     await persistLocationChanges(previousState);
@@ -5318,18 +5284,14 @@ const initializeApp = async () => {
           );
       } else if (input.id === "setting-new-area") {
         const city = document.getElementById("setting-area-city").value;
-        const region = document.getElementById("setting-area-region").value;
         const name = toTitleCase(input.value).toLowerCase();
         changed =
           input.value.trim() !== "" &&
           !(
             city &&
-            region &&
             settings.areas.some(
               (area) =>
-                area.city === city &&
-                area.region === region &&
-                area.name.toLowerCase() === name,
+                area.city === city && area.name.toLowerCase() === name,
             )
           );
       } else {
@@ -5766,10 +5728,7 @@ const initializeApp = async () => {
         )) ||
       (area &&
         !settings.areas.some(
-          (item) =>
-            item.name === area &&
-            item.region === region &&
-            item.city === city,
+          (item) => item.name === area && item.city === city,
         ))
     ) {
       alert("Choose a region and area that belong to the selected city.");
@@ -5974,33 +5933,8 @@ const initializeApp = async () => {
       const status = getContactStatus(c);
       const urgencyMatch = !filterUrgency || status.label === filterUrgency;
       const cityMatch = !filterCity || c.city === filterCity;
-      let regionSelection = null;
-      if (filterRegion) {
-        try {
-          regionSelection = JSON.parse(filterRegion);
-        } catch (error) {
-          console.error("Invalid region filter value:", error);
-        }
-      }
-      const regionMatch =
-        !filterRegion ||
-        (Array.isArray(regionSelection) &&
-          c.city === regionSelection[0] &&
-          c.region === regionSelection[1]);
-      let areaSelection = null;
-      if (filterArea) {
-        try {
-          areaSelection = JSON.parse(filterArea);
-        } catch (error) {
-          console.error("Invalid area filter value:", error);
-        }
-      }
-      const areaMatch =
-        !filterArea ||
-        (Array.isArray(areaSelection) &&
-          c.city === areaSelection[0] &&
-          c.region === areaSelection[1] &&
-          c.area === areaSelection[2]);
+      const regionMatch = !filterRegion || c.region === filterRegion;
+      const areaMatch = !filterArea || c.area === filterArea;
       return (
         textMatch &&
         urgencyMatch &&
@@ -6107,16 +6041,18 @@ const initializeApp = async () => {
   };
 
   const getPrintGroup = (contact) => {
-    if (contact.area) {
+    if (contact.area || contact.region) {
       return {
-        key: JSON.stringify(["area", contact.city, contact.region, contact.area]),
-        title: `${contact.city} → ${contact.region} → ${contact.area}`,
-      };
-    }
-    if (contact.region) {
-      return {
-        key: JSON.stringify(["region", contact.city, contact.region]),
-        title: `${contact.city} → ${contact.region} (No area assigned)`,
+        key: JSON.stringify([
+          "location",
+          contact.city,
+          contact.region,
+          contact.area,
+        ]),
+        title:
+          [contact.city, contact.region, contact.area]
+            .filter(Boolean)
+            .join(" → ") + (contact.area ? "" : " (No area assigned)"),
       };
     }
     if (contact.city) {
@@ -6186,17 +6122,17 @@ const initializeApp = async () => {
   const printSettings = () => {
     const rows = settings.cities
       .map((city) => {
-        const regions = settings.regions.filter((r) => r.city === city);
-        const body = regions
-          .map((region) => {
-            const areas = settings.areas
-              .filter((a) => a.city === city && a.region === region.name)
-              .map((a) => escapeHtml(a.name))
-              .join(", ");
-            return `<li>${escapeHtml(region.name)}${areas ? `: ${areas}` : ""}</li>`;
-          })
-          .join("");
-        return `<h3>${escapeHtml(city)}</h3><ul>${body}</ul>`;
+        const regions = settings.regions
+          .filter((r) => r.city === city)
+          .map((r) => escapeHtml(r.name))
+          .join(", ");
+        const areas = settings.areas
+          .filter((a) => a.city === city)
+          .map((a) => escapeHtml(a.name))
+          .join(", ");
+        return `<h3>${escapeHtml(city)}</h3><ul>${
+          regions ? `<li>Regions: ${regions}</li>` : ""
+        }${areas ? `<li>Areas: ${areas}</li>` : ""}</ul>`;
       })
       .join("");
     printContent(
@@ -7497,14 +7433,12 @@ const initializeApp = async () => {
           );
         const importedCity =
           importedContact.city || legacyAssignment?.city || "";
-        const importedRegion =
-          importedCity
-            ? importedContact.region || legacyAssignment?.region || ""
-            : "";
-        const importedArea =
-          importedRegion
-            ? importedAreaName || legacyAssignment?.name || ""
-            : "";
+        const importedRegion = importedCity
+          ? importedContact.region || legacyAssignment?.region || ""
+          : "";
+        const importedArea = importedCity
+          ? importedAreaName || legacyAssignment?.name || ""
+          : "";
         const updatedSettings = {
           ...settings,
           cities: [...settings.cities],
@@ -7528,17 +7462,15 @@ const initializeApp = async () => {
             });
           }
         }
-        if (importedCity && importedRegion && importedArea) {
+        if (importedCity && importedArea) {
           const existingArea = updatedSettings.areas.find(
             (area) =>
               area.name.toLowerCase() === importedArea.toLowerCase() &&
-              area.region === importedRegion &&
               area.city === importedCity,
           );
           if (!existingArea) {
             updatedSettings.areas.push({
               name: importedArea,
-              region: importedRegion,
               city: importedCity,
             });
           }

@@ -113,7 +113,7 @@
     );
     settings.areas = unionBy(
       [localSettings.areas, remoteSettings.areas],
-      (item) => JSON.stringify([item.city, item.region, item.name]),
+      (item) => JSON.stringify([item.city, item.name]),
     );
     settings.deletedContacts = tombstones;
 

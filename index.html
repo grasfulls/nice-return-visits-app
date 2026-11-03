@@ -537,15 +537,14 @@
               <p>
                 You can also add a region while adding a contact. Choose
                 <strong>+ Add New Region...</strong> in that contact's Region
-                list to add one under the selected City.
+                list to add one for the selected City. A region name can be
+                used in more than one city; the city you choose makes it
+                unique.
               </p>
               <h3 style="margin-top: 15px">Add New Area</h3>
               <div style="display: flex; gap: 8px">
                 <select id="setting-area-city" aria-label="City for new area">
                   <option value="">Choose city</option>
-                </select>
-                <select id="setting-area-region" aria-label="Region for new area" disabled>
-                  <option value="">Choose region</option>
                 </select>
                 <input
                   type="text"
@@ -570,12 +569,13 @@
               <h3 style="margin-top: 20px">Manage Cities, Regions, and Areas</h3>
               <div id="region-area-list"></div>
               <small>
-                Edit renames a location and updates its existing references.
-                Delete is blocked while any contact is assigned to it or to a
-                location beneath it. Deleting a city or region with no assigned
-                contacts also deletes the regions and areas under it, after you
-                confirm. Locations follow City → Region → Area; each level is optional
-                on a contact.
+                Cities, regions and areas are each listed once. Edit renames a
+                region or area everywhere and lets you choose which cities it
+                is assigned to. Delete is blocked while any contact uses it;
+                deleting a city also removes its region and area assignments,
+                after you confirm. Regions and areas are independent: a
+                contact can have a city, a region, an area, or any
+                combination.
               </small>
             </details>
             <details class="settings-section" id="time-tracking-section">
