@@ -71,6 +71,10 @@ body {
     line-height: 1.45;
 }
 
+#browser-install-screen .install-screen-card p {
+    margin: 0.75em 0;
+}
+
 .install-screen-actions {
     display: flex;
     flex-direction: column;
