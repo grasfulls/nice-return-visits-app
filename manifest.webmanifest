@@ -1,7 +1,7 @@
 {
   "id": "./",
   "name": "Nice Return Visits",
-  "short_name": "Nice Return Visits",
+  "short_name": "NRV",
   "description": "A private, on-device return visit contact tracker.",
   "start_url": "./",
   "scope": "./",

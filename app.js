@@ -35,7 +35,7 @@ const isInstalledApp = () =>
 const showBrowserInstallGuide = () => {
   document.getElementById("unlock-screen").remove();
   document.getElementById("app-container").hidden = true;
-  document.title = "Install Nice Return Visits";
+  document.title = "NRV";
   const screen = document.getElementById("browser-install-screen");
   screen.hidden = false;
   const userAgent = navigator.userAgent || "";
