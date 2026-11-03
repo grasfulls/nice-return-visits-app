@@ -2171,7 +2171,7 @@ const initializeApp = async () => {
       const { container, input } = getCountryAddFields(select);
       container.hidden = false;
       input.value = "";
-      input.focus();
+      input.focus({ preventScroll: select === meCountrySelect });
       return;
     }
     const { container, input } = getCountryAddFields(select);
@@ -2185,7 +2185,7 @@ const initializeApp = async () => {
     const enteredCountry = normalizeCountry(input.value);
     if (!enteredCountry) {
       alert("Enter a country name.");
-      input.focus();
+      input.focus({ preventScroll: select === meCountrySelect });
       return;
     }
     const country =
@@ -2497,10 +2497,26 @@ const initializeApp = async () => {
       }
     });
 
+  const updatePendingLocationButton = (input, button) => {
+    button.style.backgroundColor = input.value.trim() ? "#28a745" : "#004080";
+  };
+  const settingRegionInput = document.getElementById("setting-new-region");
+  const addSettingRegionButton = document.getElementById(
+    "btn-add-setting-region",
+  );
+  const settingAreaInput = document.getElementById("setting-new-area");
+  const addSettingAreaButton = document.getElementById("btn-add-setting-area");
+  const updateAddRegionButton = () =>
+    updatePendingLocationButton(settingRegionInput, addSettingRegionButton);
+  const updateAddAreaButton = () =>
+    updatePendingLocationButton(settingAreaInput, addSettingAreaButton);
+  settingRegionInput.addEventListener("input", updateAddRegionButton);
+  settingAreaInput.addEventListener("input", updateAddAreaButton);
+
   document
     .getElementById("btn-add-setting-area")
     .addEventListener("click", async () => {
-      const input = document.getElementById("setting-new-area");
+      const input = settingAreaInput;
       const val = toTitleCase(input.value);
       const city = document.getElementById("setting-area-city").value;
       const region = document.getElementById("setting-area-region").value;
@@ -2518,13 +2534,15 @@ const initializeApp = async () => {
         )
       ) {
         settings.areas.push({ name: val, region, city });
-        input.value = "";
         try {
           await saveSettings();
         } catch (error) {
+          settings.areas.pop();
           showStorageError("save settings", error);
           return;
         }
+        input.value = "";
+        updateAddAreaButton();
         populateDropdowns();
         alert(`Area "${val}" added to ${region}, ${city}.`);
       } else if (val) {
@@ -2536,7 +2554,7 @@ const initializeApp = async () => {
   document
     .getElementById("btn-add-setting-region")
     .addEventListener("click", async () => {
-      const input = document.getElementById("setting-new-region");
+      const input = settingRegionInput;
       const city = document.getElementById("setting-region-city").value;
       const region = toTitleCase(input.value);
       if (
@@ -2549,17 +2567,22 @@ const initializeApp = async () => {
         )
       ) {
         settings.regions.push({ name: region, city });
-        input.value = "";
         try {
           await saveSettings();
         } catch (error) {
+          settings.regions.pop();
           showStorageError("save settings", error);
           return;
         }
+        input.value = "";
+        updateAddRegionButton();
         populateDropdowns();
         alert(`Region "${region}" added to ${city}.`);
       } else if (region) {
-        if (city) input.value = "";
+        if (city) {
+          input.value = "";
+          updateAddRegionButton();
+        }
         alert(
           city
             ? "That region already exists in this city."
@@ -2691,7 +2714,7 @@ const initializeApp = async () => {
   meFields.city.addEventListener("change", () => {
     if (meFields.city.value.trim() === "+ Add New City...") {
       meFields.city.value = "";
-      meFields.city.focus();
+      meFields.city.focus({ preventScroll: true });
       return;
     }
     commitMeCity();
@@ -2700,7 +2723,9 @@ const initializeApp = async () => {
     if (meFields.region.value === "__ADD_NEW__") {
       meFields.region.value = "";
       document.getElementById("new-me-region-container").hidden = false;
-      document.getElementById("input-new-me-region").focus();
+      document
+        .getElementById("input-new-me-region")
+        .focus({ preventScroll: true });
     } else {
       meFields.area.value = "";
       dropdownHelpers.populateMeRegionArea(meFields.region.value, "");
@@ -2710,7 +2735,9 @@ const initializeApp = async () => {
     if (meFields.area.value === "__ADD_NEW__") {
       meFields.area.value = "";
       document.getElementById("new-me-area-container").hidden = false;
-      document.getElementById("input-new-me-area").focus();
+      document
+        .getElementById("input-new-me-area")
+        .focus({ preventScroll: true });
     }
   });
   document
@@ -2721,7 +2748,7 @@ const initializeApp = async () => {
       const city = meFields.city.value.trim();
       if (!name || !city) {
         alert("Enter a region name after choosing a city.");
-        input.focus();
+        input.focus({ preventScroll: true });
         return;
       }
       const existing = settings.regions.find(
@@ -2767,7 +2794,7 @@ const initializeApp = async () => {
       const region = meFields.region.value;
       if (!name || !city || !region) {
         alert("Enter an area name after choosing a city and region.");
-        input.focus();
+        input.focus({ preventScroll: true });
         return;
       }
       const existing = settings.areas.find(
@@ -2833,8 +2860,38 @@ const initializeApp = async () => {
       if (!response.ok) throw new Error(`Lookup failed (${response.status}).`);
       const results = await response.json();
       if (!results.length) {
-        meStatus.textContent =
-          "No match found. Try a different address, use device location, or enter coordinates.";
+        const defaultLocation = [
+          settings.defaultCity.trim(),
+          settings.state.trim(),
+        ]
+          .filter(Boolean)
+          .join(", ");
+        if (!defaultLocation) {
+          meStatus.textContent =
+            "Could not find this address. Set your default city and state, or use Device Location if you are at the location.";
+          return;
+        }
+        try {
+          const fallbackLocation = await lookupCityPinCoordinates(
+            [
+              defaultLocation,
+              settings.country || DEFAULT_SETTINGS.country,
+            ].join(", "),
+          );
+          if (!fallbackLocation) {
+            meStatus.textContent = `Could not find this address or locate ${defaultLocation}. Use Device Location if you are at the location, or enter coordinates.`;
+            return;
+          }
+          meFields.lat.value = fallbackLocation[0].toFixed(6);
+          meFields.lng.value = fallbackLocation[1].toFixed(6);
+          meStatus.textContent = `Could not find this address. The pin has been centered near ${defaultLocation}. Choose Save, then move the pin to the correct location, or use Device Location if you are at the location.`;
+        } catch (error) {
+          console.error(
+            "Unable to center the home pin on the default location:",
+            error,
+          );
+          meStatus.textContent = `Could not find this address or locate ${defaultLocation}. Check your connection, or use Device Location if you are at the location.`;
+        }
       } else {
         meFields.lat.value = Number(results[0].lat).toFixed(6);
         meFields.lng.value = Number(results[0].lon).toFixed(6);
