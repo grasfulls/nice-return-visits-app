@@ -5949,11 +5949,23 @@ const initializeApp = async () => {
       );
     });
 
+    const lastContactTime = (c) => {
+      const t = new Date(
+        c.notesHistory && c.notesHistory.length
+          ? c.notesHistory.reduce((latest, n) => {
+              const d = new Date(n.rawDate || n.date);
+              return d > latest ? d : latest;
+            }, new Date(0))
+          : c.createdAt,
+      ).getTime();
+      return Number.isNaN(t) ? 0 : t;
+    };
+
     filtered.sort((a, b) => {
       if (sortMode === "chronological-asc")
-        return new Date(a.createdAt) - new Date(b.createdAt);
+        return lastContactTime(a) - lastContactTime(b);
       if (sortMode === "chronological-desc")
-        return new Date(b.createdAt) - new Date(a.createdAt);
+        return lastContactTime(b) - lastContactTime(a);
       if (sortMode === "alphabetical")
         return a.firstName.localeCompare(b.firstName);
     });
