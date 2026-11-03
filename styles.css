@@ -1486,6 +1486,14 @@ textarea {
     padding: 8px 12px;
 }
 
+.new-contact-area-actions button:first-child {
+    background: #28a745;
+    border-color: #28a745;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
 .modal-body textarea {
     min-height: 90px;
     resize: vertical;
