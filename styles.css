@@ -1284,7 +1284,8 @@ textarea {
 .share-contact-card {
     display: inline-flex;
     width: 38px;
-    height: 34px;
+    height: auto;
+    align-self: stretch;
     align-items: center;
     justify-content: center;
     padding: 6px;
