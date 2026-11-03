@@ -1486,7 +1486,7 @@ textarea {
     padding: 8px 12px;
 }
 
-.new-contact-area-actions button:first-child {
+input:not(:placeholder-shown) + .new-contact-area-actions button:first-child {
     background: #28a745;
     border-color: #28a745;
     color: #fff;
