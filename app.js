@@ -2620,7 +2620,7 @@ const initializeApp = async () => {
       populateDropdowns();
       document.getElementById("setting-default-city").value =
         settings.defaultCity;
-      alert("Master settings saved successfully!");
+      alert("Defaults Saved");
       if (localStorage.getItem("return_visits_setup_pending") === "true") {
         document.getElementById("setup-next-steps-notice").hidden = false;
       }
