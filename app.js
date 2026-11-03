@@ -2639,6 +2639,11 @@ const initializeApp = async () => {
   };
   const meStatus = document.getElementById("me-status");
   let lastCommittedMeCity = "";
+  meFields.name.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || event.isComposing) return;
+    event.preventDefault();
+    meFields.country.focus({ preventScroll: true });
+  });
   const populateMeForm = () => {
     const me = settings.me || {};
     Object.entries(meFields).forEach(([key, input]) => {
