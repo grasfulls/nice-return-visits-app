@@ -6036,6 +6036,7 @@ const initializeApp = async () => {
                     <button class="btn-icon" onclick="addQuickVisit(${contact.id})" title="Add a visit" aria-label="Add a visit"><span class="btn-add-visit">ADD<br>VISIT</span></button>
                     <button class="btn-icon" onclick="editContact(${contact.id})" title="Edit Details">✏️</button>
                     ${navigationUrl ? `<a class="btn-icon navigate-contact" href="${escapeHtml(navigationUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Navigate to ${escapeHtml(contact.firstName)} ${escapeHtml(contact.lastName)}" title="Navigate to ${escapeHtml(contact.firstName)} ${escapeHtml(contact.lastName)}"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2" fill="currentColor"/><path d="M6 16V9a4 4 0 0 1 4-4h8m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></a>` : ""}
+                    <button class="btn-icon share-contact-card" onclick="shareContact(${contact.id})" title="Share ${escapeHtml(contact.firstName)} ${escapeHtml(contact.lastName)}" aria-label="Share ${escapeHtml(contact.firstName)} ${escapeHtml(contact.lastName)}"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 15V3m-4 4 4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></button>
                     <button class="btn-icon delete" onclick="deleteContact(${contact.id})" title="Delete Contact">🗑️</button>
                 </div>
             `;
@@ -6699,6 +6700,11 @@ const initializeApp = async () => {
         editContact(contactId, "visits");
       }
     }
+  };
+
+  window.shareContact = (id) => {
+    const contact = contacts.find((c) => c.id == id);
+    if (contact) openContactShareDialog(contact);
   };
 
   window.editContact = async (id, view = "info") => {
