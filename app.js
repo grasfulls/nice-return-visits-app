@@ -1961,7 +1961,9 @@ const initializeApp = async () => {
       .forEach((region) => {
         const option = document.createElement("option");
         option.value = JSON.stringify([region.city, region.name]);
-        option.textContent = `${region.name} (${region.city})`;
+        option.textContent = filterCity.value
+          ? region.name
+          : `${region.name} (${region.city})`;
         filterRegion.appendChild(option);
       });
     filterRegion.value = Array.from(filterRegion.options).some(
@@ -1994,7 +1996,11 @@ const initializeApp = async () => {
       .forEach((area) => {
         const opt = document.createElement("option");
         opt.value = JSON.stringify([area.city, area.region, area.name]);
-        opt.textContent = `${area.name} (${area.region}, ${area.city})`;
+        opt.textContent = filterRegion.value
+          ? area.name
+          : filterCity.value
+            ? `${area.name} (${area.region})`
+            : `${area.name} (${area.region}, ${area.city})`;
         filterArea.appendChild(opt);
       });
     if (
