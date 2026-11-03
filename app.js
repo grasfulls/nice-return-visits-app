@@ -4681,8 +4681,8 @@ const initializeApp = async () => {
   const contactShareDialog = document.getElementById("contact-share-dialog");
   const contactShareTitle = document.getElementById("contact-share-title");
 
-  // Keeps the visit being edited (and its Update Log button) at the top of
-  // the modal so the keyboard and footer do not cover it.
+  // Keeps the Update Log button (or new-note box) centered in the space left
+  // above the keyboard so it is not covered.
   const visitsSection = document.getElementById("contact-visits-section");
   contactModalBody.addEventListener("focusin", (event) => {
     const field = event.target;
@@ -4690,15 +4690,22 @@ const initializeApp = async () => {
       return;
     }
     visitsSection.classList.add("visit-editing");
-    const target =
-      field.closest(".note-entry") ||
-      visitsSection.querySelector(".new-log-timestamp-row");
+    const entry = field.closest(".note-entry");
+    const target = entry
+      ? entry.querySelector("button") || field
+      : document.getElementById("contact-notes");
     setTimeout(() => {
       if (!target.isConnected) return;
+      const body = contactModalBody.getBoundingClientRect();
+      const viewport = window.visualViewport;
+      const top = Math.max(body.top, viewport?.offsetTop ?? 0);
+      const bottom = Math.min(
+        body.bottom,
+        viewport ? viewport.offsetTop + viewport.height : body.bottom,
+      );
+      const rect = target.getBoundingClientRect();
       contactModalBody.scrollTop +=
-        target.getBoundingClientRect().top -
-        contactModalBody.getBoundingClientRect().top -
-        8;
+        rect.top + rect.height / 2 - (top + bottom) / 2;
     }, 300);
   });
   contactModalBody.addEventListener("focusout", (event) => {
