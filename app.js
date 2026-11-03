@@ -3693,8 +3693,13 @@ const initializeApp = async () => {
   const getContactAreas = (contact) => (contact.area ? [contact.area] : []);
 
   const getContactLocationSummary = (contact) =>
-    [contact.city, contact.region, contact.area].filter(Boolean).join(" → ") ||
-    "No location hierarchy assigned";
+    [
+      contact.city && `City: ${contact.city}`,
+      contact.region && `Region: ${contact.region}`,
+      contact.area && `Area: ${contact.area}`,
+    ]
+      .filter(Boolean)
+      .join(" · ") || "No city, region or area assigned";
 
   const updatePrintVisibleButton = () => {
     const count = visibleContacts.length;
@@ -6007,7 +6012,8 @@ const initializeApp = async () => {
       card.innerHTML = `
                 <strong><span class="contact-number" title="Matches the number on the map pin">${cardIndex + 1}.</span> ${escapeHtml(contact.firstName)} ${escapeHtml(contact.lastName)}</strong><br>
                 <small class="contact-record-id">Contact ID: ${escapeHtml(contact.id)}</small><br>
-                <small>${escapeHtml(getFormattedContactAddress(contact) || "No address provided")} (${escapeHtml(getContactLocationSummary(contact))})</small><br>
+                <small>${escapeHtml(getFormattedContactAddress(contact) || "No address provided")}</small><br>
+                <small>${escapeHtml(getContactLocationSummary(contact))}</small><br>
                 ${contact.phone ? `<small>Phone: ${escapeHtml(contact.phone)}</small><br>` : ""}
                 ${contact.email ? `<small>Email: ${escapeHtml(contact.email)}</small><br>` : ""}
                 <span>Days Since Last Contact: <strong>${status.days} days</strong> (${status.label})</span>
