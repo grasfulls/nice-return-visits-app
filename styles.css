@@ -1475,6 +1475,11 @@ textarea {
     min-height: 44px;
 }
 
+/* Extra room so a focused visit field can scroll to the top of the modal. */
+#contact-visits-section.visit-editing {
+    padding-bottom: 60vh;
+}
+
 .new-contact-area-actions {
     display: flex;
     gap: 8px;

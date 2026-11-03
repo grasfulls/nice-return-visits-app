@@ -4681,6 +4681,32 @@ const initializeApp = async () => {
   const contactShareDialog = document.getElementById("contact-share-dialog");
   const contactShareTitle = document.getElementById("contact-share-title");
 
+  // Keeps the visit being edited (and its Update Log button) at the top of
+  // the modal so the keyboard and footer do not cover it.
+  const visitsSection = document.getElementById("contact-visits-section");
+  contactModalBody.addEventListener("focusin", (event) => {
+    const field = event.target;
+    if (!visitsSection.contains(field) || !field.matches("input, textarea")) {
+      return;
+    }
+    visitsSection.classList.add("visit-editing");
+    const target =
+      field.closest(".note-entry") ||
+      visitsSection.querySelector(".new-log-timestamp-row");
+    setTimeout(() => {
+      if (!target.isConnected) return;
+      contactModalBody.scrollTop +=
+        target.getBoundingClientRect().top -
+        contactModalBody.getBoundingClientRect().top -
+        8;
+    }, 300);
+  });
+  contactModalBody.addEventListener("focusout", (event) => {
+    if (!visitsSection.contains(event.relatedTarget)) {
+      visitsSection.classList.remove("visit-editing");
+    }
+  });
+
   streetAddressInput.addEventListener("blur", () => {
     streetAddressInput.value = normalizeStreetName(streetAddressInput.value);
   });
