@@ -32,6 +32,34 @@ const INSTALLED_SETUP_COMPLETE_KEY = "nrv_installed_setup_completed";
 const isInstalledApp = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
   navigator.standalone === true;
+const showBrowserInstallGuide = () => {
+  document.getElementById("unlock-screen").remove();
+  document.getElementById("app-container").hidden = true;
+  document.title = "Install Nice Return Visits";
+  const screen = document.getElementById("browser-install-screen");
+  screen.hidden = false;
+  const userAgent = navigator.userAgent || "";
+  const isApplePhone =
+    /iPad|iPhone|iPod/i.test(userAgent) ||
+    (/Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1);
+  document.getElementById("browser-install-ios").hidden = !isApplePhone;
+  document.getElementById("browser-install-other").hidden = isApplePhone;
+  const normalSafariCheck = document.getElementById(
+    "browser-normal-safari-check",
+  );
+  const iosSteps = document.getElementById("browser-install-ios-steps");
+  normalSafariCheck.addEventListener("change", () => {
+    iosSteps.hidden = !normalSafariCheck.checked;
+  });
+  document
+    .getElementById("browser-install-added")
+    .addEventListener("click", () => {
+      document.getElementById("browser-install-handoff").hidden = false;
+      document
+        .getElementById("browser-install-handoff")
+        .scrollIntoView({ block: "nearest" });
+    });
+};
 const markInstalledSetupComplete = () => {
   try {
     localStorage.setItem(INSTALLED_SETUP_COMPLETE_KEY, "true");
@@ -520,6 +548,15 @@ const readStoredValue = (database, key) =>
     const transaction = database.transaction("appData", "readonly");
     const request = transaction.objectStore("appData").get(key);
     request.onsuccess = () => resolve(request.result?.value);
+    request.onerror = () => reject(request.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+
+const readStoredKeys = (database) =>
+  new Promise((resolve, reject) => {
+    const transaction = database.transaction("appData", "readonly");
+    const request = transaction.objectStore("appData").getAllKeys();
+    request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
     transaction.onabort = () => reject(transaction.error);
   });
@@ -1364,7 +1401,41 @@ const createUnlockPrompt = (hasEncryption) => {
 
 const initializeAppData = async () => {
   const database = await openAppDatabase();
-  const existingMetadata = await readStoredValue(database, ENCRYPTION_META_KEY);
+  const [storedKeys, storedSettingsBeforeInit, storedContactsBeforeInit, existingMetadata] =
+    await Promise.all([
+      readStoredKeys(database),
+      readStoredValue(database, "settings"),
+      readStoredValue(database, "contacts"),
+      readStoredValue(database, ENCRYPTION_META_KEY),
+    ]);
+  const defaultSettings = normalizeRegionData(DEFAULT_SETTINGS, []).settings;
+  const hasMeaningfulStoredSettings =
+    storedSettingsBeforeInit !== undefined &&
+    JSON.stringify(storedSettingsBeforeInit) !== JSON.stringify(defaultSettings);
+  const hasMeaningfulStoredContacts =
+    storedContactsBeforeInit !== undefined &&
+    (!Array.isArray(storedContactsBeforeInit) ||
+      storedContactsBeforeInit.length > 0);
+  const hasPriorSetupInProgress =
+    localStorage.getItem("return_visits_setup_pending") === "true";
+  const hasPriorSetupDismissal =
+    localStorage.getItem("return_visits_onboarding_v2_dismissed") === "true";
+  const hasMeaningfulLocalState = [
+    "return_visits_settings",
+    "return_visits_contacts",
+    INSTALLED_SETUP_COMPLETE_KEY,
+    "return_visits_dropbox",
+  ].some((key) => localStorage.getItem(key) !== null);
+  const hasOtherStoredData = storedKeys.some(
+    (key) => key !== "settings" && key !== "contacts",
+  );
+  const existingStateDetected =
+    Boolean(existingMetadata) ||
+    hasOtherStoredData ||
+    hasMeaningfulStoredSettings ||
+    hasMeaningfulStoredContacts ||
+    hasMeaningfulLocalState ||
+    (hasPriorSetupDismissal && !hasPriorSetupInProgress);
   if (!existingMetadata && !REQUIRE_PASSPHRASE_ON_FIRST_USE) {
     const [storedSettings, storedContacts] = await Promise.all([
       readStoredValue(database, "settings"),
@@ -1383,7 +1454,15 @@ const initializeAppData = async () => {
     localStorage.removeItem("return_visits_settings");
     localStorage.removeItem("return_visits_contacts");
     dismissUnlockScreen(document.getElementById("unlock-screen"));
-    return { database, settings, contacts, encryptionKey: null, metadata: null };
+    return {
+      database,
+      settings,
+      contacts,
+      encryptionKey: null,
+      metadata: null,
+      existingStateDetected,
+      restoredFromBackup: false,
+    };
   }
   const prompt = createUnlockPrompt(Boolean(existingMetadata));
 
@@ -1448,6 +1527,8 @@ const initializeAppData = async () => {
           contacts: restored.contacts,
           encryptionKey: restored.encryptionKey,
           metadata: restored.metadata,
+          existingStateDetected,
+          restoredFromBackup: true,
         });
       } catch (error) {
         console.error("Unable to restore encrypted backup during startup:", error);
@@ -1596,7 +1677,15 @@ const initializeAppData = async () => {
               "Unlocked with your recovery code. Open Settings → Data/Security → Passphrase to Open App and choose a new passphrase; you can enter your recovery code as the current passphrase. You will also get a new recovery code.",
             );
           }
-          resolve({ database, settings, contacts, encryptionKey, metadata });
+          resolve({
+            database,
+            settings,
+            contacts,
+            encryptionKey,
+            metadata,
+            existingStateDetected,
+            restoredFromBackup: false,
+          });
         } catch (error) {
           console.error("Unable to unlock or encrypt local data:", error);
           prompt.errorMessage.textContent =
@@ -1637,6 +1726,10 @@ let cloudBackupHook = () => {};
 
 const initializeApp = async () => {
   await requireUserAgreement();
+  if (!isInstalledApp()) {
+    showBrowserInstallGuide();
+    return;
+  }
   if (window.RVDropbox) await window.RVDropbox.ready;
   const {
     database,
@@ -1644,6 +1737,8 @@ const initializeApp = async () => {
     contacts: savedContacts,
     encryptionKey: initialEncryptionKey,
     metadata: initialMetadata,
+    existingStateDetected,
+    restoredFromBackup,
   } =
     await initializeAppData();
   let encryptionKey = initialEncryptionKey;
@@ -5732,16 +5827,6 @@ const initializeApp = async () => {
         : "Tip: for the best experience, add this app to your Home Screen or install it and use only that icon. Browser and installed copies keep separate contacts, so using one keeps all your data in one place.";
   };
   document
-    .getElementById("btn-copy-notice-setup")
-    .addEventListener("click", () => {
-      showInstallScreen("install");
-    });
-  document
-    .getElementById("btn-bfn-dismiss")
-    .addEventListener("click", () =>
-      document.getElementById("btn-setup-wizard-skip").click(),
-    );
-  document
     .getElementById("btn-copy-notice-dismiss")
     .addEventListener("click", () => {
       const notice = document.getElementById("copy-notice");
@@ -7564,6 +7649,8 @@ const initializeApp = async () => {
   // upload or restore, and whether this device has changes not yet uploaded.
   const CLOUD_SEEN_KEY = "return_visits_cloud_seen";
   const CLOUD_DIRTY_KEY = "return_visits_cloud_dirty";
+  const CLOUD_RECONNECT_DECISION_KEY =
+    "return_visits_cloud_reconnect_decision_required";
   const CLOUD_SNAPSHOTS_KEPT = 10;
   const dropbox = window.RVDropbox;
   const cloudSection = document.getElementById("cloud-section");
@@ -7585,7 +7672,10 @@ const initializeApp = async () => {
     if (cloudPaused) {
       return {
         icon: "⚠️",
-        text: "Dropbox sync is paused. Open Settings → Data/Security → Backup or Restore → Cloud Backup/Restore (Dropbox) for details.",
+        text:
+          localStorage.getItem(CLOUD_RECONNECT_DECISION_KEY) === "1"
+            ? "Dropbox is connected, but automatic sync is paused until you choose whether to restore its existing backup or replace it with this device's data."
+            : "Dropbox sync is paused. Open Settings → Data/Security → Backup or Restore → Cloud Backup/Restore (Dropbox) for details.",
       };
     }
     if (!navigator.onLine) {
@@ -7682,7 +7772,8 @@ const initializeApp = async () => {
   // Counts local saves so a merge can tell if the user edited while it ran.
   let localChanges = 0;
   let cloudBusy = false;
-  let cloudPaused = false;
+  let cloudPaused =
+    localStorage.getItem(CLOUD_RECONNECT_DECISION_KEY) === "1";
 
   // Reads the Dropbox copy for merging without asking for a passphrase.
   // Returns null when that is not possible (a different passphrase, or this
@@ -7779,7 +7870,14 @@ const initializeApp = async () => {
   const runCloudBackup = async ({
     forceSnapshot = false,
     overwrite = false,
+    userInitiated = false,
   } = {}) => {
+    if (
+      localStorage.getItem(CLOUD_RECONNECT_DECISION_KEY) === "1" &&
+      !userInitiated
+    ) {
+      return;
+    }
     if (cloudBackupRunning) {
       cloudBackupQueued = true;
       return;
@@ -7859,7 +7957,13 @@ const initializeApp = async () => {
   // Never overwrite Dropbox with an empty app, for example a new phone that
   // has not restored yet.
   const autoCloudBackup = async () => {
+    if (!installScreen.hidden) return false;
     if (!dropbox.isConnected() || !contacts.length) return false;
+    if (localStorage.getItem(CLOUD_RECONNECT_DECISION_KEY) === "1") {
+      cloudPaused = true;
+      refreshSyncIcon();
+      return false;
+    }
     if (!navigator.onLine) {
       refreshSyncIcon();
       return false;
@@ -7910,6 +8014,8 @@ const initializeApp = async () => {
       if (await restoreBackupObject(backup)) {
         localStorage.setItem(CLOUD_SEEN_KEY, String(modified));
         localStorage.removeItem(CLOUD_DIRTY_KEY);
+        localStorage.removeItem(CLOUD_RECONNECT_DECISION_KEY);
+        cloudPaused = false;
         await refreshCloudUi();
         return true;
       }
@@ -7928,6 +8034,11 @@ const initializeApp = async () => {
   // passphrase). Quiet unless there is something to report (or manual is set).
   const checkCloudNewer = async ({ manual = false } = {}) => {
     if (!dropbox.isConnected() || cloudChecking || cloudBackupRunning) return;
+    if (!installScreen.hidden && !manual) return;
+    if (localStorage.getItem(CLOUD_RECONNECT_DECISION_KEY) === "1") {
+      if (manual) await openCloudRestore();
+      return;
+    }
     if (!navigator.onLine) {
       refreshSyncIcon();
       if (manual) setCloudStatus("You are offline. Changes will sync when the connection returns.");
@@ -8084,6 +8195,16 @@ const initializeApp = async () => {
   document
     .getElementById("btn-cloud-backup-now")
     .addEventListener("click", async () => {
+      const reconnectNeedsDecision =
+        localStorage.getItem(CLOUD_RECONNECT_DECISION_KEY) === "1";
+      if (
+        reconnectNeedsDecision &&
+        !confirm(
+          "Dropbox already has NRV backup data. Backing up now will replace its latest copy with this device's data. Older dated copies stay in Dropbox. Continue?",
+        )
+      ) {
+        return;
+      }
       if (
         !contacts.length &&
         !confirm(
@@ -8095,7 +8216,11 @@ const initializeApp = async () => {
       setCloudStatus("Backing up to Dropbox…");
       try {
         try {
-          await runCloudBackup({ forceSnapshot: true });
+          await runCloudBackup({
+            forceSnapshot: true,
+            overwrite: reconnectNeedsDecision,
+            userInitiated: true,
+          });
         } catch (error) {
           if (error.code !== "cloud-newer") throw error;
           if (
@@ -8106,8 +8231,14 @@ const initializeApp = async () => {
             setCloudStatus("Not backed up. Dropbox still has the newer backup.");
             return;
           }
-          await runCloudBackup({ forceSnapshot: true, overwrite: true });
+          await runCloudBackup({
+            forceSnapshot: true,
+            overwrite: true,
+            userInitiated: true,
+          });
         }
+        localStorage.removeItem(CLOUD_RECONNECT_DECISION_KEY);
+        cloudPaused = false;
         await refreshCloudUi();
         setCloudStatus("Backed up to Dropbox.");
       } catch (error) {
@@ -8133,6 +8264,8 @@ const initializeApp = async () => {
       localStorage.removeItem(CLOUD_SNAPSHOT_KEY);
       localStorage.removeItem(CLOUD_SEEN_KEY);
       localStorage.removeItem(CLOUD_DIRTY_KEY);
+      localStorage.removeItem(CLOUD_RECONNECT_DECISION_KEY);
+      cloudPaused = false;
       setCloudStatus("Dropbox disconnected.");
       cloudChosen = false;
       document.getElementById("btn-cloud-begin").hidden = false;
@@ -8233,6 +8366,8 @@ const initializeApp = async () => {
       cloudSection.scrollIntoView({ block: "start" });
       return;
     }
+    localStorage.setItem(CLOUD_RECONNECT_DECISION_KEY, "1");
+    cloudPaused = true;
     await refreshCloudUi();
     cloudSection.scrollIntoView({ block: "start" });
     if (!contacts.length) {
@@ -8240,17 +8375,28 @@ const initializeApp = async () => {
         const existing = (await dropbox.list()).filter((file) =>
           /^(latest|backup-.*)\.json$/.test(file.name),
         );
-        if (
-          existing.length &&
-          confirm(
-            "Dropbox connected. It already has a backup. Restore it onto this device now?",
-          )
-        ) {
-          await openCloudRestore();
+        if (existing.length) {
+          if (
+            confirm(
+              "Dropbox already has NRV backup data. Do you want to choose a backup to restore onto this device now?",
+            )
+          ) {
+            await openCloudRestore();
+            return;
+          }
+          setCloudStatus(
+            "Dropbox is connected, but automatic backup and restore are paused. Choose Restore from Dropbox, or Back Up to Dropbox Now to deliberately replace its latest copy.",
+          );
           return;
         }
+        localStorage.removeItem(CLOUD_RECONNECT_DECISION_KEY);
+        cloudPaused = false;
       } catch (error) {
         console.error(error);
+        setCloudStatus(
+          "Dropbox is connected, but NRV could not check for existing backups. Automatic sync is paused until you choose Restore from Dropbox or Back Up to Dropbox Now.",
+        );
+        return;
       }
       setCloudStatus("Dropbox connected. Add contacts and they will be backed up.");
       return;
@@ -8282,7 +8428,13 @@ const initializeApp = async () => {
         overwrite = true;
       }
       setCloudStatus("Dropbox connected. Making your first backup…");
-      await runCloudBackup({ forceSnapshot: true, overwrite });
+      await runCloudBackup({
+        forceSnapshot: true,
+        overwrite,
+        userInitiated: true,
+      });
+      localStorage.removeItem(CLOUD_RECONNECT_DECISION_KEY);
+      cloudPaused = false;
       await refreshCloudUi();
       setCloudStatus("Dropbox connected and your first backup is saved.");
     } catch (error) {
@@ -8297,55 +8449,61 @@ const initializeApp = async () => {
 
   renderContacts();
   const installScreen = document.getElementById("install-screen");
-  // mode: "welcome" (browser first run), "existing" (data found), "install"
+  // mode: "existing" (prior state found), "install" (new working copy)
   const showInstallScreen = (mode) => {
     const appContainer = document.getElementById("app-container");
     appContainer.hidden = true;
     appContainer.inert = true;
     appContainer.setAttribute("aria-hidden", "true");
     const step2 = document.getElementById("setup-wizard-step-2");
-    document.getElementById("setup-welcome").hidden = mode !== "welcome";
     document.getElementById("setup-existing-data").hidden = mode !== "existing";
     document.getElementById("setup-wizard-step-1").hidden =
       mode !== "install" || !step2.hidden;
     if (mode !== "install") step2.hidden = true;
     document.getElementById("setup-wizard-progress").hidden = mode !== "install";
-    const name = mode === "welcome" ? "NRV-Welcome" : "NRV-Install";
+    const name = "NRV-Install";
     document.getElementById("install-screen-title").textContent = name;
     document.title = name;
     installScreen.hidden = false;
   };
-  const ua = navigator.userAgent || "";
-  const isApplePhone =
-    /iPad|iPhone|iPod/i.test(ua) ||
-    (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
-  document.getElementById("bfn-steps-apple").hidden = !isApplePhone;
-  document.getElementById("bfn-steps-other").hidden = isApplePhone;
-  document.getElementById("bfn-steps-link").hidden = isApplePhone;
   const eraseAllData = async () => {
     try {
       database.close();
-      await new Promise((resolve) => {
+      await new Promise((resolve, reject) => {
         const request = indexedDB.deleteDatabase("return-visits-app");
-        request.onsuccess = request.onerror = request.onblocked = resolve;
+        request.onsuccess = resolve;
+        request.onerror = () =>
+          reject(request.error || new Error("Database deletion failed."));
+        request.onblocked = () =>
+          reject(
+            new Error(
+              "The database is still open in another NRV window or browser tab.",
+            ),
+          );
       });
       localStorage.clear();
       sessionStorage.clear();
+      if (localStorage.length !== 0 || sessionStorage.length !== 0) {
+        throw new Error("Some NRV storage choices could not be cleared.");
+      }
+      window.location.reload();
     } catch (error) {
       console.error("Unable to erase app data:", error);
+      alert(
+        `NRV could not verify a complete erase. No fresh start was confirmed. ${error.message || "Close other NRV windows or tabs, reload, and try again."}`,
+      );
     }
-    window.location.reload();
   };
   const confirmEraseAllData = () => {
     if (
       !confirm(
-        "Erase ALL contacts, settings and saved choices on this device? This cannot be undone. Backups you saved elsewhere are not deleted.",
+        "Before erasing, create or verify a current backup and keep a separate recovery copy outside NRV's normal storage and Dropbox app folder. This removes contacts, settings, passphrase/security data, setup choices, and Dropbox connection state from this app copy. Downloaded backup files and Dropbox backups are not deleted. Continue?",
       )
     ) {
       return;
     }
-    if (!confirm("Last check: really erase everything and start fresh?")) return;
-    eraseAllData();
+    if (!confirm("Last check: erase this NRV working copy and start fresh?")) return;
+    void eraseAllData();
   };
   document
     .getElementById("btn-erase-all-data")
@@ -8379,13 +8537,14 @@ const initializeApp = async () => {
   } catch (error) {
     console.error("Unable to read the installed-app setup status:", error);
   }
-  if (contacts.length > 0) {
-    if (isInstalledApp() && !setupDoneFlag) {
-      showInstallScreen("existing");
-    } else {
-      markInstalledSetupComplete();
-      installScreen.hidden = true;
-    }
+  if (restoredFromBackup) {
+    markInstalledSetupComplete();
+    installScreen.hidden = true;
+  } else if (existingStateDetected && !setupDoneFlag) {
+    showInstallScreen("existing");
+  } else if (contacts.length > 0 || setupDoneFlag) {
+    if (contacts.length > 0) markInstalledSetupComplete();
+    installScreen.hidden = true;
   } else {
     let setupComplete = false;
     let setupPending = false;
@@ -8407,12 +8566,6 @@ const initializeApp = async () => {
       (!previousOnboardingDismissed || setupPending)
     ) {
       showInstallScreen("install");
-    } else if (
-      !isInstalledApp() &&
-      !setupComplete &&
-      (!previousOnboardingDismissed || setupPending)
-    ) {
-      showInstallScreen("welcome");
     } else {
       installScreen.hidden = true;
     }
@@ -8454,8 +8607,20 @@ const initializeApp = async () => {
       return;
     }
     if (dropbox.isConnected()) {
+      if (localStorage.getItem(CLOUD_RECONNECT_DECISION_KEY) === "1") {
+        showSettingsView();
+        cloudSection.open = true;
+        setCloudStatus(
+          "Automatic Dropbox sync is paused until you choose to restore the existing backup or deliberately replace it.",
+        );
+        cloudSection.scrollIntoView({ block: "start" });
+        return;
+      }
       try {
-        await runCloudBackup({ forceSnapshot: true });
+        await runCloudBackup({
+          forceSnapshot: true,
+          userInitiated: true,
+        });
         await refreshCloudUi();
         alert("Backed up to Dropbox.");
       } catch (error) {
@@ -8473,8 +8638,10 @@ const initializeApp = async () => {
   };
   window.setTimeout(async () => {
     await finishDropboxReturn();
-    await checkCloudNewer();
-    await checkBackupReminder();
+    if (installScreen.hidden) {
+      await checkCloudNewer();
+      await checkBackupReminder();
+    }
   }, 500);
 };
 
@@ -8725,18 +8892,30 @@ document.addEventListener("DOMContentLoaded", () => {
         "We could not save your setup progress. Please check device storage and try again.",
       );
       installBanner.hidden = false;
-      return;
+      return false;
     }
     const appContainer = document.getElementById("app-container");
     appContainer.hidden = false;
     appContainer.inert = false;
     appContainer.setAttribute("aria-hidden", "false");
     document.body.classList.add("install-setup-in-progress");
+    document.getElementById("setup-next-steps-notice").hidden = false;
     goToView("settings-view");
     const defaults = document.getElementById("defaults-your-details-section");
     defaults.open = true;
     defaults.scrollIntoView({ block: "start" });
+    return true;
   };
+  document
+    .getElementById("btn-setup-passphrase")
+    .addEventListener("click", () => {
+      if (!startSetup()) return;
+      openSettingsSection("passphrase-section");
+      window.setTimeout(() => {
+        document.getElementById("choices-section").open = true;
+        document.getElementById("passphrase-section").open = true;
+      }, 0);
+    });
   const skipSetup = () => {
     if (!markInstalledSetupComplete()) {
       alert(
@@ -8859,7 +9038,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       alert(
-        "NRV could not open its storage. If you are in a Private tab, close it and open NRV in a normal Safari tab. Otherwise, close and reopen the browser, then try again. Nothing has been deleted.",
+        "NRV could not open and verify its storage. Private Safari use is unsupported: close the Private tab and reopen NRV in normal Safari, then install and open NRV from its Home Screen icon. Nothing has been deleted.",
       );
     });
 });

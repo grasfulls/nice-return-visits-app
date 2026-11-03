@@ -76,35 +76,15 @@
           <aside id="first-use-notice" class="first-use-notice">
             <strong>First-time use</strong>
             <p>
-              Before adding return visits to this device, set up the app icon,
-              fill in Defaults &amp; Your Details, and add any Cities, Regions,
-              and Areas you need. You can add locations later, too.
+              Use the NRV Home Screen icon as your working copy. Before adding
+              contacts, you can fill in Defaults &amp; Your Details and add
+              any Cities, Regions, and Areas you need.
             </p>
             <small>
               Nice Return Visits is free to use, with no app fees or subscription.
               Your internet or mobile provider may charge for data.
             </small>
           </aside>
-          <details class="install-guidance">
-            <summary>Help me add an app icon</summary>
-            <p>
-              <strong>iPhone:</strong> For the best Home Screen app experience,
-              open this page in Safari. If it opened inside another app, use that
-              app's menu to choose <strong>Open in Safari</strong>. In Safari,
-              tap <strong>Share → Add to Home Screen</strong>.
-            </p>
-            <p>
-              <strong>Android:</strong> Open this page in Chrome, then choose
-              <strong>Install app</strong> or
-              <strong>Add to Home screen</strong> from the browser menu.
-            </p>
-            <small>
-              Your browser and Home Screen copies may store separate contacts.
-              Set up your preferred copy before entering data, or back up before
-              switching.
-              <a href="./help.html#install-guide">See illustrated instructions</a>
-            </small>
-          </details>
           <form id="unlock-form">
             <label for="encryption-passphrase">Passphrase</label>
             <input
@@ -141,6 +121,74 @@
             there is no recovery option.
           </small>
         </div>
+      </div>
+    </section>
+
+    <section
+      id="browser-install-screen"
+      class="install-screen"
+      aria-labelledby="browser-install-title"
+      hidden
+    >
+      <div class="install-screen-card">
+        <h1 id="browser-install-title">Install Nice Return Visits</h1>
+        <p>
+          NRV is designed to be used from its Home Screen icon. This browser
+          page is only the doorway to installation; it cannot be used to work
+          with NRV contacts.
+        </p>
+        <p>
+          We’ll guide you through adding the NRV icon. After you open that
+          icon, NRV will check for previous NRV information and continue setup
+          or offer recovery choices.
+        </p>
+        <section id="browser-install-ios" hidden>
+          <p>
+            <strong>Use normal Safari, not Private Browsing.</strong> NRV
+            cannot reliably identify Safari Private mode. If this page is in a
+            Private tab, stop here, close that tab, and reopen NRV in a normal
+            Safari tab. Private use is unsupported, and NRV cannot recover
+            information created or lost in a Private session.
+          </p>
+          <label class="checkbox-row">
+            <input type="checkbox" id="browser-normal-safari-check" />
+            I am using a normal Safari tab, not a Private tab.
+          </label>
+          <div id="browser-install-ios-steps" hidden>
+            <h2>Add NRV to your Home Screen</h2>
+            <ol>
+              <li>Tap Safari’s Share button (the square with an arrow pointing up).</li>
+              <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+              <li>Tap <strong>Add</strong>.</li>
+              <li>Close this Safari tab or window, then find and tap the NRV icon on your Home Screen.</li>
+            </ol>
+            <p>
+              After Add to Home Screen, return to the icon—not to Contacts in
+              Safari. Setup or restoration continues when NRV opens from the
+              icon.
+            </p>
+            <button type="button" id="browser-install-added">
+              I added NRV to my Home Screen
+            </button>
+            <section id="browser-install-handoff" hidden>
+              <h2>Installation page complete</h2>
+              <p>
+                This part of installation is complete. Close this Safari tab
+                or window. Find the NRV icon on your Home Screen and tap it to
+                continue installation and setup.
+              </p>
+            </section>
+          </div>
+        </section>
+        <section id="browser-install-other" hidden>
+          <h2>Open NRV from its installed icon</h2>
+          <p>
+            Install NRV to your device’s Home Screen, then close this browser
+            page and open NRV from the new icon. Do not use this browser page
+            as a second working copy.
+          </p>
+          <p><a href="./help.html#install-guide">View installation guidance</a></p>
+        </section>
       </div>
     </section>
 
@@ -414,9 +462,9 @@
                 <p id="me-status" role="status"></p>
               </form>
               <p id="setup-next-steps-notice" class="install-banner" role="status" hidden>
-                <strong>Defaults saved.</strong> Add any personal details you
-                want above and save them. Your Details are optional and can be
-                changed later in Settings. You can also set up
+                <strong>Setup is in progress.</strong> Add default and
+                personal details above and save them. Your Details are
+                optional and can be changed later in Settings. You can also set up
                 <button type="button" class="inline-icon-link" id="btn-setup-locations">Cities, Regions, and Areas</button>
                 now or as needed. When you're ready, continue to Contacts.
                 <button type="button" id="btn-setup-finish">I'm ready — go to Contacts</button>
@@ -549,7 +597,7 @@
             </details>
             <details class="settings-section" id="choices-section">
               <summary>Data/Security</summary>
-              <details class="settings-section">
+              <details class="settings-section" id="passphrase-section">
                 <summary>Passphrase to Open App</summary>
                 <h3 id="passphrase-section-title">Passphrase</h3>
                 <p id="passphrase-section-description"></p>
@@ -680,6 +728,12 @@
               <p class="settings-group-note">
                 Backups protect you from losing your contacts.
               </p>
+              <p>
+                One device: Local backup is normally sufficient. Multiple
+                devices: use Dropbox when you want NRV to coordinate them
+                automatically. Keep a separate recovery copy somewhere NRV
+                cannot manage.
+              </p>
               <p id="backup-mode-status" role="status"></p>
               <button type="button" id="btn-backup-mode-switch"></button>
             <details class="settings-section">
@@ -691,6 +745,11 @@
               <p>
                 Encrypted if a passphrase is on. You can also export from the
                 Contacts page footer.
+              </p>
+              <p>
+                A downloaded Local backup survives Erase All Data. For a
+                protected recovery copy, keep a separate copy outside NRV’s
+                working storage.
               </p>
               <label for="backup-file-input">Restore from a backup file</label>
               <input
@@ -714,6 +773,13 @@
                   device is lost, broken or replaced. It is off unless you turn
                   it on. Dropbox is entirely optional: the app works fully
                   without it, and all your data can stay only on this device.
+                </p>
+                <p>
+                  Dropbox is the active backup and synchronization location.
+                  To preserve a protected recovery copy, use Dropbox’s own
+                  tools to copy or move a backup outside NRV’s Return Visits
+                  app folder. NRV cannot see or change that separate copy;
+                  download it later to restore it as a Local backup.
                 </p>
                 <p>
                   <strong>You need a Dropbox account.</strong> The app can send
@@ -825,11 +891,13 @@
             <details class="settings-section">
               <summary>Erase All Data / Start Fresh</summary>
               <p>
-                This permanently deletes all contacts, settings, and saved
-                choices from this copy of the app on this device, including any
-                Dropbox connection. Backup files and copies already in your
-                Dropbox are not deleted. Back up first if you want to keep
-                your contacts.
+                Before erasing, create or verify a current backup and preserve
+                a separate recovery copy outside NRV’s normal storage or
+                Dropbox app folder. Erasing removes this copy’s contacts,
+                settings, passphrase/security data, setup choices, and local
+                Dropbox connection. Downloaded backup files and Dropbox files
+                are not deleted. Removing the Home Screen icon alone does not
+                necessarily erase NRV data.
               </p>
               <button type="button" id="btn-erase-all-data">
                 Erase All Data on This Device
@@ -887,58 +955,23 @@
       <div class="install-screen-card">
         <h1 id="install-screen-title">NRV-Install</h1>
         <p id="setup-wizard-progress" role="status" aria-live="polite"></p>
-        <section id="setup-welcome" class="setup-wizard-step" hidden>
-          <h2 tabindex="-1">Welcome to Nice Return Visits</h2>
-          <p>
-            You're using NRV in a web browser, so the guided setup was
-            skipped. You have two choices:
-          </p>
-          <section class="bfn-option">
-            <h3>Option 1 (recommended): Put NRV on your Home Screen</h3>
-            <p>This makes NRV work like a regular app.</p>
-            <ol id="bfn-steps-apple" hidden>
-              <li>You are on the NRV page right now, which is the right place. Use Safari (the blue compass icon), not a private tab.</li>
-              <li>Tap the Share button (a square with an arrow pointing up).</li>
-              <li>Scroll down and tap <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>.</li>
-              <li>Close Safari, then tap the new NRV icon. The guided setup starts.</li>
-            </ol>
-            <p id="bfn-steps-other" hidden>
-              Tap <strong>See the steps</strong> below for steps for your device and browser,
-              then open NRV from its new icon. The guided setup starts.
-            </p>
-            <a id="bfn-steps-link" class="bfn-link" href="./help.html#install-guide">See the steps</a>
-          </section>
-          <section class="bfn-option">
-            <h3>Option 2: Set up here in the browser</h3>
-            <p>You get the same setup without adding an icon.</p>
-            <button type="button" id="btn-copy-notice-setup">Set up here in the browser</button>
-          </section>
-          <p class="bfn-note">
-            <strong>Good to know:</strong> contacts are stored separately in
-            the browser and in the Home Screen icon. Pick one and keep using
-            it. You can back up and restore later in Settings.
-          </p>
-          <div class="install-screen-actions">
-            <button type="button" id="btn-bfn-dismiss" class="install-screen-secondary">
-              Skip for now and go to Contacts
-            </button>
-          </div>
-        </section>
         <section id="setup-existing-data" class="setup-wizard-step" hidden>
-          <h2 tabindex="-1">We found existing NRV data</h2>
+          <h2 tabindex="-1">Existing NRV data has been detected</h2>
           <p>
-            Choose one:
+            Do you want to install NRV using this existing data? Choosing No
+            takes you through the controlled erase process before setup
+            restarts.
           </p>
           <div class="install-screen-actions">
             <button type="button" id="btn-install-open-existing">
-              Keep my data and open it
+              Yes — use existing data
             </button>
             <button
               type="button"
               id="btn-install-start-new"
               class="install-screen-secondary"
             >
-              Start fresh (erases everything)
+              No — erase and start fresh
             </button>
           </div>
         </section>
@@ -952,6 +985,12 @@
           <p>
             Your setup and contacts stay on this device unless you choose an
             optional backup feature.
+          </p>
+          <p>
+            Removing the Home Screen icon does not necessarily remove NRV’s
+            working data. Before resetting or reinstalling, make a current
+            backup and keep a separate recovery copy outside NRV’s normal
+            backup or synchronization locations.
           </p>
           <div class="install-screen-actions">
             <button type="button" id="btn-setup-wizard-next">
@@ -983,9 +1022,17 @@
             and home details are optional. You can add Cities, Regions, and
             Areas now or later as you go.
           </p>
+          <p>
+            Passphrase protection is optional. Set it now or later under
+            Settings → Data/Security. One-device use normally needs only Local
+            backup; use Dropbox for automatic coordination across devices.
+          </p>
           <div class="install-screen-actions">
             <button type="button" id="btn-dismiss-install-banner">
               Set up Defaults &amp; Your Details
+            </button>
+            <button type="button" id="btn-setup-passphrase" class="install-screen-secondary">
+              Set up a passphrase (optional)
             </button>
             <button
               type="button"
