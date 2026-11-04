@@ -22,8 +22,8 @@ The app helps a person keep track of people they want to revisit: who the person
 
 ### Normal workflow in plain English
 
-1. Open NRV in a browser or optional installed-app copy and accept the current Terms of Use and Privacy & Data Notice.
-2. On first use, save a bookmark using the device-and-browser walkthrough. Optionally install an app icon using the platform's browser controls.
+1. On first visit, choose to set up the recommended app icon or use NRV in the current browser. Accept the current Terms of Use and Privacy & Data Notice before using the app.
+2. If you choose the app icon, follow the install guidance, open NRV from the icon, then complete the agreement and first-launch setup. If you choose the browser, use the same browser on the same device as your working copy.
 3. Set a default state/province and city in Settings. Optionally fill in Your Details and create reusable Cities, Regions, and Areas.
 4. Add contacts. A first name and country are required; other contact details and location fields are optional. A map pin is separate from the street address and must be looked up, placed, or entered.
 5. Add visit notes as they happen. NRV uses the newest visit note (or the contact's creation date if there are no notes) to calculate elapsed days and urgency.
@@ -104,7 +104,8 @@ The app helps a person keep track of people they want to revisit: who the person
 
 | Exact name/title | Purpose and how the user gets there | Controls and what happens next |
 |---|---|---|
-| **Before you use Nice Return Visits** | Startup agreement overlay, shown until the current agreement version has been accepted in this browser/app copy. | Links open **Terms of Use** and **Privacy & Data Notice** in another tab/window. Checkbox enables **Agree and continue**. On success it reveals the unlock/launch flow; storage failure shows a visible error and leaves retry possible. Acceptance does not connect Dropbox or trigger a map search. |
+| **How would you like to use NRV?** | First-visit choice in a browser: set up the recommended app icon or explicitly use this browser. Installed-app launches skip this choice. | **Set up the app icon (recommended)** opens platform install guidance. **Use NRV in this browser** saves the choice and reloads to the agreement. A link explains the benefits of the icon. |
+| **Before you use Nice Return Visits** | Agreement overlay, shown until the current agreement version has been accepted in this browser/app copy. It follows the first-visit choice for browser use and appears on the first launch from an installed icon. | Links open **Terms of Use** and **Privacy & Data Notice** in another tab/window. Checkbox enables **Agree and continue**. On success it reveals the unlock/launch flow; storage failure shows a visible error and leaves retry possible. Acceptance does not connect Dropbox or trigger a map search. |
 | **Unlock Nice Return Visits** | Conditional startup overlay when a local encrypted database exists. | **Passphrase**, **Unlock**. Wrong passphrase/data error appears beside the form. It can also offer **Choose Backup to Restore** in this protected-startup state. Successful unlock opens the app. |
 | **First-time use** (conditional unlock content) | Passphrase creation copy in the unlock screen if startup is configured to create encryption. The current checked-in default bypasses this screen on a fresh unencrypted copy. | Passphrase and confirmation; **Encrypt and Continue**; **Help me add an app icon** details; optional restore. Do not describe this as the normal fresh-install screen while the current source default remains unchanged. |
 | **Help me add an app icon** | Expandable install guidance on unlock content. | Gives iPhone/Safari and Android/Chrome instructions and links to Help's illustrated install guide. |

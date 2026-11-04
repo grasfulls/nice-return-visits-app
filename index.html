@@ -19,8 +19,62 @@
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
     <link rel="stylesheet" href="styles.css" />
+    <script>
+      const standaloneLaunch =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        navigator.standalone === true;
+      if (!standaloneLaunch) {
+        try {
+          if (localStorage.getItem("nrv_launch_mode") !== "browser") {
+            document.documentElement.classList.add("show-launch-choice");
+          }
+        } catch (error) {
+          console.error("Unable to read the selected launch mode:", error);
+          document.documentElement.classList.add("show-launch-choice");
+        }
+      }
+    </script>
   </head>
   <body>
+    <section
+      id="launch-choice-screen"
+      class="install-screen"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="launch-choice-title"
+      hidden
+    >
+      <div class="install-screen-card">
+        <h1 id="launch-choice-title">How would you like to use NRV?</h1>
+        <p>
+          We recommend installing Nice Return Visits and opening it from its
+          app icon. That makes it easier to return to the same working copy.
+        </p>
+        <div class="install-screen-actions">
+          <button type="button" id="btn-choose-install">
+            Set up the app icon (recommended)
+          </button>
+          <button
+            type="button"
+            id="btn-choose-browser"
+            class="install-screen-secondary"
+          >
+            Use NRV in this browser
+          </button>
+        </div>
+        <p>
+          Browser storage belongs to this browser on this device. Another
+          browser, device, or installed icon may have a separate copy of your
+          contacts.
+        </p>
+        <p>
+          <a href="./help.html#install-guide">
+            Why we recommend using the app icon
+          </a>
+        </p>
+        <p id="launch-choice-error" role="alert" hidden></p>
+      </div>
+    </section>
     <section
       id="unlock-screen"
       role="dialog"

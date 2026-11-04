@@ -29,10 +29,39 @@ class NewerDataVersionError extends Error {
 }
 const APP_UPDATE_PENDING_KEY = "return_visits_app_update_pending";
 const INSTALLED_SETUP_COMPLETE_KEY = "nrv_installed_setup_completed";
+const LAUNCH_MODE_KEY = "nrv_launch_mode";
 const isInstalledApp = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
   navigator.standalone === true;
+const showLaunchChoice = () => {
+  document.getElementById("unlock-screen").hidden = true;
+  document.getElementById("app-container").hidden = true;
+  document.getElementById("app-container").inert = true;
+  const screen = document.getElementById("launch-choice-screen");
+  screen.hidden = false;
+  document.documentElement.classList.remove("show-launch-choice");
+  document.getElementById("btn-choose-install").focus();
+  document
+    .getElementById("btn-choose-install")
+    .addEventListener("click", showBrowserInstallGuide);
+  document
+    .getElementById("btn-choose-browser")
+    .addEventListener("click", () => {
+      const errorMessage = document.getElementById("launch-choice-error");
+      try {
+        localStorage.setItem(LAUNCH_MODE_KEY, "browser");
+      } catch (error) {
+        console.error("Unable to save the selected launch mode:", error);
+        errorMessage.textContent =
+          "We could not save your choice on this device. Check your browser storage settings and try again.";
+        errorMessage.hidden = false;
+        return;
+      }
+      window.location.reload();
+    });
+};
 const showBrowserInstallGuide = () => {
+  document.getElementById("launch-choice-screen").hidden = true;
   document.getElementById("unlock-screen").remove();
   document.getElementById("app-container").hidden = true;
   document.title = "NRV";
@@ -1725,11 +1754,19 @@ const markBackupDone = () => {
 let cloudBackupHook = () => {};
 
 const initializeApp = async () => {
-  await requireUserAgreement();
   if (!isInstalledApp()) {
-    showBrowserInstallGuide();
-    return;
+    let launchMode = null;
+    try {
+      launchMode = localStorage.getItem(LAUNCH_MODE_KEY);
+    } catch (error) {
+      console.error("Unable to read the selected launch mode:", error);
+    }
+    if (launchMode !== "browser") {
+      showLaunchChoice();
+      return;
+    }
   }
+  await requireUserAgreement();
   if (window.RVDropbox) await window.RVDropbox.ready;
   const {
     database,
@@ -9081,6 +9118,12 @@ const updateStorageProtectionStatus = async () => {
 document.addEventListener("DOMContentLoaded", () => {
   initializeApp()
     .then(() => {
+      if (
+        !document.getElementById("launch-choice-screen").hidden ||
+        !document.getElementById("browser-install-screen").hidden
+      ) {
+        return;
+      }
       updateStorageProtectionStatus();
       appReadyForUpdates = true;
       showJustUpdatedNotice();

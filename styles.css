@@ -30,6 +30,18 @@ body {
     background: #f4f4f9;
 }
 
+#unlock-screen[hidden] {
+    display: none;
+}
+
+html.show-launch-choice #unlock-screen {
+    display: none;
+}
+
+html.show-launch-choice #launch-choice-screen[hidden] {
+    display: flex;
+}
+
 .install-screen {
     position: fixed;
     inset: 0;
