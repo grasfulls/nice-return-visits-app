@@ -100,7 +100,7 @@ site:
 - `help.html` — illustrated installation guidance and full user guide.
 - `privacy.html` — Privacy & Data Notice.
 - `terms.html` — Terms of Use.
-- `docs/Nice-Return-Visits-Setup-User-Guide.pdf` — downloadable setup/user
+- `docs/NRV-Setup-User-Guide.pdf` — downloadable setup/user
   guide.
 - `docs/NRV-Privacy-Notice.pdf` — downloadable privacy notice.
 - `README.md` — contains user-facing setup and hosting instructions mixed with

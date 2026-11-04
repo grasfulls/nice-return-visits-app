@@ -1,11 +1,10 @@
-const CACHE_NAME = "return-visits-shell-v155";
+const CACHE_NAME = "return-visits-shell-v156";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./help.html",
   "./privacy.html",
   "./terms.html",
-  "./docs/Nice-Return-Visits-Setup-User-Guide.pdf",
   "./docs/NRV-Privacy-Notice.pdf",
   "./styles.css",
   "./app.js",

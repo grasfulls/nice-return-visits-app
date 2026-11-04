@@ -77,7 +77,7 @@ placement must be confirmed before changing it.
 | `index.html` | 18, 498, 1261 | unpkg Leaflet resources and Dropbox Basic signup URL | Map library and Dropbox signup | Some are reached through features | Keep service URLs | Leave Alone | These are service dependencies/flows, not public brand links. |
 | HTML page metadata | `index.html` 4–14; `help.html`, `privacy.html`, `terms.html` 4–10 | Titles and descriptions; app theme/Apple metadata and manifest link. Help/Privacy/Terms titles already use Nice Return Visits. No canonical, Open Graph, Twitter card, or JSON-LD metadata found. | Browser/search/social previews and PWA shell | Yes, where supported | Keep titles branded; after domain setup, consider canonical and social metadata using the primary domain | Needs Discussion | A canonical URL should not point at a domain that has not been configured. |
 | Repository/deployment files | Tracked-file inventory; no `CNAME`, sitemap, `robots.txt`, or Pages workflow found | No in-repo custom-domain, sitemap, robots, or Pages deployment config | Hosting and SEO/deployment | Publicly affects site behavior if added | Add/adjust only after confirming deployment ownership and domain configuration | Needs Discussion | The supplied decisions explicitly say not to assume domain or redirect configuration. |
-| `docs/Nice-Return-Visits-Setup-User-Guide.pdf` and `docs/NRV-Privacy-Notice.pdf` | Covers and extracted text | Covers use Nice Return Visits; body uses full brand in product references. “Return Visits” also appears in ordinary prose and for the Dropbox folder. No standalone RV/RVs/NRV/NRVs or “My Return Visits” found. | Downloadable public user guide and privacy notice | Yes | Keep full brand; preserve Dropbox folder name | Leave Alone | Current PDFs already reflect the full product name. |
+| `docs/NRV-Setup-User-Guide.pdf` and `docs/NRV-Privacy-Notice.pdf` | Covers and extracted text | Covers use Nice Return Visits; body uses full brand in product references. “Return Visits” also appears in ordinary prose and for the Dropbox folder. No standalone RV/RVs/NRV/NRVs or “My Return Visits” found. | Downloadable public user guide and privacy notice | Yes | Keep full brand; preserve Dropbox folder name | Leave Alone | Current PDFs already reflect the full product name. |
 | Repository-wide abbreviation search | All tracked source/docs and extracted PDF text | No standalone `RV`, `RVs`, `NRV`, `NRVs`, “My Return Visits,” or “NR Visits” found | Existing brand/abbreviation usage | N/A | Use **NRV/NRVs** only for deliberate short-form uses | Leave Alone | Avoid introducing abbreviations as replacements for ordinary phrases such as “return visits.” |
 
 ### URL and contact inventory
@@ -101,7 +101,7 @@ placement must be confirmed before changing it.
 - `help.html` — full illustrated user guide and install instructions.
 - `privacy.html` — Privacy & Data Notice and PDF link.
 - `terms.html` — Terms of Use.
-- `docs/Nice-Return-Visits-Setup-User-Guide.pdf` — downloadable setup/user guide.
+- `docs/NRV-Setup-User-Guide.pdf` — downloadable setup/user guide.
 - `docs/NRV-Privacy-Notice.pdf` — downloadable privacy notice.
 - `README.md` — repository/developer and user-facing setup information; it
   contains hard-coded current GitHub Pages URLs.
