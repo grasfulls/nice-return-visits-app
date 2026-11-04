@@ -151,7 +151,7 @@ vite.config.ts.timestamp-*
 # Word documents and temporary Word files; keep the two published source docs
 *.docx
 !docs/Nice-Return-Visits-User-Guide.docx
-!docs/Nice-Return-Visits-Privacy-Notice.docx
+!docs/NRV-Privacy-Notice.docx
 ~$*
 # Developer note, not for the repo
 docs/Make PWA Icon.pdf

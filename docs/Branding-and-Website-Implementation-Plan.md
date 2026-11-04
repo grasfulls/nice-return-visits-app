@@ -102,7 +102,7 @@ site:
 - `terms.html` — Terms of Use.
 - `docs/Nice-Return-Visits-Setup-User-Guide.pdf` — downloadable setup/user
   guide.
-- `docs/Nice-Return-Visits-Privacy-Notice.pdf` — downloadable privacy notice.
+- `docs/NRV-Privacy-Notice.pdf` — downloadable privacy notice.
 - `README.md` — contains user-facing setup and hosting instructions mixed with
   repository/developer information; review before publishing it as public help.
 
