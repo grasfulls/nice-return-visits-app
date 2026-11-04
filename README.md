@@ -10,6 +10,14 @@ have their own terms.
 It is a client-side contact and return-visit tracker that can be used in a
 browser or installed as a Progressive Web App (PWA).
 
+The name is deliberate: a "nice return visit" is a person we have come to
+know, not just a task. Short forms: **NRV** (one Nice Return Visit or the app)
+and **NRVs** (plural). The basics stay simple (contacts, locations, and visit
+notes); passphrase protection, backup and Dropbox, and **Time in Service**
+tracking are optional. The Setup & User Guide was written and tested on iPhone
+with Safari; NRV has not yet been tested on Android, so Android behavior is
+unverified. Questions and suggestions: Reachout@nrvisits.org.
+
 ## Before you start
 
 For regular use, we recommend adding the app to your Home Screen; it opens
@@ -76,21 +84,29 @@ values, so a contact can be saved with partial details and completed later. A
 street address and newly entered location names are automatically capitalized
 when you leave the field or save. Recognized U.S. state names are saved as
 their standard two-letter abbreviations; two-letter state codes are uppercased.
-Region belongs to one City, and an Area belongs to one Region. The contact
-form's Area list always offers **+ Add New Area...**, even when other areas are
-available for the selected City and Region. Each contact has a stable unique
-ID, so different people can share the same name. The Region list also offers
-**+ Add New Region...** for the selected City. Every new City is automatically
-given the Regions North, South, East, and West. A Region is a large part of a
-city and an Area is a neighborhood within it. In Settings, edit a City,
-Region, or Area to rename it and update existing assignments. Deletion is
-blocked while any contact is assigned to that entry or its child locations;
-reassign those contacts first. Deleting a City or Region with no assigned
-contacts also deletes its Regions and Areas, after confirmation. Contact cards show available
-phone and email details along with the address, location
-hierarchy, urgency, last visit date, and note count; they include actions to
-edit, delete, and navigate to a contact. Share, Export, and Print are icons at the
-bottom of the Edit Contact screen and work on the saved contact (save any
+Cities, Regions, and Areas are three standalone lists of plain names. A
+Region or Area name such as "North" or "Old Town" is stored once and can be
+assigned to any number of cities; the City you choose is what makes the
+combination unique. Regions and Areas are independent of each other (an Area
+is not under a Region), and a city can have a Region, an Area, both, or
+neither. A contact must have a City chosen before its Region or Area can be
+chosen, and each is optional. Names are always shown plain (for example,
+"North", never "North (Lincoln)"). The contact form's Region and Area lists
+offer **+ Add New Region...** and **+ Add New Area...** for the selected City.
+Each contact has a stable unique ID, so different people can share the same
+name. In Settings, Cities, Regions, and Areas are listed once each; Edit a
+Region or Area to rename it everywhere and choose which cities it is assigned
+to (it must stay assigned to at least one), or edit a City to rename it.
+Deletion is blocked while any contact uses the entry; reassign those contacts
+first. Deleting a City with no assigned contacts also removes its Region and
+Area assignments, after confirmation. Contact cards show available phone and
+email details along with the address on its own line, a location line such as
+`City: Lincoln · Region: North · Area: Virginiatown` (only fields with values),
+urgency, last visit date, and note count. Each card has actions to add a visit,
+edit, get directions, **Share**, and delete. Share opens the same Share dialog
+directly from the card, with no need to open Edit Contact first. Export and
+Print are icons at the bottom of the Edit Contact screen (and a Share icon
+also remains there); they work on the saved contact (save any
 changes first). Notes themselves are viewed,
 added, edited, and deleted (including their date and time) in the contact
 editor, not on the card. Navigate opens Google Maps directions using
@@ -104,8 +120,8 @@ encrypted by the app; use the contact export action for app-to-app transfer.
 Every print button is the printer icon in the bottom bar and prints what is on
 that page. On the contacts page it prints exactly the contacts
 shown by the current search and filters (the icon shows the count). It confirms first, groups
-each contact once under their most specific location (Area, then Region, then
-City, then unassigned), and includes only the latest visit note. On the **Map**
+each contact once under their City, Region, and Area (or City only, or
+unassigned), and includes only the latest visit note. On the **Map**
 page it asks for numbered pins only or pins with contact details; pin numbers
 match the printed list, and contacts without a pin are listed separately. On
 **Settings** it prints the defaults, passphrase on/off, and locations. In **Edit
@@ -117,15 +133,16 @@ PDF if that option is available.
 
 Search matches names, email addresses, phone numbers, addresses, and visit
 notes. The list can be filtered by urgency, city, region, and area, and sorted
-newest first, oldest first, or alphabetically by first name. In the contact
-form, Region is available only after choosing a City, and Area is available
-only after choosing a Region.
-Settings lets you create regions under cities and areas under regions. Filters
-follow the same hierarchy. During migration from the earlier multiple-area
-format, a contact keeps its first listed area and drops other area assignments;
-the contact's unique ID, visit history, and other details are preserved.
-Legacy area-list strings are placed under an **Unassigned** region for review
-and later editing.
+by most recent last visit (newest first), oldest last visit first, or
+alphabetically by first name. In the contact form, Region and Area are
+available only after choosing a City. With a City selected, the Region and Area
+filters list only the names used with that City; with all cities they list
+every name. Region and Area filters work independently, so an Area can be
+filtered without choosing a Region.
+During migration from the earlier formats, a contact keeps its first listed
+area and drops other area assignments, and areas that were stored under a
+Region lose that link (duplicates collapse per city); the contact's unique ID,
+visit history, and other details are preserved.
 Urgency is based on the most recent visit log, or the contact creation date if
 there are no logs:
 
@@ -257,9 +274,10 @@ syncs and each device keeps its own data.
 
 ## Share one contact
 
-Open a contact with the pencil button and choose the export icon at the bottom
-of the Edit Contact screen to export that contact, including
-its visit history, as a file. If the device has a passphrase, the file is
+To send a contact as a text, WhatsApp, or email message, tap **Share** on its
+card. To export one contact as a file, open it with the pencil button and choose
+the export icon at the bottom of the Edit Contact screen. The file includes
+its visit history. If the device has a passphrase, the file is
 encrypted: create a separate sharing passphrase of at least 8 characters and
 give it to the recipient through a different channel. With no passphrase, the
 file is plain and no passphrase is asked for.
@@ -315,11 +333,13 @@ After the reload, unlock with the same passphrase if one is turned on.
 The plain-language user guide is available from **Settings → Help → User Guide & Privacy Notice** or directly at
 **https://grasfulls.github.io/nice-return-visits-app/help.html**. It is an
 accessible, responsive HTML page that can be read in a standard web browser.
-The combined Setup and User Guide PDF is in the [docs/](./docs) folder and linked from the page.
+The illustrated Setup and User Guide PDF,
+[docs/NRV-Setup-User-Guide.pdf](./docs/NRV-Setup-User-Guide.pdf), is linked from
+the page (it is not cached for offline use because of its size).
 
 The **Privacy & Data Notice** is available from Settings or directly at
 **https://grasfulls.github.io/nice-return-visits-app/privacy.html**. The page also
-provides a downloadable PDF copy. It explains what information the app stores
+provides a downloadable PDF copy ([docs/NRV-Privacy-Notice.pdf](./docs/NRV-Privacy-Notice.pdf)). It explains what information the app stores
 on the user's device, what may be sent to hosting and mapping providers, and
 that the app owner does not collect information identifying who downloads or
 uses the app.
