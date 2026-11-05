@@ -23,39 +23,68 @@
 
       body {
         margin: 0;
+        background: white;
       }
 
       header {
-        padding: 2rem 1rem;
-        color: white;
-        background: #004080;
+        padding: 0.5rem 1rem 0;
+        color: #202a35;
+        background: white;
       }
 
-      header > div,
-      main {
-        width: min(100% - 2rem, 820px);
+      header > div {
+        position: relative;
+        width: min(100%, 720px);
         margin: 0 auto;
+      }
+
+      .guide-running-title {
+        position: absolute;
+        top: 0;
+        right: 0;
+        margin: 0;
+        padding-right: 0.25rem;
+        color: #aeb8c3;
+        border-right: 1px solid #d5dee8;
+        font-size: 0.75rem;
+        line-height: 1.2;
+        text-align: right;
+        text-transform: uppercase;
+      }
+
+      .guide-title-row {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        padding: 0 0 2rem 1.2rem;
+      }
+
+      .guide-logo {
+        display: block;
+        width: clamp(84px, 16vw, 120px);
+        height: auto;
+        flex: 0 0 auto;
       }
 
       header h1 {
         margin: 0;
+        color: #004080;
         font-size: clamp(1.8rem, 5vw, 2.5rem);
-        line-height: 1.2;
+        line-height: 1.15;
       }
 
-      header p {
-        margin: 0.5rem 0 0;
+      header .guide-subtitle {
+        margin: 0.75rem 0 0;
         font-size: 1.1rem;
+        font-weight: bold;
+        font-style: italic;
       }
 
       main {
-        margin-top: 1.5rem;
+        width: min(100%, 820px);
+        margin: 0 auto;
         margin-bottom: 3rem;
-        padding: clamp(1rem, 4vw, 2rem);
-        background: white;
-        border: 1px solid #d5dee8;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgb(20 45 70 / 8%);
+        padding: 0 0.5rem;
       }
 
       h2 {
@@ -66,8 +95,22 @@
         font-size: 1.35rem;
       }
 
-      h2:first-of-type {
+      .guide-intro h2 {
+        margin-top: 1.25rem;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0;
+        color: #5689c7;
+        border-bottom: 0;
+        font-size: 1.1rem;
+      }
+
+      .guide-intro h2:first-of-type {
         margin-top: 0;
+      }
+
+      .guide-intro > p {
+        margin: 0 0 1rem;
+        line-height: 1.3;
       }
 
       a {
@@ -84,6 +127,13 @@
         padding: 1rem;
         border-left: 4px solid #b45309;
         background: #fff7ed;
+      }
+
+      .guide-intro .notice {
+        padding: 1rem 0.5rem;
+        border-left: 0;
+        background: #fff6e8;
+        text-indent: 2.8rem;
       }
 
       .install-guide-grid {
@@ -149,11 +199,8 @@
       }
 
       .document-link {
-        margin: 0 0 1.5rem;
-        padding: 1rem;
-        border: 1px solid #d5dee8;
-        border-radius: 6px;
-        background: #f4f7fa;
+        margin: 0 0 1.25rem;
+        padding: 0.75rem 2rem 0;
       }
 
       footer {
@@ -196,13 +243,50 @@
           color: inherit;
         }
       }
+
+      @media (max-width: 480px) {
+        .guide-running-title {
+          position: static;
+        }
+
+        .guide-title-row {
+          gap: 0.75rem;
+          padding: 0.5rem 0 1rem;
+        }
+
+        header h1 {
+          font-size: clamp(1.45rem, 7vw, 1.9rem);
+        }
+
+        header .guide-subtitle {
+          margin-top: 0.5rem;
+          font-size: 0.95rem;
+        }
+
+        .document-link {
+          padding-right: 1rem;
+          padding-left: 1rem;
+        }
+      }
     </style>
   </head>
   <body>
     <header>
       <div>
-        <h1>NRV - Nice Return Visits</h1>
-        <p>A general guide for everyday use</p>
+        <p class="guide-running-title">Nice Return Visits | User Guide</p>
+        <div class="guide-title-row">
+          <img
+            class="guide-logo"
+            src="./icons/icon-180.png"
+            alt=""
+            width="120"
+            height="120"
+          />
+          <div>
+            <h1>NRV - Nice Return Visits</h1>
+            <p class="guide-subtitle">A general guide for installing everyday use</p>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -211,77 +295,125 @@
         Download this guide with images as a
         <a href="./docs/NRV-Setup-User-Guide.pdf" download>PDF</a>.
       </p>
-      <a class="return-to-app" href="./">← Return to previous screen</a>
-      <h2 id="install-guide">Before adding your first contacts</h2>
-      <p>
-        When you first open NRV in a browser, choose whether to
-        <strong>Set up the app icon (recommended)</strong> or
-        <strong>Use NRV in this browser</strong>. We recommend the icon because
-        it gives you a consistent way to open the same NRV copy on your device.
-      </p>
-      <p>
-        The icon is created from the page open when you choose Add to Home
-        Screen. Start from the
-        <a href="./index.html"><strong>NRV app page</strong></a>, not this
-        guide, and follow the instructions for your device below. After
-        installation, close the browser page and open NRV from its new icon;
-        the icon name should be <strong>NRV</strong>.
-      </p>
-      <p class="notice">
-        <strong>Keep in mind:</strong> Your data is stored separately for each
-        browser, device, and installed app copy. Using one browser on one
-        device consistently keeps you in that browser's copy; other browsers,
-        devices, or the Home Screen app may have separate contacts. They do
-        not share data automatically. To move data between copies, use a
-        backup file, or choose optional Dropbox backup and sync.
-      </p>
-      <p>
-        Whichever option you choose, you must review and agree to the Terms
-        of Use and Privacy &amp; Data Notice before using NRV. If you choose
-        the browser, the agreement appears there; if you choose the app icon,
-        it appears when you first open NRV from the icon. The
-        <strong>NRV-Install</strong> screen then guides you through setting
-        default locations and any personal details you want to add before
-        starting with Contacts. You can also restore a backup there; if NRV
-        finds existing data, it offers choices to use that data or erase it
-        and start fresh.
-      </p>
-      <p>
-        You can set up <strong>Defaults &amp; Your Details</strong> during
-        initial setup and add <strong>Cities, Regions &amp; Areas</strong>
-        there or later in Settings. Other options, such as tracking time, are
-        also in Settings. To erase this working copy later, use
-        <strong>Settings → Data/Security → Erase All Data / Start Fresh</strong>.
-      </p>
-      <p>
-        <strong>If you already have contacts in a browser:</strong> Adding the
-        Home Screen icon creates a separate copy; your browser contacts do
-        not appear in it automatically. To move them, first
-        <a href="#backup">back up</a> the browser copy, then restore that
-        backup in the app icon. Confirm the contacts appear before switching
-        to the icon as your regular copy.
-      </p>
+      <section class="guide-intro">
+        <h2 id="install-guide">Before adding your first contacts</h2>
+        <p>
+          <strong>We recommend adding an app icon to your device's Home Screen</strong>
+          at the onset of the installation process, closing this screen and
+          clicking the icon. When you first open the link, choose whether to set
+          up the app icon or use NRV in the current browser. The app icon ensures
+          you always open the same copy of your data, preventing the risk of
+          accidentally creating separate contact lists. Once you add the Home
+          Screen icon, you'll open the same dataset every time.
+        </p>
+        <p class="notice">
+          <strong>Important:</strong> the icon is made from the page you are on
+          when you tap Add to Home Screen. This guide page would give you a
+          guide icon, not the app. First
+          <a href="./index.html"><strong>open the NRV app page</strong></a>
+          (https://grasfulls.github.io/nice-return-visits-app/), and only then
+          use the steps below. The icon name should read <strong>NRV</strong>.
+        </p>
+        <p>
+          The app works in a browser tab too, but if you open it each time in a
+          browser, even the same one, or a different browser (Chrome one day,
+          Safari the next) each may maintain its own separate copy of your
+          contacts. If you use multiple devices, each will maintain its own set
+          of contacts unless you “pass” the contact database around OR you use
+          the could (for now it is Dropbox).
+        </p>
+        <p>
+          If you choose the icon, follow the icon installation steps, then open
+          NRV from that icon. The Terms of Use and Privacy &amp; Data Notice
+          agreement appears, followed by the next screen seeking default settings
+          and details, then you move into adding Contacts.
+        </p>
+        <p>
+          The settings view allows for much more, some of which you may wish to
+          sect your options now. You may use NRV to track your time, you may
+          “restore” restore from a backup file (used if you are passing the
+          contcas around), or, if it finds existing data, open it or start fresh.
+        </p>
+        <p>
+          To wipe a copy of the app, use
+          <strong>Settings → Data/Security → Erase All Data / Start Fresh</strong>.
+          Set up <strong>Defaults &amp; Your Details</strong> in Settings, then
+          add <strong>Cities, Regions &amp; Areas</strong> there or as needed.
+        </p>
+        <p class="notice">
+          <strong>If you have already added contacts via NRV from a browser:</strong>
+          Adding a Home Screen icon creates a separate, empty copy. Your existing
+          browser contacts will not appear in the new icon unless you manually
+          transfer them. To move them, <a href="#backup">back up</a> your browser
+          copy, then restore that backup to the app icon. After confirming the
+          contacts appear, use the icon consistently and stop using the browser
+          copy for this app.
+        </p>
+      </section>
       <div class="install-guide-grid">
         <section class="install-guide-card" aria-labelledby="iphone-install">
           <h3 id="iphone-install">iPhone or iPad</h3>
           <svg viewBox="0 0 300 210" role="img" aria-labelledby="ios-title">
-            <title id="ios-title">Safari Share menu with Add to Home Screen highlighted</title>
-            <rect x="76" y="5" width="148" height="200" rx="18" fill="#263746"/>
-            <rect x="84" y="17" width="132" height="176" rx="10" fill="#fff"/>
-            <rect x="92" y="27" width="116" height="24" rx="6" fill="#e7edf3"/>
+            <title id="ios-title">
+              Safari Share menu with Add to Home Screen highlighted
+            </title>
+            <rect
+              x="76"
+              y="5"
+              width="148"
+              height="200"
+              rx="18"
+              fill="#263746"
+            />
+            <rect x="84" y="17" width="132" height="176" rx="10" fill="#fff" />
+            <rect x="92" y="27" width="116" height="24" rx="6" fill="#e7edf3" />
             <text x="100" y="43" font-size="12" fill="#263746">Safari</text>
-            <rect x="91" y="62" width="118" height="123" rx="8" fill="#f3f6f9"/>
-            <text x="106" y="83" font-size="11" fill="#263746">Nice Return Visits</text>
-            <path d="M151 167v-25m0 0-9 9m9-9 9 9M141 174h20" fill="none" stroke="#075ca8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-            <rect x="96" y="123" width="108" height="59" rx="8" fill="#fff" stroke="#004080" stroke-width="2"/>
-            <path d="M118 140v18m-6-6 6 6 6-6m-12 17h12" fill="none" stroke="#075ca8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <text x="140" y="145" font-size="8" fill="#263746">Add to Home</text>
+            <rect
+              x="91"
+              y="62"
+              width="118"
+              height="123"
+              rx="8"
+              fill="#f3f6f9"
+            />
+            <text x="106" y="83" font-size="11" fill="#263746">
+              Nice Return Visits
+            </text>
+            <path
+              d="M151 167v-25m0 0-9 9m9-9 9 9M141 174h20"
+              fill="none"
+              stroke="#075ca8"
+              stroke-width="4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <rect
+              x="96"
+              y="123"
+              width="108"
+              height="59"
+              rx="8"
+              fill="#fff"
+              stroke="#004080"
+              stroke-width="2"
+            />
+            <path
+              d="M118 140v18m-6-6 6 6 6-6m-12 17h12"
+              fill="none"
+              stroke="#075ca8"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <text x="140" y="145" font-size="8" fill="#263746">
+              Add to Home
+            </text>
             <text x="140" y="157" font-size="8" fill="#263746">Screen</text>
           </svg>
           <p>
             Open the <strong>NRV app page</strong> (not this guide) in
-            <strong>Safari</strong>. Tap the
-            <strong>Share</strong> button, scroll the menu if needed, then tap
+            <strong>Safari</strong>. Tap the <strong>Share</strong> button,
+            scroll the menu if needed, then tap
             <strong>Add to Home Screen</strong>. If this page opened inside
             another app, choose <strong>Open in Safari</strong> first.
           </p>
@@ -290,21 +422,55 @@
         <section class="install-guide-card" aria-labelledby="android-install">
           <h3 id="android-install">Android phone or tablet</h3>
           <svg viewBox="0 0 300 210" role="img" aria-labelledby="android-title">
-            <title id="android-title">Chrome menu with Install app highlighted</title>
-            <rect x="76" y="5" width="148" height="200" rx="18" fill="#263746"/>
-            <rect x="84" y="17" width="132" height="176" rx="10" fill="#fff"/>
-            <rect x="92" y="27" width="116" height="24" rx="6" fill="#e7edf3"/>
+            <title id="android-title">
+              Chrome menu with Install app highlighted
+            </title>
+            <rect
+              x="76"
+              y="5"
+              width="148"
+              height="200"
+              rx="18"
+              fill="#263746"
+            />
+            <rect x="84" y="17" width="132" height="176" rx="10" fill="#fff" />
+            <rect x="92" y="27" width="116" height="24" rx="6" fill="#e7edf3" />
             <text x="100" y="43" font-size="12" fill="#263746">Chrome</text>
-            <circle cx="196" cy="39" r="2" fill="#263746"/>
-            <circle cx="196" cy="45" r="2" fill="#263746"/>
-            <circle cx="196" cy="51" r="2" fill="#263746"/>
-            <rect x="114" y="57" width="92" height="92" rx="6" fill="#fff" stroke="#004080" stroke-width="2"/>
+            <circle cx="196" cy="39" r="2" fill="#263746" />
+            <circle cx="196" cy="45" r="2" fill="#263746" />
+            <circle cx="196" cy="51" r="2" fill="#263746" />
+            <rect
+              x="114"
+              y="57"
+              width="92"
+              height="92"
+              rx="6"
+              fill="#fff"
+              stroke="#004080"
+              stroke-width="2"
+            />
             <text x="127" y="77" font-size="9" fill="#263746">New tab</text>
             <text x="127" y="95" font-size="9" fill="#263746">History</text>
-            <rect x="119" y="103" width="82" height="30" rx="4" fill="#dceeff"/>
-            <path d="M130 112h12v12h-12zM133 109v6m6-6v6" fill="none" stroke="#075ca8" stroke-width="1.5"/>
-            <text x="147" y="116" font-size="8" fill="#263746">Install app</text>
-            <text x="147" y="126" font-size="7" fill="#263746">or Add to Home screen</text>
+            <rect
+              x="119"
+              y="103"
+              width="82"
+              height="30"
+              rx="4"
+              fill="#dceeff"
+            />
+            <path
+              d="M130 112h12v12h-12zM133 109v6m6-6v6"
+              fill="none"
+              stroke="#075ca8"
+              stroke-width="1.5"
+            />
+            <text x="147" y="116" font-size="8" fill="#263746">
+              Install app
+            </text>
+            <text x="147" y="126" font-size="7" fill="#263746">
+              or Add to Home screen
+            </text>
           </svg>
           <p>
             Open this page in <strong>Chrome</strong>. Tap the three-dot menu
@@ -315,19 +481,57 @@
 
         <section class="install-guide-card" aria-labelledby="computer-install">
           <h3 id="computer-install">Computer</h3>
-          <svg viewBox="0 0 300 210" role="img" aria-labelledby="computer-title">
-            <title id="computer-title">Browser address bar with the install icon highlighted</title>
-            <rect x="19" y="25" width="262" height="160" rx="10" fill="#263746"/>
-            <rect x="27" y="34" width="246" height="142" rx="5" fill="#fff"/>
-            <rect x="27" y="34" width="246" height="34" rx="5" fill="#e7edf3"/>
-            <circle cx="41" cy="49" r="4" fill="#a5b3c0"/>
-            <circle cx="54" cy="49" r="4" fill="#a5b3c0"/>
-            <circle cx="67" cy="49" r="4" fill="#a5b3c0"/>
-            <rect x="83" y="40" width="134" height="18" rx="9" fill="#fff"/>
-            <text x="95" y="52" font-size="8" fill="#526273">return-visits.app</text>
-            <rect x="222" y="38" width="28" height="24" rx="5" fill="#dceeff" stroke="#075ca8" stroke-width="2"/>
-            <path d="M231 49v7h10v-7m-5 1V43m-3 3 3-3 3 3" fill="none" stroke="#075ca8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M135 141h30m-25 0 3 11h14l3-11m-21 17h22" fill="none" stroke="#526273" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg
+            viewBox="0 0 300 210"
+            role="img"
+            aria-labelledby="computer-title"
+          >
+            <title id="computer-title">
+              Browser address bar with the install icon highlighted
+            </title>
+            <rect
+              x="19"
+              y="25"
+              width="262"
+              height="160"
+              rx="10"
+              fill="#263746"
+            />
+            <rect x="27" y="34" width="246" height="142" rx="5" fill="#fff" />
+            <rect x="27" y="34" width="246" height="34" rx="5" fill="#e7edf3" />
+            <circle cx="41" cy="49" r="4" fill="#a5b3c0" />
+            <circle cx="54" cy="49" r="4" fill="#a5b3c0" />
+            <circle cx="67" cy="49" r="4" fill="#a5b3c0" />
+            <rect x="83" y="40" width="134" height="18" rx="9" fill="#fff" />
+            <text x="95" y="52" font-size="8" fill="#526273">
+              return-visits.app
+            </text>
+            <rect
+              x="222"
+              y="38"
+              width="28"
+              height="24"
+              rx="5"
+              fill="#dceeff"
+              stroke="#075ca8"
+              stroke-width="2"
+            />
+            <path
+              d="M231 49v7h10v-7m-5 1V43m-3 3 3-3 3 3"
+              fill="none"
+              stroke="#075ca8"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M135 141h30m-25 0 3 11h14l3-11m-21 17h22"
+              fill="none"
+              stroke="#526273"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
           </svg>
           <p>
             In <strong>Chrome or Edge</strong>, look for the install icon near
@@ -338,21 +542,25 @@
       <p class="illustration-note">
         These pictures are simple guides, not exact screenshots. Button names
         and locations can vary by device and browser. If you do not see an
-        install option, you can continue using Nice Return Visits in your browser.
+        install option, you can continue using Nice Return Visits in your
+        browser.
       </p>
       <p>
-        Once the icon is ready, open Nice Return Visits and continue through
-        the NRV-Install setup. Choose <strong>Set up Defaults &amp; Your
-        Details</strong> to enter your location defaults and any personal
-        details you want to use. You can add locations in
-        <strong>Settings → Cities, Regions &amp; Areas</strong> now or later.
-        The app icon alone keeps your data safe and consistent on that device. Cloud backup via Dropbox and data encryption via passphrase are both optional safeguards; use the Settings gear to set up, review, or change these choices at any time.
+        Once the icon is ready, open Nice Return Visits and continue through the
+        NRV-Install setup. Choose
+        <strong>Set up Defaults &amp; Your Details</strong> to enter your
+        location defaults and any personal details you want to use. You can add
+        locations in <strong>Settings → Cities, Regions &amp; Areas</strong> now
+        or later. The app icon alone keeps your data safe and consistent on that
+        device. Cloud backup via Dropbox and data encryption via passphrase are
+        both optional safeguards; use the Settings gear to set up, review, or
+        change these choices at any time.
       </p>
 
       <h2>What this app does</h2>
       <p>
-        Nice Return Visits is free to use, with no app fees or subscription. It is
-        intentionally a simple tool for maintaining contact details and
+        Nice Return Visits is free to use, with no app fees or subscription. It
+        is intentionally a simple tool for maintaining contact details and
         tracking return visits, not a full-featured contact-management app. It
         may have fewer features or be less reliable than paid products. The app
         is provided as-is. Your internet or mobile provider may charge for data,
@@ -366,28 +574,28 @@
 
       <h2>Important: where your information is kept is your choice</h2>
       <p>
-              Contacts and settings are first saved in the browser on the device where
-              you use the app, and each browser or Home Screen icon keeps its own
-              separate data. Where else they exist is your choice. If you connect your
-              own Dropbox, backups are stored in your Dropbox account, so your data is
-              held there as well as on your devices. If you send a backup or contact
-              file by email, messaging or a cloud folder, the data leaves your device
-              and sits wherever that service stores the file until you delete it, and
-              it is not on the receiving device until the file is opened and
-              restored. Files are readable by anyone who obtains them unless you
-              encrypted them. See
+        Contacts and settings are first saved in the browser on the device where
+        you use the app, and each browser or Home Screen icon keeps its own
+        separate data. Where else they exist is your choice. If you connect your
+        own Dropbox, backups are stored in your Dropbox account, so your data is
+        held there as well as on your devices. If you send a backup or contact
+        file by email, messaging or a cloud folder, the data leaves your device
+        and sits wherever that service stores the file until you delete it, and
+        it is not on the receiving device until the file is opened and restored.
+        Files are readable by anyone who obtains them unless you encrypted them.
+        See
         <a href="#cloud-backup">Cloud backup and sync (optional)</a> and
         <a href="#sync">Syncing between devices</a>.
       </p>
       <p class="notice">
         Before changing devices or browsers, clearing browser data, or removing
-        and reinstalling the app, make a backup (encrypted or not, your choice). Local records may
-        become unavailable after these changes. A full backup includes
-        everything stored in the app: your contacts and visit notes, your
-        Defaults, Your Details (including your home pin), and your Cities,
-        Regions and Areas. To use your information again,
-        restore the backup on the device where you reinstall or open the app.
-        Step-by-step instructions are in
+        and reinstalling the app, make a backup (encrypted or not, your choice).
+        Local records may become unavailable after these changes. A full backup
+        includes everything stored in the app: your contacts and visit notes,
+        your Defaults, Your Details (including your home pin), and your Cities,
+        Regions and Areas. To use your information again, restore the backup on
+        the device where you reinstall or open the app. Step-by-step
+        instructions are in
         <a href="#backup">Protect your information and make a backup</a>.
       </p>
       <p class="notice">
@@ -403,21 +611,25 @@
       <h2>Passphrase (optional)</h2>
       <ul>
         <li>
-          A passphrase is not required. By default the app opens right away
-          and stores your contacts on this device without encryption.
+          A passphrase is not required. By default the app opens right away and
+          stores your contacts on this device without encryption.
         </li>
         <li>
-          To protect your data, open <strong>Settings → Choices → Passphrase to Open App → Turn On
-          Passphrase</strong>, enter and confirm a passphrase with at least 12
-          characters, and choose <strong>Save Passphrase</strong>. Your saved data is then encrypted, and you will enter
-          the passphrase each time you open the app on that device and browser.
-          The app then shows you a <strong>recovery code</strong>; see
+          To protect your data, open
+          <strong
+            >Settings → Choices → Passphrase to Open App → Turn On
+            Passphrase</strong
+          >, enter and confirm a passphrase with at least 12 characters, and
+          choose <strong>Save Passphrase</strong>. Your saved data is then
+          encrypted, and you will enter the passphrase each time you open the
+          app on that device and browser. The app then shows you a
+          <strong>recovery code</strong>; see
           <a href="#recovery-code">Recovery code</a> below.
         </li>
         <li>
-          If you turn a passphrase on, keep it and your recovery code
-          somewhere safe. If you lose both, the app cannot unlock that
-          device's encrypted contacts.
+          If you turn a passphrase on, keep it and your recovery code somewhere
+          safe. If you lose both, the app cannot unlock that device's encrypted
+          contacts.
         </li>
         <li>
           A passphrase does not sync or restore contacts by itself. To recover
@@ -430,23 +642,25 @@
       <h2>Change your passphrase</h2>
       <p>
         If a passphrase is on, after unlocking this copy of the app, open
-        <strong>Settings → Choices → Passphrase to Open App</strong>. The section says you may change
-        the passphrase or turn it off. Choose <strong>Change Passphrase</strong>,
-        enter your current passphrase, then enter and confirm a new passphrase
-        of at least 12 characters. The app re-encrypts this copy's saved
-        contacts and settings with the new passphrase. This does not change
-        other browser or Home Screen copies, or the passphrase on backup files
-        you already exported. Keep using the old passphrase for those existing
-        backups; a new backup will use the new passphrase.
+        <strong>Settings → Choices → Passphrase to Open App</strong>. The
+        section says you may change the passphrase or turn it off. Choose
+        <strong>Change Passphrase</strong>, enter your current passphrase, then
+        enter and confirm a new passphrase of at least 12 characters. The app
+        re-encrypts this copy's saved contacts and settings with the new
+        passphrase. This does not change other browser or Home Screen copies, or
+        the passphrase on backup files you already exported. Keep using the old
+        passphrase for those existing backups; a new backup will use the new
+        passphrase.
       </p>
       <p>
-        To stop using a passphrase, open <strong>Settings → Choices → Passphrase to Open App</strong>
-        and choose <strong>Turn Off Passphrase</strong>. The app first explains
-        what this means: your data is stored without encryption, the app opens
-        without asking for a passphrase, your recovery code stops working, and
-        backups you make afterward are not encrypted. Choose
-        <strong>Continue</strong> to go on or <strong>Cancel</strong> to keep the
-        passphrase. If you continue, enter your current passphrase once to
+        To stop using a passphrase, open
+        <strong>Settings → Choices → Passphrase to Open App</strong> and choose
+        <strong>Turn Off Passphrase</strong>. The app first explains what this
+        means: your data is stored without encryption, the app opens without
+        asking for a passphrase, your recovery code stops working, and backups
+        you make afterward are not encrypted. Choose
+        <strong>Continue</strong> to go on or <strong>Cancel</strong> to keep
+        the passphrase. If you continue, enter your current passphrase once to
         finish. You can turn it on again at any time.
       </p>
 
@@ -462,9 +676,9 @@
         <li>
           If you forget your passphrase, type the recovery code in its place on
           the unlock screen. After you are in, open
-          <strong>Settings → Choices → Passphrase to Open App</strong> and choose a new passphrase;
-          you can enter the recovery code as the current passphrase. You will
-          get a new recovery code.
+          <strong>Settings → Choices → Passphrase to Open App</strong> and
+          choose a new passphrase; you can enter the recovery code as the
+          current passphrase. You will get a new recovery code.
         </li>
         <li>
           The recovery code is stored, locked, inside your backup files, so it
@@ -473,8 +687,10 @@
         <li>
           Changing your passphrase makes a new code, and the old one stops
           working. If you lose the code but still know your passphrase, open
-          <strong>Settings → Choices → Passphrase to Open App → Recovery Code</strong> and choose
-          <strong>Make a New Recovery Code</strong>.
+          <strong
+            >Settings → Choices → Passphrase to Open App → Recovery Code</strong
+          >
+          and choose <strong>Make a New Recovery Code</strong>.
         </li>
         <li>
           If you already had a passphrase before this feature, use that same
@@ -486,9 +702,8 @@
       <ul>
         <li>
           Choose the blue <strong>+</strong> button at the top of the contact
-          list, enter a first name, and add any
-          other details you have. A first name is required; other contact
-          details can be completed later.
+          list, enter a first name, and add any other details you have. A first
+          name is required; other contact details can be completed later.
         </li>
         <li>
           Email and phone are optional. Enter an email such as
@@ -502,13 +717,13 @@
           optional; you can choose either one, both, or neither. New contacts
           default to the country saved in Your Details, but you can choose a
           different country for each contact. The Country list includes Canada,
-          Mexico, United States, saved custom countries, and <strong>+ Country</strong>
-          to add another. Cities are saved as you enter them. The Region and
-          Area lists each include a <strong>+ Add New...</strong> choice so you
-          can add those locations without leaving the form. A Region is
-          typically a large part of a city, and an Area is a neighborhood. The
-          same Region or Area name can be used in more than one city; the City
-          you choose makes it unique.
+          Mexico, United States, saved custom countries, and
+          <strong>+ Country</strong> to add another. Cities are saved as you
+          enter them. The Region and Area lists each include a
+          <strong>+ Add New...</strong> choice so you can add those locations
+          without leaving the form. A Region is typically a large part of a
+          city, and an Area is a neighborhood. The same Region or Area name can
+          be used in more than one city; the City you choose makes it unique.
         </li>
         <li>
           In <strong>Settings</strong>, Cities, Regions and Areas are each
@@ -524,11 +739,11 @@
           contact a permanent ID to tell them apart.
         </li>
         <li>
-          Choose <strong>Save</strong> (the disk icon at the bottom of the editor) to keep your changes.
-          The <strong>+</strong> icon next to the title starts another new
-          contact without leaving the editor, and the arrow icon in the bottom
-          bar opens Google Maps directions. To edit an existing
-          contact, use the pencil/edit action on its contact card.
+          Choose <strong>Save</strong> (the disk icon at the bottom of the
+          editor) to keep your changes. The <strong>+</strong> icon next to the
+          title starts another new contact without leaving the editor, and the
+          arrow icon in the bottom bar opens Google Maps directions. To edit an
+          existing contact, use the pencil/edit action on its contact card.
         </li>
         <li>
           If you choose the <strong>×</strong> or close the editor after making
@@ -536,47 +751,49 @@
           discards those changes; canceling keeps the editor open.
         </li>
         <li>
-          Use the round blue <strong>Map</strong> pin in the bottom navigation to view
-          contacts that match the current search and filters and have map
-          coordinates. Changing the search or filters also updates the map.
-          Contacts with saved coordinates show their pins. For contacts
-          without coordinates but with a City, the map looks up that City and
-          State and Country and shows an approximate city pin. Tapping a pin opens contact
+          Use the round blue <strong>Map</strong> pin in the bottom navigation
+          to view contacts that match the current search and filters and have
+          map coordinates. Changing the search or filters also updates the map.
+          Contacts with saved coordinates show their pins. For contacts without
+          coordinates but with a City, the map looks up that City and State and
+          Country and shows an approximate city pin. Tapping a pin opens contact
           details with Edit Contact and Get Directions buttons. When you open
           the Map, the browser asks for location permission and, if allowed,
-          shows your live position as a blue dot while the Map is open. If
-          there are no contact, home, or live-location pins, the map also
-          centers approximately on the Default City, State, and Country saved in Settings.
+          shows your live position as a blue dot while the Map is open. If there
+          are no contact, home, or live-location pins, the map also centers
+          approximately on the Default City, State, and Country saved in
+          Settings.
         </li>
         <li>
-          In <strong>Settings → Defaults &amp; Your Details</strong>, Your Details stores your name, country,
-          location, address, and home pin. The country saved there is the
-          default for new contacts. Your home shows on the Map as a purple house icon (drag
-          it to adjust), the Map opens fitted to include it, and your name is
-          added as “Shared by [your name]” to the message when you choose Share
-          on a contact. The app prepares the message; you decide whether and
-          to whom to send it. Your address and home pin are not included in
-          that message. The address lookup button sends your address to
-          OpenStreetMap Nominatim only when you choose it. Your details stay
-          on this device and are included in backups.
+          In <strong>Settings → Defaults &amp; Your Details</strong>, Your
+          Details stores your name, country, location, address, and home pin.
+          The country saved there is the default for new contacts. Your home
+          shows on the Map as a purple house icon (drag it to adjust), the Map
+          opens fitted to include it, and your name is added as “Shared by [your
+          name]” to the message when you choose Share on a contact. The app
+          prepares the message; you decide whether and to whom to send it. Your
+          address and home pin are not included in that message. The address
+          lookup button sends your address to OpenStreetMap Nominatim only when
+          you choose it. Your details stay on this device and are included in
+          backups.
         </li>
       </ul>
       <p>
         In the contact form, choose
         <strong>Find Address or City Pin</strong> to look up a location using
-        OpenStreetMap Nominatim. Choose <strong>Use Device Location</strong>
-        instead to request the phone's current location. GPS uses the device's
-        location, not the contact's address, and its accuracy can vary. The
-        form shows the GPS-reported accuracy when available. Typing or saving
-        an address does not run a lookup or create a pin automatically. Street
-        addresses and newly entered location names are capitalized when you
-        leave the field or save. Recognized U.S. state names are saved as
-        standard two-letter abbreviations, and state codes are uppercased.
-        Once a pin is set, choose <strong>Confirm pin is correct</strong> and
-        the lookup buttons, coordinates, and map are hidden, leaving a short
-        "Map pin set" line. They return when you choose
-        <strong>Adjust pin</strong> or change the street address, city, or
-        state.
+        OpenStreetMap Nominatim. Choose
+        <strong>Use Device Location</strong> instead to request the phone's
+        current location. GPS uses the device's location, not the contact's
+        address, and its accuracy can vary. The form shows the GPS-reported
+        accuracy when available. Typing or saving an address does not run a
+        lookup or create a pin automatically. Street addresses and newly entered
+        location names are capitalized when you leave the field or save.
+        Recognized U.S. state names are saved as standard two-letter
+        abbreviations, and state codes are uppercased. Once a pin is set, choose
+        <strong>Confirm pin is correct</strong> and the lookup buttons,
+        coordinates, and map are hidden, leaving a short "Map pin set" line.
+        They return when you choose <strong>Adjust pin</strong> or change the
+        street address, city, or state.
       </p>
       <ul>
         <li>
@@ -584,15 +801,14 @@
           correct street from the street-name list; choices omit house numbers
           and ZIP codes. Selecting a match fills in the street name using
           abbreviations such as Av and Ct, and places a pin. Contact addresses
-          use abbreviated street suffixes throughout the app, including
-          contacts saved earlier (for example, Avenue as Av and Road as Rd).
-          If the full address is not found, the app also searches by the street
-          name without its leading house number.
-          You can choose a city without entering a street to place an
-          approximate city pin. If you need a more precise result, enter a
-          nearby cross-street or intersection and search again. These searches
-          send the entered location text to OpenStreetMap Nominatim only after
-          you choose the lookup button.
+          use abbreviated street suffixes throughout the app, including contacts
+          saved earlier (for example, Avenue as Av and Road as Rd). If the full
+          address is not found, the app also searches by the street name without
+          its leading house number. You can choose a city without entering a
+          street to place an approximate city pin. If you need a more precise
+          result, enter a nearby cross-street or intersection and search again.
+          These searches send the entered location text to OpenStreetMap
+          Nominatim only after you choose the lookup button.
         </li>
         <li>
           Contacts saved without coordinates have no map pin. The Map page
@@ -613,13 +829,14 @@
         </li>
         <li>
           Check that the pin is in the right place before choosing
-          <strong>Save</strong> (the disk icon at the bottom of the screen). Address lookup may not identify the exact
-          entrance or building; device location may also need manual adjustment.
+          <strong>Save</strong> (the disk icon at the bottom of the screen).
+          Address lookup may not identify the exact entrance or building; device
+          location may also need manual adjustment.
         </li>
       </ul>
       <p>
-        Map tiles also need an internet connection. Coordinates are optional,
-        so you can save a contact without a pin and add coordinates later.
+        Map tiles also need an internet connection. Coordinates are optional, so
+        you can save a contact without a pin and add coordinates later.
       </p>
 
       <h2>Find contacts and record visits</h2>
@@ -641,27 +858,26 @@
           device.
         </li>
         <li>
-          Open a contact with the pencil button, then choose <strong>Share</strong> at
-          the bottom of the Edit Contact screen, then choose
-          <strong>Text / SMS</strong>, <strong>WhatsApp</strong>, or
+          Open a contact with the pencil button, then choose
+          <strong>Share</strong> at the bottom of the Edit Contact screen, then
+          choose <strong>Text / SMS</strong>, <strong>WhatsApp</strong>, or
           <strong>Email</strong>. The selected app opens with a plain-text
-          summary containing the contact's name and any available phone,
-          email, address, and directions link. Before choosing the service, you
-          can also include no notes (the default), only the most recent note,
-          or all notes; the dialog shows how many notes the contact has.
-          This is plain text, not an encrypted contact export. Review the
-          message before sending; your chosen messaging or email service
-          receives the details. For app-to-app transfer, use the
-          contact's export action instead.
+          summary containing the contact's name and any available phone, email,
+          address, and directions link. Before choosing the service, you can
+          also include no notes (the default), only the most recent note, or all
+          notes; the dialog shows how many notes the contact has. This is plain
+          text, not an encrypted contact export. Review the message before
+          sending; your chosen messaging or email service receives the details.
+          For app-to-app transfer, use the contact's export action instead.
         </li>
         <li>
-          Add a visit quickly: tap the <strong>ADD VISIT</strong> button on a contact
-          card. The contact opens on its <strong>Visits</strong> section with the
-          cursor in the new-visit note box; the contact's details are one tap
-          away under <strong>Contact Info</strong>. Type a note, or change the
-          date and time, then use the green save icon. If you leave without
-          typing a note or changing the date, no visit is added. Tapping the
-          pencil instead opens <strong>Contact Info</strong>, and the visit
+          Add a visit quickly: tap the <strong>ADD VISIT</strong> button on a
+          contact card. The contact opens on its <strong>Visits</strong> section
+          with the cursor in the new-visit note box; the contact's details are
+          one tap away under <strong>Contact Info</strong>. Type a note, or
+          change the date and time, then use the green save icon. If you leave
+          without typing a note or changing the date, no visit is added. Tapping
+          the pencil instead opens <strong>Contact Info</strong>, and the visit
           history stays hidden until you tap <strong>Visits</strong>.
         </li>
         <li>
@@ -670,18 +886,17 @@
           note's date and time there, and existing notes can be edited or
           deleted from the same screen. Contact cards on the Contacts page show
           the last visit date, the number of notes, and the newest note's text.
-          A search that matches only a visit note shows "Matches a
-          visit note" on the card.
+          A search that matches only a visit note shows "Matches a visit note"
+          on the card.
         </li>
         <li>
           To dictate a note instead of typing, tap the microphone key on your
           phone's or tablet's keyboard while the note field is selected. On
           iPhone and iPad it is at the bottom of the keyboard (turn it on in
-          Settings → General → Keyboard → Enable Dictation if you don't see
-          it). Android keyboards have a similar microphone key. The app does
-          not record audio itself; dictation is handled by your device, which
-          may send speech to Apple or Google depending on your device
-          settings.
+          Settings → General → Keyboard → Enable Dictation if you don't see it).
+          Android keyboards have a similar microphone key. The app does not
+          record audio itself; dictation is handled by your device, which may
+          send speech to Apple or Google depending on your device settings.
         </li>
         <li>
           Urgency is based on the most recent visit (or the contact's creation
@@ -698,13 +913,14 @@
           button (⏱️) then appears in the bottom bar.
         </li>
         <li>
-          Tap the <strong>Start Time</strong> button on the Contacts screen, between
-          Add Contact and the import icon. While time is being counted it is
-          green and says <strong>Stop Time</strong>; when stopped it is red and says
-          <strong>Start Time</strong>. A running timer keeps counting if you close
-          the app, and a small dot on the Time button reminds you it is on.
-          When you reopen the app after being away, it asks whether to keep
-          time going or stop the timer at the last time you were in the app.
+          Tap the <strong>Start Time</strong> button on the Contacts screen,
+          between Add Contact and the import icon. While time is being counted
+          it is green and says <strong>Stop Time</strong>; when stopped it is
+          red and says <strong>Start Time</strong>. A running timer keeps
+          counting if you close the app, and a small dot on the Time button
+          reminds you it is on. When you reopen the app after being away, it
+          asks whether to keep time going or stop the timer at the last time you
+          were in the app.
         </li>
         <li>
           Today's time starts over at midnight. A timer left running past
@@ -712,29 +928,31 @@
         </li>
         <li>
           You can add time you forgot to count, and edit or delete any entry.
-          The month and service-year totals are calculated from your entries
-          and cannot be edited.
+          The month and service-year totals are calculated from your entries and
+          cannot be edited.
         </li>
         <li>
           Optionally show the hours to go toward 50 hours each month and 600
           hours for the service year, which runs September 1 to August 31.
         </li>
         <li>
-          <strong>Turning Track Time in Service off erases all recorded
-          time.</strong> The app warns you first.
+          <strong
+            >Turning Track Time in Service off erases all recorded time.</strong
+          >
+          The app warns you first.
         </li>
         <li>
-          Your time is saved on your device with your other information, and
-          is included in backups and Dropbox copies if you use them.
+          Your time is saved on your device with your other information, and is
+          included in backups and Dropbox copies if you use them.
         </li>
       </ul>
 
       <h2>Print contacts</h2>
       <ul>
         <li>
-          Every print button is the printer icon in the bar at the bottom of
-          the screen, and it prints what is on that page. On the contact list
-          it prints the contacts currently shown; search terms and filters
+          Every print button is the printer icon in the bar at the bottom of the
+          screen, and it prints what is on that page. On the contact list it
+          prints the contacts currently shown; search terms and filters
           determine what is included. The icon shows how many contacts will
           print, and the app confirms before printing.
         </li>
@@ -746,20 +964,21 @@
         </li>
         <li>
           On the <strong>Settings</strong> page, the printer icon prints your
-          settings: default country, state or province, and city, whether a passphrase is on (never
-          the passphrase itself), and your cities, regions, and areas.
+          settings: default country, state or province, and city, whether a
+          passphrase is on (never the passphrase itself), and your cities,
+          regions, and areas.
         </li>
         <li>
           A list print includes each contact once, grouped under its most
           specific location: Area, or Region if there is no Area, or City if
           there is no Region or Area. Contacts without any of these are grouped
-          under "No location assigned." Each contact's list entry includes
-          its available phone and email details and only its latest note.
+          under "No location assigned." Each contact's list entry includes its
+          available phone and email details and only its latest note.
         </li>
         <li>
           To print one contact, open that saved contact and choose the printer
-          icon at the bottom. Choose the most recent note only (the default)
-          or all notes.
+          icon at the bottom. Choose the most recent note only (the default) or
+          all notes.
         </li>
         <li>
           Save contact edits before printing. If the printer icon is unavailable
@@ -770,17 +989,19 @@
 
       <h2 id="backup">Protect your information and make a backup</h2>
       <p>
-        Your contacts and settings are stored in this device's browser, and
-        are encrypted if you have turned on a passphrase. They are not uploaded to an account and are not automatically
-        backed up unless you turn on the optional
-        <a href="#cloud-backup">cloud backup</a>. Clearing browser data, losing the device, or forgetting the
-        passphrase (if one is on) can make the local records unavailable. Make
-        backups regularly and keep them somewhere safe.
+        Your contacts and settings are stored in this device's browser, and are
+        encrypted if you have turned on a passphrase. They are not uploaded to
+        an account and are not automatically backed up unless you turn on the
+        optional
+        <a href="#cloud-backup">cloud backup</a>. Clearing browser data, losing
+        the device, or forgetting the passphrase (if one is on) can make the
+        local records unavailable. Make backups regularly and keep them
+        somewhere safe.
       </p>
       <p>
         <strong>A full backup is complete.</strong> It contains all of the
-        information the app stores: your contacts and visit notes, your
-        Defaults (state and city), Your Details (name, country, address and home pin),
+        information the app stores: your contacts and visit notes, your Defaults
+        (state and city), Your Details (name, country, address and home pin),
         and your Cities, Regions and Areas. Restoring it brings all of these
         back. Exporting contacts from the Contacts toolbar creates a contacts
         file or a share message; it does not include settings.
@@ -789,19 +1010,22 @@
         <li>
           On the contact list, choose the export icon (a tray with an arrow
           pointing up) at the far right of the toolbar. Export all contacts
-          shown, or choose numbers and ranges such as <strong>3, 4-7,
-          9</strong>. Numbers match the current filtered and sorted list and
-          map pins. You can export the selection to a file or share it by
-          Text/SMS, WhatsApp or email. Large selections may exceed messaging
-          app limits, so use a file for larger groups. If a passphrase is on,
-          file export asks whether to encrypt; it is selected by default.
+          shown, or choose numbers and ranges such as
+          <strong>3, 4-7, 9</strong>. Numbers match the current filtered and
+          sorted list and map pins. You can export the selection to a file or
+          share it by Text/SMS, WhatsApp or email. Large selections may exceed
+          messaging app limits, so use a file for larger groups. If a passphrase
+          is on, file export asks whether to encrypt; it is selected by default.
         </li>
         <li>
-          You can also choose <strong>Settings → Choices → Backup or Restore → Local Backup/Restore → Back up everything</strong> to download a full backup
-          at any time. The top of that section also shows whether your browser
-          has agreed to protect
-          the app's storage from being cleared; backups are still recommended
-          either way.
+          You can also choose
+          <strong
+            >Settings → Choices → Backup or Restore → Local Backup/Restore →
+            Back up everything</strong
+          >
+          to download a full backup at any time. The top of that section also
+          shows whether your browser has agreed to protect the app's storage
+          from being cleared; backups are still recommended either way.
         </li>
         <li>
           To move your full collection to a new device, open the app there and
@@ -815,32 +1039,34 @@
           Check the confirmation carefully before continuing.
         </li>
         <li>
-          <strong>One passphrase and one recovery code for all your
-          devices.</strong> Restoring an encrypted backup onto a device that has
-          no passphrase turns the passphrase on there (after a message and your
-          confirmation), using the backup's passphrase and recovery code.
-          Restoring an encrypted backup onto a device with a different
-          passphrase switches that device to the backup's passphrase and
-          recovery code. Restoring an unencrypted backup onto a device that has
-          a passphrase keeps that device's own passphrase and protects the
-          restored data with it. After you change your passphrase on one
-          device, the others keep the old one until they restore a newer
-          backup, which needs the new passphrase or new recovery code.
+          <strong
+            >One passphrase and one recovery code for all your devices.</strong
+          >
+          Restoring an encrypted backup onto a device that has no passphrase
+          turns the passphrase on there (after a message and your confirmation),
+          using the backup's passphrase and recovery code. Restoring an
+          encrypted backup onto a device with a different passphrase switches
+          that device to the backup's passphrase and recovery code. Restoring an
+          unencrypted backup onto a device that has a passphrase keeps that
+          device's own passphrase and protects the restored data with it. After
+          you change your passphrase on one device, the others keep the old one
+          until they restore a newer backup, which needs the new passphrase or
+          new recovery code.
         </li>
         <li>
           To share one contact, open it with the pencil button and use the
-          export icon at the bottom of the Edit Contact screen.
-          This creates a contact file. If your device has a passphrase, the
-          file is encrypted and you give the recipient its separate sharing
-          passphrase through a different channel; with no passphrase, the file
-          is plain and needs none, so send it only to someone you trust.
+          export icon at the bottom of the Edit Contact screen. This creates a
+          contact file. If your device has a passphrase, the file is encrypted
+          and you give the recipient its separate sharing passphrase through a
+          different channel; with no passphrase, the file is plain and needs
+          none, so send it only to someone you trust.
         </li>
         <li>
-          To import one or more contacts, choose the import icon (a tray with
-          an arrow pointing down) at the far right of the contacts toolbar
-          and select one or several contact files. You are asked for a
-          passphrase only if a file is encrypted. Importing adds the contacts
-          without replacing any existing ones.
+          To import one or more contacts, choose the import icon (a tray with an
+          arrow pointing down) at the far right of the contacts toolbar and
+          select one or several contact files. You are asked for a passphrase
+          only if a file is encrypted. Importing adds the contacts without
+          replacing any existing ones.
         </li>
       </ul>
 
@@ -849,12 +1075,12 @@
         Cloud backup keeps a copy of your contacts and settings in your own
         Dropbox account, outside your device. If your device is lost, broken or
         replaced, you can restore from Dropbox instead of needing a file you
-        saved earlier. If you connect more than one device to the same Dropbox, it
-        also keeps them in step (see <a href="#sync">Syncing between
-        devices</a>). It is off unless you turn it on. Dropbox is entirely
-        optional: the app works fully without it, nothing is sent anywhere,
-        and all your data can stay only on this device. The file backups
-        described above keep working either way.
+        saved earlier. If you connect more than one device to the same Dropbox,
+        it also keeps them in step (see
+        <a href="#sync">Syncing between devices</a>). It is off unless you turn
+        it on. Dropbox is entirely optional: the app works fully without it,
+        nothing is sent anywhere, and all your data can stay only on this
+        device. The file backups described above keep working either way.
       </p>
       <p class="notice">
         <strong>You need a Dropbox account.</strong> The app can send you to
@@ -864,22 +1090,25 @@
       <h3>Turn it on</h3>
       <ol>
         <li>
-          Open <strong>Settings → Choices → Backup or Restore</strong>. It starts by telling you which method you are using (Local by default). Tap <strong>Switch to Dropbox cloud backup</strong>, then open <strong>Cloud Backup/Restore (Dropbox)</strong> and choose
+          Open <strong>Settings → Choices → Backup or Restore</strong>. It
+          starts by telling you which method you are using (Local by default).
+          Tap <strong>Switch to Dropbox cloud backup</strong>, then open
+          <strong>Cloud Backup/Restore (Dropbox)</strong> and choose
           <strong>Set Up Cloud Backup</strong>.
         </li>
         <li>
           Choose <strong>Yes, I have one</strong> if you already have a Dropbox
-          account. If not, choose <strong>No, help me get one</strong> and follow
-          the steps: open dropbox.com/basic, sign up, choose the free
+          account. If not, choose <strong>No, help me get one</strong> and
+          follow the steps: open dropbox.com/basic, sign up, choose the free
           <strong>Basic</strong> plan, confirm your email if asked, then come
-          back to the app and choose <strong>I Have My Account,
-          Continue</strong>.
+          back to the app and choose
+          <strong>I Have My Account, Continue</strong>.
         </li>
         <li>
           Choose <strong>Connect to Dropbox</strong>. Sign in to Dropbox when it
           asks and tap <strong>Allow</strong>. The app can only use its own
-          folder named <strong>Return Visits</strong>, and cannot see anything else
-          in your Dropbox. Dropbox then sends you back to the app.
+          folder named <strong>Return Visits</strong>, and cannot see anything
+          else in your Dropbox. Dropbox then sends you back to the app.
         </li>
         <li>
           The app makes your first backup and shows when it finished. If you
@@ -892,15 +1121,15 @@
         <li>
           The app checks Dropbox when you open it, and backs up about 15 seconds
           after you make changes or as you leave the app. While it is open it
-          also checks every couple of minutes. A web app cannot back up while
-          it is closed, so this happens when you use it.
+          also checks every couple of minutes. A web app cannot back up while it
+          is closed, so this happens when you use it.
         </li>
         <li>
           Dropbox keeps a <strong>latest copy</strong> plus up to 10 dated
           copies (at most one new dated copy per day). Older dated copies are
           removed automatically. Each dated copy is a separate
-          <strong>.json</strong> file in the Return Visits folder, named with the
-          date and time it was made, so you can choose an earlier copy under
+          <strong>.json</strong> file in the Return Visits folder, named with
+          the date and time it was made, so you can choose an earlier copy under
           <strong>Restore from Dropbox</strong>. When you tap
           <strong>Back Up to Dropbox Now</strong>, a message above the buttons
           shows the progress and then confirms the backup.
@@ -911,22 +1140,26 @@
           your Dropbox are not encrypted. Before connecting, the app explains
           the protection for this copy and lets you continue or cancel. A
           passphrase is optional; you can choose whether to turn it on in
-          Settings → Choices → Passphrase to Open App. Your Dropbox sign-in is separate from your app
-          passphrase. Copies saved before you turned a passphrase on stay
-          unencrypted until you delete them or Dropbox removes them.
+          Settings → Choices → Passphrase to Open App. Your Dropbox sign-in is
+          separate from your app passphrase. Copies saved before you turned a
+          passphrase on stay unencrypted until you delete them or Dropbox
+          removes them.
         </li>
         <li>
-          To restore, choose <strong>Settings → Choices → Backup or Restore → Cloud Backup/Restore (Dropbox) → Restore from
-          Dropbox</strong>, pick the latest copy or a dated one, and confirm.
-          Restoring replaces the contacts and settings on this device. If the
-          backup is encrypted, you enter its passphrase or recovery code.
+          To restore, choose
+          <strong
+            >Settings → Choices → Backup or Restore → Cloud Backup/Restore
+            (Dropbox) → Restore from Dropbox</strong
+          >, pick the latest copy or a dated one, and confirm. Restoring
+          replaces the contacts and settings on this device. If the backup is
+          encrypted, you enter its passphrase or recovery code.
         </li>
         <li>
           <strong>Back Up to Dropbox Now</strong> makes a backup immediately.
           <strong>Disconnect Dropbox</strong> stops backing up; your existing
-          copies stay in your Dropbox.           To remove the app's access completely, remove
-          <strong>Nice Return Visits</strong> from the connected apps list in
-          your Dropbox account.
+          copies stay in your Dropbox. To remove the app's access completely,
+          remove <strong>Nice Return Visits</strong> from the connected apps
+          list in your Dropbox account.
         </li>
         <li>
           The app never replaces your Dropbox copy with an empty one: it does
@@ -937,108 +1170,140 @@
           <a href="#sync">Syncing between devices</a>.
         </li>
       </ul>
-      <h3 id="sync">Syncing between devices</h3>
-      <p>
-        Syncing is part of Dropbox backup. <strong>If you do not connect
-        Dropbox, nothing syncs</strong>: your contacts stay only on that device,
-        and each device is separate. If you connect every device to the same
-        Dropbox, they combine their changes automatically.
-      </p>
-      <p class="notice">
-        <strong>All devices that sync together must use the same passphrase and
-        the same recovery code.</strong> Dropbox and your device sign-in are the
-        only protection the app requires. A passphrase is only needed if you want
-        your Dropbox copies encrypted; turn it on once, on your main device.
-      </p>
-      <h4>Setting up a second device (for example an iPad)</h4>
-      <ol>
-        <li>
-          On your main device (the one that has your contacts), make a file
-          backup first. If you want encrypted Dropbox copies, turn on the
-          passphrase now under <strong>Settings → Choices → Passphrase to Open App</strong> and save
-          the recovery code. Then connect Dropbox as described above and wait for
-          the cloud icon to show it is synced.
-        </li>
-        <li>
-          On the second device, install or update the app, open
-          <strong>Settings → Choices → Backup or Restore → Cloud Backup/Restore (Dropbox)</strong> and connect to the
-          <strong>same Dropbox account</strong>. Do not turn on a passphrase
-          there first.
-        </li>
-        <li>
-          When the app says Dropbox already has a backup, choose
-          <strong>Restore</strong>, not Replace. Pick the latest copy. If it is
-          encrypted, enter the passphrase or recovery code from your main
-          device; the second device then uses that same passphrase and recovery
-          code.
-        </li>
-        <li>
-          Your contacts appear and the cloud icon shows it is synced. After this
-          the two devices stay in step by themselves.
-        </li>
-      </ol>
-      <h4>Day to day</h4>
-      <ul>
-        <li>
-          Each device combines with Dropbox when you open the app, about every
-          couple of minutes while it is open, and as soon as a lost connection
-          returns. After you make a change, wait about 15 seconds before
-          switching to the other device.
-        </li>
-        <li>
-          Contacts and visits added on different devices are all kept. Deleting a
-          contact or a visit on one device removes it on the others.
-        </li>
-        <li>
-          If two devices change the very same contact at nearly the same time,
-          the most recent change to that contact's details is used, but visits
-          from both devices are kept.
-        </li>
-        <li>
-          With no signal, your changes stay saved on the device and upload
-          automatically when it can reach Dropbox again.
-        </li>
-        <li>
-          The cloud icon at the top right shows the state: ☁️ up to date, 🔄
-          syncing, ⏳ changes waiting to upload, 📴 no connection (your changes
-          are kept), ⚠️ paused and needs attention. Tap it to sync now and read
-          the message. <strong>Check for a Newer Backup</strong> does the same
-          from Settings.
-        </li>
-        <li>
-          If a device uses a different passphrase than the Dropbox copy, the app
-          cannot combine them. It asks whether to restore the Dropbox copy and
-          keeps automatic backup paused until you decide. Use
-          <strong>Back Up to Dropbox Now</strong> only if you want this device's
-          data to replace the Dropbox copy; older dated copies stay.
-        </li>
-        <li>
-          Connecting a device that already has contacts to a Dropbox that
-          already has a backup asks whether to restore (replace this device) or
-          replace the Dropbox copy. Choose carefully.
-        </li>
-        <li>
-          Limits: a city, region or area you delete on one device can come back
-          from another, and renaming one can leave the old name behind. Settings
-          other than those lists come from the device that changed them last.
-        </li>
-      </ul>
+      <h3 id="sync">Syncing between devices</h3>
+
+      <p>
+        Syncing is part of Dropbox backup.
+        <strong>If you do not connect Dropbox, nothing syncs</strong>: your
+        contacts stay only on that device, and each device is separate. If you
+        connect every device to the same Dropbox, they combine their changes
+        automatically.
+      </p>
+
+      <p class="notice">
+        <strong
+          >All devices that sync together must use the same passphrase and the
+          same recovery code.</strong
+        >
+        Dropbox and your device sign-in are the only protection the app
+        requires. A passphrase is only needed if you want your Dropbox copies
+        encrypted; turn it on once, on your main device.
+      </p>
+
+      <h4>Setting up a second device (for example an iPad)</h4>
+
+      <ol>
+        <li>
+          On your main device (the one that has your contacts), make a file
+          backup first. If you want encrypted Dropbox copies, turn on the
+          passphrase now under
+          <strong>Settings → Choices → Passphrase to Open App</strong> and save
+          the recovery code. Then connect Dropbox as described above and wait
+          for the cloud icon to show it is synced.
+        </li>
+
+        <li>
+          On the second device, install or update the app, open
+
+          <strong
+            >Settings → Choices → Backup or Restore → Cloud Backup/Restore
+            (Dropbox)</strong
+          >
+          and connect to the
+
+          <strong>same Dropbox account</strong>. Do not turn on a passphrase
+          there first.
+        </li>
+
+        <li>
+          When the app says Dropbox already has a backup, choose
+
+          <strong>Restore</strong>, not Replace. Pick the latest copy. If it is
+          encrypted, enter the passphrase or recovery code from your main
+          device; the second device then uses that same passphrase and recovery
+          code.
+        </li>
+
+        <li>
+          Your contacts appear and the cloud icon shows it is synced. After this
+          the two devices stay in step by themselves.
+        </li>
+      </ol>
+
+      <h4>Day to day</h4>
+
+      <ul>
+        <li>
+          Each device combines with Dropbox when you open the app, about every
+          couple of minutes while it is open, and as soon as a lost connection
+          returns. After you make a change, wait about 15 seconds before
+          switching to the other device.
+        </li>
+
+        <li>
+          Contacts and visits added on different devices are all kept. Deleting
+          a contact or a visit on one device removes it on the others.
+        </li>
+
+        <li>
+          If two devices change the very same contact at nearly the same time,
+          the most recent change to that contact's details is used, but visits
+          from both devices are kept.
+        </li>
+
+        <li>
+          With no signal, your changes stay saved on the device and upload
+          automatically when it can reach Dropbox again.
+        </li>
+
+        <li>
+          The cloud icon at the top right shows the state: ☁️ up to date, 🔄
+          syncing, ⏳ changes waiting to upload, 📴 no connection (your changes
+          are kept), ⚠️ paused and needs attention. Tap it to sync now and read
+          the message. <strong>Check for a Newer Backup</strong> does the same
+          from Settings.
+        </li>
+
+        <li>
+          If a device uses a different passphrase than the Dropbox copy, the app
+          cannot combine them. It asks whether to restore the Dropbox copy and
+          keeps automatic backup paused until you decide. Use
+
+          <strong>Back Up to Dropbox Now</strong> only if you want this device's
+          data to replace the Dropbox copy; older dated copies stay.
+        </li>
+
+        <li>
+          Connecting a device that already has contacts to a Dropbox that
+          already has a backup asks whether to restore (replace this device) or
+          replace the Dropbox copy. Choose carefully.
+        </li>
+
+        <li>
+          Limits: a city, region or area you delete on one device can come back
+          from another, and renaming one can leave the old name behind. Settings
+          other than those lists come from the device that changed them last.
+        </li>
+      </ul>
+
       <h3>Backup reminder</h3>
       <p>
         If 10 days or more pass without a successful backup (file or Dropbox),
         the app asks "You haven't backed up in N days. Back up now?". It asks at
         most once a day. With Dropbox connected, choosing Yes backs up
-        immediately; otherwise it opens <strong>Settings → Choices → Backup or Restore → Local Backup/Restore</strong>. Only a successful backup resets the count.
+        immediately; otherwise it opens
+        <strong
+          >Settings → Choices → Backup or Restore → Local Backup/Restore</strong
+        >. Only a successful backup resets the count.
       </p>
 
       <h2 id="consolidate">Consolidate copies and remove unused data</h2>
       <p>
         If Safari, Chrome, and a Home Screen app each have contacts, they are
         separate local copies and do not sync, even if you use Dropbox on one of
-        them. For regular use, choose
-        the Home Screen app as the one copy to keep. A full backup restore
-        replaces all contacts and settings in the destination; it does not
-        merge two full backups.
+        them. For regular use, choose the Home Screen app as the one copy to
+        keep. A full backup restore replaces all contacts and settings in the
+        destination; it does not merge two full backups.
       </p>
       <ol>
         <li>
@@ -1058,9 +1323,8 @@
           destination, if needed. From every other copy, export contacts one at
           a time with the export icon in Edit Contact, or select contacts from
           the list using the export icon in the contacts toolbar. Then import
-          the files into the destination with the import icon at the top of
-          the contact list.
-          Imports add records; they do not replace the collection.
+          the files into the destination with the import icon at the top of the
+          contact list. Imports add records; they do not replace the collection.
         </li>
         <li>
           Review the destination for missing or duplicate contacts and confirm
@@ -1069,24 +1333,24 @@
         </li>
         <li>
           Export a new encrypted full backup from the destination. Keep it
-          somewhere safe and confirm you know its passphrase before deleting
-          any source copy.
+          somewhere safe and confirm you know its passphrase before deleting any
+          source copy.
         </li>
         <li>
           Only after verification, remove the unused copies using
-          <a href="#remove-data">the removal instructions below</a>. Clear
-          data only for a source copy you no longer need. If the browser's
-          controls do not make it clear which copy will be removed, do not
-          clear it until you have confirmed the surviving copy still opens
-          with all your contacts.
+          <a href="#remove-data">the removal instructions below</a>. Clear data
+          only for a source copy you no longer need. If the browser's controls
+          do not make it clear which copy will be removed, do not clear it until
+          you have confirmed the surviving copy still opens with all your
+          contacts.
         </li>
       </ol>
       <p class="notice">
         Full backups cannot be merged directly. If you need to bring over
         contacts from a second full backup, restore that backup only if you are
         ready to replace the destination, or import its contacts individually.
-        Do not delete source data or backup files until the destination has
-        been checked and backed up.
+        Do not delete source data or backup files until the destination has been
+        checked and backed up.
       </p>
 
       <h2>Stop using the app and remove its saved data</h2>
@@ -1095,27 +1359,26 @@
         Uninstalling the Home Screen app alone may not remove its browser-stored
         data. To remove the app's local contacts and settings, clear the site
         data for
-        <strong>grasfulls.github.io</strong> in the browser that you used.
-        This permanently deletes that browser copy. If you want to keep your
+        <strong>grasfulls.github.io</strong> in the browser that you used. This
+        permanently deletes that browser copy. If you want to keep your
         contacts, export an encrypted backup first.
       </p>
       <ul>
         <li>
           <strong>iPhone or iPad:</strong> To remove the Safari browser copy,
-          open iOS
-          <strong>Settings → Safari → Advanced → Website Data</strong>, find
-          <strong>grasfulls.github.io</strong>, and delete its website data.
-          To remove a separate Home Screen app copy, touch and hold its icon,
-          choose <strong>Remove App</strong>, then
+          open iOS <strong>Settings → Safari → Advanced → Website Data</strong>,
+          find <strong>grasfulls.github.io</strong>, and delete its website
+          data. To remove a separate Home Screen app copy, touch and hold its
+          icon, choose <strong>Remove App</strong>, then
           <strong>Delete App</strong>. Menu names may vary slightly by iOS
           version.
         </li>
         <li>
           <strong>Android (Chrome):</strong> Open Chrome's settings for
           <strong>grasfulls.github.io</strong> and choose
-          <strong>Clear data</strong> or <strong>Clear &amp; reset</strong>.
-          You can also find it under <strong>Settings → Site settings → All
-          sites</strong>.
+          <strong>Clear data</strong> or <strong>Clear &amp; reset</strong>. You
+          can also find it under
+          <strong>Settings → Site settings → All sites</strong>.
         </li>
         <li>
           <strong>Other browsers or computers:</strong> Use the browser's
@@ -1128,57 +1391,95 @@
           separately if you also want to remove its icon.
         </li>
         <li>
-          This does not delete downloaded backups, exported contact files,
-          PDFs, or printed copies. Remove those separately from Downloads,
-          Files, cloud storage, or wherever you saved or shared them.
+          This does not delete downloaded backups, exported contact files, PDFs,
+          or printed copies. Remove those separately from Downloads, Files,
+          cloud storage, or wherever you saved or shared them.
         </li>
       </ul>
 
       <h2>Use the app on another device</h2>
       <p>
-        On another device, the best approach is to <strong>add the app to your Home Screen first</strong> (see the installation instructions above). Once you have the icon, open it and use the <strong>NRV-Install</strong> screen to restore your backup or connect to Dropbox. This ensures you're working with a single, reliable copy.
+        On another device, the best approach is to
+        <strong>add the app to your Home Screen first</strong> (see the
+        installation instructions above). Once you have the icon, open it and
+        use the <strong>NRV-Install</strong> screen to restore your backup or
+        connect to Dropbox. This ensures you're working with a single, reliable
+        copy.
       </p>
       <p>
         If you prefer to use a browser tab instead, you can open the
         <a href="https://grasfulls.github.io/nice-return-visits-app/">
           Nice Return Visits app
         </a>
-        in a web browser, but your contacts will not appear automatically. To bring them over, you have two options: if you use Dropbox, connect the same Dropbox account on the new device and restore from it, after which the devices stay in step (see <a href="#sync">Syncing between devices</a>); otherwise restore a backup file. <strong>Using a browser across multiple devices increases the risk of creating separate datasets</strong>, so plan to always use the same browser on the same device, or set up Dropbox sync as a safeguard.
+        in a web browser, but your contacts will not appear automatically. To
+        bring them over, you have two options: if you use Dropbox, connect the
+        same Dropbox account on the new device and restore from it, after which
+        the devices stay in step (see
+        <a href="#sync">Syncing between devices</a>); otherwise restore a backup
+        file.
+        <strong
+          >Using a browser across multiple devices increases the risk of
+          creating separate datasets</strong
+        >, so plan to always use the same browser on the same device, or set up
+        Dropbox sync as a safeguard.
       </p>
       <p>
-        The app checks for updates when it opens and prompts you once it has opened if an update is ready; an exclamation mark also appears by Settings. To check or refresh manually, open
-        <strong>Settings → App Updates → Check for Updates &amp; Refresh</strong> while online.
-        If there is no update, a "No update available" message appears; tap OK to close it.
-        After an update installs and the app reloads, a "You are up to date!" message confirms it.
-        Save or finish any open contact or Settings edits first; if something is
-        unsaved, the app names the exact section and field and takes you to it.
-        Also, if you leave Settings with unsaved edits, the app asks
-        "Discard unsaved changes?" Choose OK to discard them, or Cancel to stay
-        and finish. The app reloads
-        its code without removing the contacts and settings stored in that app
-        copy. After it reloads, unlock using the same passphrase if you have turned one on.
+        The app checks for updates when it opens and prompts you once it has
+        opened if an update is ready; an exclamation mark also appears by
+        Settings. To check or refresh manually, open
+        <strong
+          >Settings → App Updates → Check for Updates &amp; Refresh</strong
+        >
+        while online. If there is no update, a "No update available" message
+        appears; tap OK to close it. After an update installs and the app
+        reloads, a "You are up to date!" message confirms it. Save or finish any
+        open contact or Settings edits first; if something is unsaved, the app
+        names the exact section and field and takes you to it. Also, if you
+        leave Settings with unsaved edits, the app asks "Discard unsaved
+        changes?" Choose OK to discard them, or Cancel to stay and finish. The
+        app reloads its code without removing the contacts and settings stored
+        in that app copy. After it reloads, unlock using the same passphrase if
+        you have turned one on.
       </p>
       <h2>Already using the app in a browser?</h2>
       <p>
-        <strong>We recommend switching to a Home Screen app icon</strong> if you have been using the app in a browser. The icon eliminates the risk of accidentally creating multiple separate datasets, which can happen when you open the app in different browsers or on different devices.
+        <strong>We recommend switching to a Home Screen app icon</strong> if you
+        have been using the app in a browser. The icon eliminates the risk of
+        accidentally creating multiple separate datasets, which can happen when
+        you open the app in different browsers or on different devices.
       </p>
       <p>
         The browser version and the Home Screen app are separate copies and do
-        not sync with each other, even if you use Dropbox in one of them. If you add the app to your Home Screen, it will not transfer the data already saved in your browser; the two versions may keep separate local copies. To move your contacts from your browser to the new icon, first confirm they are visible in your browser, then choose
-        <strong>Settings → Choices → Backup or Restore → Local Backup/Restore → Back up
-        everything</strong>. Open the app icon and choose <strong>Choose Backup to Restore</strong> on its unlock
-        screen, or use its restore option in Settings. Keep using your browser until you have confirmed the contacts are visible in the icon. After the transfer, changes made in one copy will not
-        appear in the other, so use only the icon from then on.
+        not sync with each other, even if you use Dropbox in one of them. If you
+        add the app to your Home Screen, it will not transfer the data already
+        saved in your browser; the two versions may keep separate local copies.
+        To move your contacts from your browser to the new icon, first confirm
+        they are visible in your browser, then choose
+        <strong
+          >Settings → Choices → Backup or Restore → Local Backup/Restore → Back
+          up everything</strong
+        >. Open the app icon and choose
+        <strong>Choose Backup to Restore</strong> on its unlock screen, or use
+        its restore option in Settings. Keep using your browser until you have
+        confirmed the contacts are visible in the icon. After the transfer,
+        changes made in one copy will not appear in the other, so use only the
+        icon from then on.
       </p>
       <p class="notice">
-        <strong>If you must continue using a browser:</strong> You can connect Dropbox to your browser tab, and if you add a Home Screen icon, you can connect the same Dropbox account to it as well. Both will automatically sync with each other—see <a href="#sync">Syncing between devices</a> for details. Dropbox sync is a workaround that helps keep browser and icon versions in step, but the icon alone remains the most reliable approach.
+        <strong>If you must continue using a browser:</strong> You can connect
+        Dropbox to your browser tab, and if you add a Home Screen icon, you can
+        connect the same Dropbox account to it as well. Both will automatically
+        sync with each other—see <a href="#sync">Syncing between devices</a> for
+        details. Dropbox sync is a workaround that helps keep browser and icon
+        versions in step, but the icon alone remains the most reliable approach.
       </p>
       <p class="notice">
-        The app is free to use and has no sync service of its own. Syncing happens
-        only if you choose to connect your own Dropbox on each device (see
-        <a href="#sync">Syncing between devices</a>). Without Dropbox, each
-        copy is separate: keep track of which one has your latest changes, and
-        move changes by exporting and restoring a backup file. Restoring a full
+        The app is free to use and has no sync service of its own. Syncing
+        happens only if you choose to connect your own Dropbox on each device
+        (see
+        <a href="#sync">Syncing between devices</a>). Without Dropbox, each copy
+        is separate: keep track of which one has your latest changes, and move
+        changes by exporting and restoring a backup file. Restoring a full
         backup replaces the destination copy's contacts and settings.
       </p>
     </main>
