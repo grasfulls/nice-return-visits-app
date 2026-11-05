@@ -40,6 +40,28 @@ for (const [code, catalog] of Object.entries(catalogs)) {
   check(mismatched.length === 0, `${code}: placeholders match English${mismatched.length ? ` (${mismatched.join(", ")})` : ""}`);
 }
 
+// The English text left in index.html must stay identical to en.json (it is the no-JS fallback).
+const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const norm = (s) => s.replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+const usedKeys = new Set();
+const textMismatch = [];
+for (const m of html.matchAll(/<(\w+)[^>]*?data-i18n="([^"]+)"[^>]*>([\s\S]*?)<\/\1>/g)) {
+  usedKeys.add(m[2]);
+  if (en[m[2]] !== norm(m[3])) textMismatch.push(m[2]);
+}
+for (const m of html.matchAll(/<[^>]*data-i18n-attr="([^"]+)"[^>]*>/g)) {
+  for (const pair of m[1].split(";")) {
+    const [attr, key] = pair.split(":");
+    const value = (m[0].match(new RegExp(`\\s${attr}="([^"]*)"`)) || [])[1];
+    usedKeys.add(key);
+    if (en[key] !== value) textMismatch.push(key);
+  }
+}
+const unknown = [...usedKeys].filter((k) => !(k in en));
+check(unknown.length === 0, `index.html uses only keys defined in en.json${unknown.length ? ` (${unknown.join(", ")})` : ""}`);
+check(textMismatch.length === 0, `index.html English text equals en.json${textMismatch.length ? ` (${textMismatch.join(", ")})` : ""}`);
+check(usedKeys.size > 0, `index.html uses ${usedKeys.size} i18n keys`);
+
 // Runtime behavior
 i18n._setCatalog("en", { greet: "Hello {name}", item_one: "{count} item", item_other: "{count} items", only_en: "English only" });
 i18n._setCatalog("xx", { greet: "Hola {name}" });

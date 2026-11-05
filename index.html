@@ -45,30 +45,31 @@
       hidden
     >
       <div class="install-screen-card">
-        <h1 id="launch-choice-title">How would you like to use NRV?</h1>
-        <p>
+        <h1 id="launch-choice-title" data-i18n="launch.title">How would you like to use NRV?</h1>
+        <p data-i18n="launch.recommend">
           We recommend installing Nice Return Visits and opening it from its
           app icon. That makes it easier to return to the same working copy.
         </p>
         <div class="install-screen-actions">
-          <button type="button" id="btn-choose-install">
+          <button type="button" id="btn-choose-install" data-i18n="launch.installButton">
             Set up the app icon (recommended)
           </button>
           <button
             type="button"
             id="btn-choose-browser"
             class="install-screen-secondary"
+            data-i18n="launch.browserButton"
           >
             Use NRV in this browser
           </button>
         </div>
-        <p>
+        <p data-i18n="launch.storageNote">
           Browser storage belongs to this browser on this device. Another
           browser, device, or installed icon may have a separate copy of your
           contacts.
         </p>
         <p>
-          <a href="./help.html#install-guide">
+          <a href="./help.html#install-guide" data-i18n="launch.whyLink">
             Why we recommend using the app icon
           </a>
         </p>
@@ -80,47 +81,48 @@
       role="dialog"
       aria-modal="true"
       aria-label="Nice Return Visits access"
+      data-i18n-attr="aria-label:unlock.dialogLabel"
     >
       <div class="unlock-card">
         <section id="agreement-panel" aria-labelledby="agreement-title">
-          <h1 id="agreement-title">Before you use Nice Return Visits</h1>
-          <p>
+          <h1 id="agreement-title" data-i18n="agreement.title">Before you use Nice Return Visits</h1>
+          <p data-i18n="agreement.intro">
             Please read and agree to both notices before using the app on this
             browser or installed-app copy.
           </p>
           <aside class="first-use-notice">
-            <strong>Where your information goes</strong>
-            <p>
+            <strong data-i18n="agreement.notice.heading">Where your information goes</strong>
+            <p data-i18n="agreement.notice.body">
               Contacts are saved in this browser or installed-app copy.
               Dropbox stores a copy only if you choose to connect it. Some
               map and address-search features send the search information to
               outside providers. Sharing or exporting a contact sends a copy
               wherever you choose.
             </p>
-            <small>
+            <small data-i18n="agreement.notice.small">
               Agreeing to these notices does not connect Dropbox or send a
               contact or address search.
             </small>
           </aside>
           <p>
-            <a href="./terms.html" target="_blank" rel="noopener">
+            <a href="./terms.html" target="_blank" rel="noopener" data-i18n="agreement.termsLink">
               Read the Terms of Use
             </a>
           </p>
           <p>
-            <a href="./privacy.html" target="_blank" rel="noopener">
+            <a href="./privacy.html" target="_blank" rel="noopener" data-i18n="agreement.privacyLink">
               Read the Privacy &amp; Data Notice
             </a>
           </p>
           <label class="agreement-checkbox" for="user-agreement-checkbox">
             <input type="checkbox" id="user-agreement-checkbox" />
-            <span>
+            <span data-i18n="agreement.checkbox">
               I have read and agree to the Terms of Use and Privacy &amp; Data
               Notice.
             </span>
           </label>
           <p id="agreement-error" role="alert" hidden></p>
-          <button type="button" id="btn-accept-agreement" disabled>
+          <button type="button" id="btn-accept-agreement" data-i18n="agreement.button" disabled>
             Agree and continue
           </button>
         </section>
@@ -128,19 +130,19 @@
           <h1 id="unlock-title">Unlock Nice Return Visits</h1>
           <p id="unlock-description"></p>
           <aside id="first-use-notice" class="first-use-notice">
-            <strong>First-time use</strong>
-            <p>
+            <strong data-i18n="unlock.firstUse.heading">First-time use</strong>
+            <p data-i18n="unlock.firstUse.body">
               Use the NRV Home Screen icon as your working copy. Before adding
               contacts, you can fill in Defaults &amp; Your Details and add
               any Cities, Regions, and Areas you need.
             </p>
-            <small>
+            <small data-i18n="unlock.firstUse.free">
               Nice Return Visits is free to use, with no app fees or subscription.
               Your internet or mobile provider may charge for data.
             </small>
           </aside>
           <form id="unlock-form">
-            <label for="encryption-passphrase">Passphrase</label>
+            <label for="encryption-passphrase" data-i18n="unlock.passphraseLabel">Passphrase</label>
             <input
               type="text" data-secret
               id="encryption-passphrase"
@@ -148,7 +150,7 @@
               required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
             />
             <div id="confirm-passphrase-container">
-              <label for="confirm-encryption-passphrase">Confirm passphrase</label>
+              <label for="confirm-encryption-passphrase" data-i18n="unlock.confirmLabel">Confirm passphrase</label>
               <input
                 type="text" data-secret
                 id="confirm-encryption-passphrase"
@@ -159,18 +161,18 @@
             <button type="submit" id="unlock-submit">Unlock</button>
           </form>
           <div class="unlock-restore">
-            <p>Moving to a new device? Restore an encrypted backup instead.</p>
+            <p data-i18n="unlock.restore.prompt">Moving to a new device? Restore an encrypted backup instead.</p>
             <input
               type="file"
               id="initial-backup-file-input"
               accept="application/json,.json"
               hidden
             />
-            <button type="button" id="btn-initial-restore">
+            <button type="button" id="btn-initial-restore" data-i18n="unlock.restore.button">
               Choose Backup to Restore
             </button>
           </div>
-          <small>
+          <small data-i18n="unlock.noRecovery">
             Your data is encrypted with this passphrase. If you forget it,
             there is no recovery option.
           </small>
@@ -1672,6 +1674,13 @@
     <script src="merge.js"></script>
     <script src="i18n.js"></script>
     <script src="app.js"></script>
+    <script>
+      if (window.NRVI18n) {
+        NRVI18n.init().catch((error) =>
+          console.error("Language setup failed; using built-in English:", error),
+        );
+      }
+    </script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
