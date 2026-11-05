@@ -18,6 +18,28 @@ tracking are optional. The Setup & User Guide was written and tested on iPhone
 with Safari; NRV has not yet been tested on Android, so Android behavior is
 unverified. Questions and suggestions: Reachout@nrvisits.org.
 
+## Repository layout
+
+This repository is the installable app. The public website lives in the separate
+[nice-return-visits-site](https://github.com/grasfulls/nice-return-visits-site)
+repository (nicereturnvisits.org).
+
+| Path | Purpose |
+|---|---|
+| `index.html`, `app.js`, `styles.css`, `dropbox.js`, `merge.js`, `i18n.js` | App shell and logic |
+| `service-worker.js`, `manifest.webmanifest` | Offline cache and install metadata |
+| `help.html`, `privacy.html`, `terms.html` | In-app help and legal pages |
+| `icons/` | App icons and header watermark (referenced by the service worker, manifest, and pages; keep paths stable) |
+| `locales/` | Interface text for translations |
+| `tests/` | Automated checks (`node tests/i18n-check.js`) |
+| `docs/` | Planning notes and downloadable guides; see [docs/README.md](docs/README.md) |
+| `NRV-CURRENT-USER-DOCUMENTATION.md` | Current user documentation |
+
+The site repository keeps its own copies of the icons and watermark under
+`assets/`. The copies in this repository's `icons/` folder are the app's
+reference versions. The website's Home, Getting Started, and Help pages are the
+public documentation; this repository's `help.html` is the help inside the app.
+
 ## Before you start
 
 For regular use, we recommend adding the app to your Home Screen; it opens
