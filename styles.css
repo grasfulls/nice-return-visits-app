@@ -1856,7 +1856,7 @@ body.install-setup-in-progress #bottom-nav {
     background: none;
     border: none;
     cursor: pointer;
-    opacity: 0.8;
+    opacity: 1;
     min-width: 48px;
     min-height: 48px;
 }
@@ -1883,15 +1883,9 @@ body.install-setup-in-progress #bottom-nav {
     line-height: 1;
 }
 
-.nav-settings-icon {
-    display: inline-grid;
-    box-sizing: border-box;
-    width: 34px;
-    height: 34px;
-    place-items: center;
-    border-radius: 50%;
-    background: #2b3a4f;
-    font-size: 20px;
+.nav-glyph {
+    display: inline-block;
+    filter: grayscale(1) brightness(0.3) contrast(1.6);
 }
 
 .nav-timer-dot {

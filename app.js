@@ -4227,10 +4227,10 @@ const initializeApp = async () => {
           pin.textContent = btnConfig.pinLabel;
           icon.appendChild(pin);
         } else {
-          icon.textContent = btnConfig.icon;
-          if (btnConfig.id === "settings-view") {
-            icon.classList.add("nav-settings-icon");
-          }
+          const glyph = document.createElement("span");
+          glyph.className = "nav-glyph";
+          glyph.textContent = btnConfig.icon;
+          icon.appendChild(glyph);
         }
         btn.appendChild(icon);
         btn.title = btnConfig.id.replace("-view", "");
