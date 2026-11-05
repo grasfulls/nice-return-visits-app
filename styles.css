@@ -1885,7 +1885,7 @@ body.install-setup-in-progress #bottom-nav {
 
 .nav-glyph {
     display: inline-block;
-    filter: grayscale(1) brightness(0.3) contrast(1.6);
+    filter: sepia(1) hue-rotate(180deg) saturate(1.5) brightness(0.6);
 }
 
 .nav-timer-dot {
