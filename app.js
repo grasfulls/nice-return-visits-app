@@ -1,6 +1,6 @@
 const DEFAULT_SETTINGS = {
   country: "United States",
-  countries: ["Canada", "Mexico", "United States"],
+  countries: ["Canada", "Mexico", "Peru", "United States"],
   state: "",
   defaultCity: "",
   cities: [],
@@ -26,17 +26,135 @@ const localizeMapControls = (leafletMap) => {
     button.setAttribute("aria-label", label);
   });
   leafletMap.on("popupopen", (event) => {
-    const button = event.popup.getElement().querySelector(".leaflet-popup-close-button");
+    const popup = event.popup.getElement();
+    const button = popup.querySelector(".leaflet-popup-close-button");
     if (button) button.setAttribute("aria-label", appText("map.closePopup", "Close popup"));
+    const editButton = popup.querySelector(".map-popup-edit");
+    if (
+      editButton?.addEventListener &&
+      editButton.dataset.contactEditBound !== "true"
+    ) {
+      editButton.dataset.contactEditBound = "true";
+      editButton.addEventListener("click", () =>
+        window.editContact?.(editButton.dataset.contactId),
+      );
+    }
   });
 };
 const displayCountry = (country) => {
   const labels = {
     Canada: appText("country.canada", "Canada"),
     Mexico: appText("country.mexico", "Mexico"),
+    Peru: appText("country.peru", "Peru"),
     "United States": appText("country.unitedStates", "United States"),
   };
   return Object.prototype.hasOwnProperty.call(labels, country) ? labels[country] : country;
+};
+const updateAddressLabels = (prefix, country) => {
+  const peru = normalizeCountry(country) === "Peru";
+  const labels = prefix === "contact"
+    ? [
+        ["state-label", peru ? "contacts.department" : "contacts.state"],
+        ["city-label", peru ? "contacts.locality" : "contacts.city"],
+        ["region-label", peru ? "contacts.province" : "contacts.region"],
+        ["area-label", peru ? "contacts.district" : "contacts.area"],
+        ["new-region-label", peru ? "location.newProvince" : "location.newRegion"],
+        ["new-area-label", peru ? "location.newDistrict" : "location.newArea"],
+        ["region-hint", peru ? "location.provinceHint" : "location.regionHint"],
+        ["area-hint", peru ? "location.districtHint" : "location.areaHint"],
+      ]
+    : [
+        ["state-label", peru ? "contacts.department" : "contacts.state"],
+        ["city-label", peru ? "location.localityLabel" : "location.cityLabel"],
+        ["region-label", peru ? "location.provinceLabel" : "location.regionLabel"],
+        ["area-label", peru ? "location.districtLabel" : "location.areaLabel"],
+        ["new-region-label", peru ? "location.newProvince" : "location.newRegion"],
+        ["new-area-label", peru ? "location.newDistrict" : "location.newArea"],
+      ];
+  labels.forEach(([suffix, key]) => {
+    const element = document.getElementById(`${prefix}-${suffix}`);
+    if (element) element.textContent = appText(key, element.textContent);
+  });
+  const stateInput = document.getElementById(`${prefix}-state`);
+  const cityInput = document.getElementById(
+    prefix === "contact" ? "contact-city-select" : "me-city",
+  );
+  const regionSelect = document.getElementById(
+    prefix === "contact" ? "contact-region-select" : "me-region",
+  );
+  const areaSelect = document.getElementById(
+    prefix === "contact" ? "contact-area-select" : "me-area",
+  );
+  const regionInput = document.getElementById(`input-new-${prefix}-region`);
+  const areaInput = document.getElementById(`input-new-${prefix}-area`);
+  const regionButton = document.getElementById(`btn-save-new-${prefix}-region`);
+  const areaButton = document.getElementById(`btn-save-new-${prefix}-area`);
+  if (stateInput) {
+    stateInput.placeholder = appText(
+      peru ? "location.departmentPlaceholder" : "location.statePlaceholder",
+      stateInput.placeholder,
+    );
+  }
+  if (cityInput) {
+    cityInput.placeholder = appText(
+      peru ? "location.localityPlaceholder" : "location.cityPlaceholder",
+      cityInput.placeholder,
+    );
+  }
+  if (regionSelect?.firstElementChild) {
+    regionSelect.firstElementChild.textContent = appText(
+      peru ? "location.chooseProvince" : "location.chooseRegion",
+      regionSelect.firstElementChild.textContent,
+    );
+    const addOption = Array.from(regionSelect.options).find(
+      (option) => option.value === "__ADD_NEW__",
+    );
+    if (addOption) {
+      addOption.textContent = appText(
+        peru ? "location.addProvinceButton" : "location.addRegion",
+        addOption.textContent,
+      );
+    }
+  }
+  if (areaSelect?.firstElementChild) {
+    areaSelect.firstElementChild.textContent = appText(
+      peru ? "location.chooseDistrict" : "location.chooseArea",
+      areaSelect.firstElementChild.textContent,
+    );
+    const addOption = Array.from(areaSelect.options).find(
+      (option) => option.value === "__ADD_NEW__",
+    );
+    if (addOption) {
+      addOption.textContent = appText(
+        peru ? "location.addDistrictButton" : "location.addArea",
+        addOption.textContent,
+      );
+    }
+  }
+  if (regionInput) {
+    regionInput.placeholder = appText(
+      peru ? "location.enterProvince" : "location.enterRegion",
+      regionInput.placeholder,
+    );
+  }
+  if (areaInput) {
+    areaInput.placeholder = appText(
+      peru ? "location.enterDistrict" : "location.enterArea",
+      areaInput.placeholder,
+    );
+  }
+  if (regionButton) {
+    regionButton.textContent = appText(
+      peru ? "location.addProvinceButton" : "location.addRegionButton",
+      regionButton.textContent,
+    );
+  }
+  if (areaButton) {
+    areaButton.textContent = appText(
+      peru ? "location.addDistrictButton" : "location.addAreaButton",
+      areaButton.textContent,
+    );
+  }
 };
 const locationTypeDisplay = (type) => ({
   City: appText("location.typeCity", "city"),
@@ -45,8 +163,8 @@ const locationTypeDisplay = (type) => ({
 })[type] || type.toLowerCase();
 
 // Bump on any change to the stored data shape, and add a migration in
-// normalizeRegionData. Version 3 added country to settings and contacts.
-const SCHEMA_VERSION = 4;
+// normalizeRegionData. Version 3 added country; version 5 added postal codes.
+const SCHEMA_VERSION = 5;
 const EPOCH_TIMESTAMP = "1970-01-01T00:00:00.000Z";
 
 class NewerDataVersionError extends Error {
@@ -307,6 +425,7 @@ const normalizeCountry = (value) => {
   const normalized = country.toLowerCase();
   if (["ca", "can", "canada"].includes(normalized)) return "Canada";
   if (["mx", "mex", "mexico", "méxico"].includes(normalized)) return "Mexico";
+  if (["pe", "peru", "perú"].includes(normalized)) return "Peru";
   if (
     ["us", "usa", "u.s.", "u.s.a.", "united states", "united states of america"].includes(
       normalized,
@@ -322,7 +441,7 @@ const normalizeLocationState = (country, value) =>
     : /^[a-z]{2}$/i.test(String(value ?? "").trim())
       ? String(value).trim().toUpperCase()
       : toTitleCase(String(value ?? "").trim().replace(/\s+/g, " "));
-const DEFAULT_COUNTRIES = ["Canada", "Mexico", "United States"];
+const DEFAULT_COUNTRIES = ["Canada", "Mexico", "Peru", "United States"];
 
 const STREET_SUFFIX_ABBREVIATIONS = {
   alley: "Aly",
@@ -518,8 +637,11 @@ const getStreetAddress = (contact) => {
 const getFormattedContactAddress = (contact) =>
   [
     normalizeStreetName(getStreetAddress(contact)),
+    contact.area,
+    contact.region,
     contact.city,
     normalizeLocationState(contact.country, contact.state),
+    contact.postalCode,
     contact.country,
   ]
     .filter(Boolean)
@@ -953,7 +1075,7 @@ const normalizeTransferredContact = (contact) => {
             typeof area.region === "string" &&
             (area.city === undefined || typeof area.city === "string"),
         ))) ||
-    ["country", "city", "region", "area", "state", "streetAddress"].some(
+    ["country", "city", "region", "area", "state", "streetAddress", "postalCode"].some(
       (field) =>
         contact[field] !== undefined && typeof contact[field] !== "string",
     ) ||
@@ -1213,6 +1335,7 @@ const normalizeRegionData = (settings, contacts) => {
         ? areaName
         : "",
       streetAddress: getStreetAddress(contact),
+      postalCode: typeof contact.postalCode === "string" ? contact.postalCode : "",
       updatedAt: contact.updatedAt || getContactLastActivity(contact),
     };
   });
@@ -1229,6 +1352,10 @@ const normalizeRegionData = (settings, contacts) => {
         normalizedSettings.me.country || defaultCountry,
         normalizedSettings.me.state,
       ),
+      postalCode:
+        typeof normalizedSettings.me.postalCode === "string"
+          ? normalizedSettings.me.postalCode
+          : "",
     };
   }
   normalizedSettings.deletedContacts = Array.isArray(settings.deletedContacts)
@@ -1971,7 +2098,6 @@ const initializeApp = async () => {
       meRegion.appendChild(addRegion);
       meRegion.disabled =
         !document.getElementById("me-country").value ||
-        !document.getElementById("me-state").value.trim() ||
         !city ||
         !settings.cities.includes(city);
       meRegion.value = selectedRegion;
@@ -2015,7 +2141,6 @@ const initializeApp = async () => {
       contactRegion.appendChild(addRegionOption);
       contactRegion.disabled =
         !document.getElementById("contact-country").value ||
-        !document.getElementById("contact-state").value.trim() ||
         !city ||
         !settings.cities.includes(city);
       contactRegion.value = selectedRegion;
@@ -2192,6 +2317,24 @@ const initializeApp = async () => {
       }
     }
 
+    const defaultCountryIsPeru = normalizeCountry(settings.country) === "Peru";
+    document.getElementById("setting-state-label").textContent = appText(
+      defaultCountryIsPeru ? "settings.defaultDepartment" : "settings.defaultState",
+      document.getElementById("setting-state-label").textContent,
+    );
+    document.getElementById("setting-state").placeholder = appText(
+      defaultCountryIsPeru ? "location.departmentPlaceholder" : "location.statePlaceholder",
+      document.getElementById("setting-state").placeholder,
+    );
+    document.getElementById("setting-city-label").textContent = appText(
+      defaultCountryIsPeru ? "settings.defaultLocality" : "settings.defaultCity",
+      document.getElementById("setting-city-label").textContent,
+    );
+    updateAddressLabels(
+      "contact",
+      document.getElementById("contact-country").value,
+    );
+    updateAddressLabels("me", document.getElementById("me-country").value);
     return {
       populateContactRegionArea,
       populateMeRegionArea,
@@ -2205,23 +2348,23 @@ const initializeApp = async () => {
   const meCountrySelect = document.getElementById("me-country");
   const updateContactLocationFields = () => {
     const hasCountry = Boolean(contactCountrySelect.value);
-    const hasState = Boolean(document.getElementById("contact-state").value.trim());
     document.getElementById("contact-state").disabled = !hasCountry;
-    citySelect.disabled = !hasCountry || !hasState;
+    citySelect.disabled = !hasCountry;
     dropdownHelpers.populateContactRegionArea(
       contactRegionSelect.value,
       contactAreaSelect.value,
     );
+    updateAddressLabels("contact", contactCountrySelect.value);
   };
   const updateMeLocationFields = () => {
     const hasCountry = Boolean(meCountrySelect.value);
-    const hasState = Boolean(document.getElementById("me-state").value.trim());
     document.getElementById("me-state").disabled = !hasCountry;
-    document.getElementById("me-city").disabled = !hasCountry || !hasState;
+    document.getElementById("me-city").disabled = !hasCountry;
     dropdownHelpers.populateMeRegionArea(
       document.getElementById("me-region").value,
       document.getElementById("me-area").value,
     );
+    updateAddressLabels("me", meCountrySelect.value);
   };
   const resetDependentLocationFields = (select) => {
     if (select === contactCountrySelect) {
@@ -2299,7 +2442,13 @@ const initializeApp = async () => {
     if (country !== previousCountry) resetDependentLocationFields(select);
   };
   countrySelects.forEach((select) =>
-    select.addEventListener("change", () => handleCountryChange(select)),
+    select.addEventListener("change", () => {
+      handleCountryChange(select);
+      updateAddressLabels(
+        select === contactCountrySelect ? "contact" : "me",
+        select.value,
+      );
+    }),
   );
   document
     .getElementById("btn-save-new-contact-country")
@@ -2714,6 +2863,7 @@ const initializeApp = async () => {
     region: document.getElementById("me-region"),
     area: document.getElementById("me-area"),
     street: document.getElementById("me-street"),
+    postalCode: document.getElementById("me-postal-code"),
     lat: document.getElementById("me-lat"),
     lng: document.getElementById("me-lng"),
   };
@@ -2932,8 +3082,11 @@ const initializeApp = async () => {
       url.search = new URLSearchParams({
         q: [
           me.street,
+          me.area,
+          me.region,
           me.city,
           me.state || settings.state,
+          me.postalCode,
           me.country || settings.country,
         ]
           .filter(Boolean)
@@ -3876,6 +4029,8 @@ const initializeApp = async () => {
   const getCityPinQuery = (contact) =>
     [
       contact.city.trim(),
+      contact.area,
+      contact.region,
       normalizeLocationState(
         contact.country || settings.country,
         contact.state || settings.state,
@@ -5118,22 +5273,32 @@ const initializeApp = async () => {
       contactCountrySelect.value,
       contactStateInput.value,
     );
+    const country = contactCountrySelect.value || settings.country;
+    const region =
+      contactRegionSelect.value === "__ADD_NEW__" ? "" : contactRegionSelect.value;
+    const area =
+      contactAreaSelect.value === "__ADD_NEW__" ? "" : contactAreaSelect.value;
+    const postalCode = document.getElementById("contact-postal-code").value.trim();
     streetAddressInput.value = street;
     contactStateInput.value = state;
-    if ((!street && !city) || city === "+ Add New City...") {
+    if (
+      (!street && !area && !region && !city && !state && !postalCode) ||
+      city === "+ Add New City..."
+    ) {
       setLocationStatus(
         appText("map.enterAddressOrCity", "Enter a street address or choose a city before looking up its location."),
       );
       return;
     }
-
     clearAddressMatches();
-    const country = contactCountrySelect.value || settings.country;
-    const query = [street, city, state, country].filter(Boolean).join(", ");
-    const cityQuery = city
-      ? [city, state, country].filter(Boolean).join(", ")
-      : "";
-    const cityState = `${city}${state ? `, ${state}` : ""}`;
+    clearAddressMatches();
+    const locationParts = { area, region, city, state, postalCode, country };
+    const query = getFormattedContactAddress({
+      ...locationParts,
+      streetAddress: street,
+    });
+    const cityQuery = getFormattedContactAddress(locationParts);
+    const cityState = cityQuery;
     btnFindAddress.disabled = true;
     setLocationStatus(appText("map.lookingUpAddress", "Looking up the entered address..."));
     try {
@@ -5185,7 +5350,10 @@ const initializeApp = async () => {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         const streetResults = getUniqueStreetMatches(
           await lookup(
-            [streetOnly, city, state, country].filter(Boolean).join(", "),
+            getFormattedContactAddress({
+              ...locationParts,
+              streetAddress: streetOnly,
+            }),
           ),
         );
         if (streetResults.length > 1) {
@@ -5254,6 +5422,9 @@ const initializeApp = async () => {
       .getElementById("contact-cross-street")
       .value.trim();
     const city = document.getElementById("contact-city-select").value.trim();
+    const region = contactRegionSelect.value;
+    const area = contactAreaSelect.value;
+    const postalCode = document.getElementById("contact-postal-code").value.trim();
     const state = normalizeLocationState(
       contactCountrySelect.value,
       contactStateInput.value,
@@ -5272,9 +5443,14 @@ const initializeApp = async () => {
       url.search = new URLSearchParams({
         q: [
           crossStreet,
-          city,
-          state,
-          contactCountrySelect.value || settings.country,
+          getFormattedContactAddress({
+            area,
+            region,
+            city,
+            state,
+            postalCode,
+            country: contactCountrySelect.value || settings.country,
+          }),
         ]
           .filter(Boolean)
           .join(", "),
@@ -5736,7 +5912,14 @@ const initializeApp = async () => {
       appText("map.addressChanged", "The address changed. Look up the pin again, or confirm the current pin."),
     );
   };
-  ["contact-address", "contact-city-select", "contact-state"].forEach((id) =>
+  [
+    "contact-address",
+    "contact-city-select",
+    "contact-state",
+    "contact-region-select",
+    "contact-area-select",
+    "contact-postal-code",
+  ].forEach((id) =>
     document
       .getElementById(id)
       .addEventListener("change", reopenPinForAddressChange),
@@ -5826,6 +6009,7 @@ const initializeApp = async () => {
     const city = document.getElementById("contact-city-select").value.trim();
     const region = contactRegionSelect.value;
     const area = contactAreaSelect.value;
+    const postalCode = document.getElementById("contact-postal-code").value.trim();
     const country = normalizeCountry(contactCountrySelect.value);
     const state = normalizeLocationState(country, contactStateInput.value);
     if (!country) {
@@ -5889,7 +6073,7 @@ const initializeApp = async () => {
       Boolean(newNoteText) ||
       document.getElementById("new-log-timestamp").dataset.touched === "1";
 
-    const fullAddress = [street, city, state, country]
+    const fullAddress = [street, area, region, city, state, postalCode, country]
       .filter(Boolean)
       .join(", ");
 
@@ -5909,6 +6093,7 @@ const initializeApp = async () => {
         contact.state = state;
         contact.region = region;
         contact.area = area;
+        contact.postalCode = postalCode;
         contact.lat = lat;
         contact.lng = lng;
 
@@ -5960,6 +6145,7 @@ const initializeApp = async () => {
         region,
         state,
         area,
+        postalCode,
         lat,
         lng,
         notesHistory,
@@ -6047,7 +6233,7 @@ const initializeApp = async () => {
 
     let filtered = contacts.filter((c) => {
       const fullName = `${c.firstName} ${c.lastName}`.toLowerCase();
-      const addr = (c.address || "").toLowerCase();
+      const addr = [c.address, getFormattedContactAddress(c)].filter(Boolean).join(", ").toLowerCase();
       const areasMatch = getContactAreas(c).some((area) =>
         area.toLowerCase().includes(searchTerm),
       );
@@ -6142,7 +6328,11 @@ const initializeApp = async () => {
         !contactFullName.includes(searchTerm) &&
         !(contact.email || "").toLowerCase().includes(searchTerm) &&
         !(contact.phone || "").includes(searchTerm) &&
-        !(contact.address || "").toLowerCase().includes(searchTerm) &&
+        ![contact.address, getFormattedContactAddress(contact)]
+          .filter(Boolean)
+          .join(", ")
+          .toLowerCase()
+          .includes(searchTerm) &&
         !getContactAreas(contact).some((area) =>
           area.toLowerCase().includes(searchTerm),
         );
@@ -6166,14 +6356,28 @@ const initializeApp = async () => {
                 ${lastNoteHtml}
                 ${noteMatchHtml}
                 <div class="card-actions">
-                    <button class="btn-icon" onclick="addQuickVisit(${contact.id})" title="${addVisit}" aria-label="${addVisit}"><span class="btn-add-visit">${escapeHtml(appText("contacts.addVisitLine1", "ADD"))}<br>${escapeHtml(appText("contacts.addVisitLine2", "VISIT"))}</span></button>
-                    <button class="btn-icon" onclick="editContact(${contact.id})" title="${escapeHtml(appText("contacts.editDetails", "Edit Details"))}">✏️</button>
+                    <button class="btn-icon" data-contact-action="quick-visit" data-contact-id="${escapeHtml(String(contact.id))}" title="${addVisit}" aria-label="${addVisit}"><span class="btn-add-visit">${escapeHtml(appText("contacts.addVisitLine1", "ADD"))}<br>${escapeHtml(appText("contacts.addVisitLine2", "VISIT"))}</span></button>
+                    <button class="btn-icon" data-contact-action="edit" data-contact-id="${escapeHtml(String(contact.id))}" title="${escapeHtml(appText("contacts.editDetails", "Edit Details"))}">✏️</button>
                     ${navigationUrl ? `<a class="btn-icon navigate-contact" href="${escapeHtml(navigationUrl)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(navigateLabel)}" title="${escapeHtml(navigateLabel)}"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2" fill="currentColor"/><path d="M6 16V9a4 4 0 0 1 4-4h8m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></a>` : ""}
-                    <button class="btn-icon share-contact-card" onclick="shareContact(${contact.id})" title="${escapeHtml(shareLabel)}" aria-label="${escapeHtml(shareLabel)}"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 15V3m-4 4 4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></button>
-                    <button class="btn-icon delete" onclick="deleteContact(${contact.id})" title="${escapeHtml(appText("contacts.delete", "Delete Contact"))}">🗑️</button>
+                    <button class="btn-icon share-contact-card" data-contact-action="share" data-contact-id="${escapeHtml(String(contact.id))}" title="${escapeHtml(shareLabel)}" aria-label="${escapeHtml(shareLabel)}"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 15V3m-4 4 4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></button>
+                    <button class="btn-icon delete" data-contact-action="delete" data-contact-id="${escapeHtml(String(contact.id))}" title="${escapeHtml(appText("contacts.delete", "Delete Contact"))}">🗑️</button>
                 </div>
             `;
       listContainer.appendChild(card);
+      card.querySelectorAll("[data-contact-action]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const id = button.dataset.contactId;
+          if (button.dataset.contactAction === "quick-visit") {
+            window.addQuickVisit(id);
+          } else if (button.dataset.contactAction === "edit") {
+            window.editContact(id);
+          } else if (button.dataset.contactAction === "share") {
+            window.shareContact(id);
+          } else if (button.dataset.contactAction === "delete") {
+            window.deleteContact(id);
+          }
+        });
+      });
     });
   };
 
@@ -6301,7 +6505,7 @@ const initializeApp = async () => {
         ${
           settings.me && (settings.me.name || settings.me.street || settings.me.city)
             ? `<p>${escapeHtml(appText("print.yourDetails", "Your details:"))} ${escapeHtml(
-                [settings.me.name, settings.me.street, settings.me.city, settings.me.state, settings.me.country]
+              [settings.me.name, settings.me.street, settings.me.area, settings.me.region, settings.me.city, settings.me.state, settings.me.postalCode, settings.me.country]
                   .filter(Boolean)
                   .join(", "),
               )}</p>`
@@ -6594,7 +6798,7 @@ const initializeApp = async () => {
       const navigationUrl = getNavigationUrl(contact);
       return `
         <div class="map-popup-actions">
-          <button type="button" onclick="editContact(${contact.id})">${escapeHtml(appText("contacts.editTitle", "Edit Contact"))}</button>
+          <button type="button" class="map-popup-edit" data-contact-id="${escapeHtml(String(contact.id))}">${escapeHtml(appText("contacts.editTitle", "Edit Contact"))}</button>
           ${
             navigationUrl
               ? `<a class="map-popup-directions" href="${escapeHtml(navigationUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(appText("map.directions", "Get Directions"))}</a>`
@@ -6703,7 +6907,7 @@ const initializeApp = async () => {
       }).addTo(map);
       homeMarker.bindPopup(
         `<b>${escapeHtml(me.name || appText("map.myHome", "My home"))}</b><br>${escapeHtml(
-          [me.street, me.city, me.state, displayCountry(me.country)]
+          [me.street, me.area, me.region, me.city, me.state, me.postalCode, displayCountry(me.country)]
             .filter(Boolean)
             .join(", "),
         )}<br><br>${escapeHtml(appText("map.dragPin", "Drag this pin to move it. The new location saves automatically."))}`,
@@ -6879,6 +7083,7 @@ const initializeApp = async () => {
       contact.state || settings.me?.state || settings.state,
     );
     document.getElementById("contact-city-select").value = contact.city || "";
+    document.getElementById("contact-postal-code").value = contact.postalCode || "";
     lastCommittedContactCity = contact.city || "";
     pendingContactCitySave = Promise.resolve(true);
     updateContactLocationFields();
