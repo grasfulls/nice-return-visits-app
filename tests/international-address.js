@@ -190,6 +190,8 @@ assert(source.includes("const cityQuery = getFormattedContactAddress(locationPar
 assert(source.includes("getFormattedContactAddress(contact)"));
 assert(source.includes("contact.postalCode = postalCode;"));
 assert(source.includes('"contact-address",'));
+assert(source.includes('data-contact-action="edit"'));
+assert(!source.includes('onclick="editContact(${contact.id})"'));
 console.log("PASS  locality is not gated by state and address fields flow through editing, search, and maps");
 
 (async () => {

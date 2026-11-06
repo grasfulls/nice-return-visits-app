@@ -26,8 +26,19 @@ const localizeMapControls = (leafletMap) => {
     button.setAttribute("aria-label", label);
   });
   leafletMap.on("popupopen", (event) => {
-    const button = event.popup.getElement().querySelector(".leaflet-popup-close-button");
+    const popup = event.popup.getElement();
+    const button = popup.querySelector(".leaflet-popup-close-button");
     if (button) button.setAttribute("aria-label", appText("map.closePopup", "Close popup"));
+    const editButton = popup.querySelector(".map-popup-edit");
+    if (
+      editButton?.addEventListener &&
+      editButton.dataset.contactEditBound !== "true"
+    ) {
+      editButton.dataset.contactEditBound = "true";
+      editButton.addEventListener("click", () =>
+        window.editContact?.(editButton.dataset.contactId),
+      );
+    }
   });
 };
 const displayCountry = (country) => {
@@ -6345,14 +6356,28 @@ const initializeApp = async () => {
                 ${lastNoteHtml}
                 ${noteMatchHtml}
                 <div class="card-actions">
-                    <button class="btn-icon" onclick="addQuickVisit(${contact.id})" title="${addVisit}" aria-label="${addVisit}"><span class="btn-add-visit">${escapeHtml(appText("contacts.addVisitLine1", "ADD"))}<br>${escapeHtml(appText("contacts.addVisitLine2", "VISIT"))}</span></button>
-                    <button class="btn-icon" onclick="editContact(${contact.id})" title="${escapeHtml(appText("contacts.editDetails", "Edit Details"))}">✏️</button>
+                    <button class="btn-icon" data-contact-action="quick-visit" data-contact-id="${escapeHtml(String(contact.id))}" title="${addVisit}" aria-label="${addVisit}"><span class="btn-add-visit">${escapeHtml(appText("contacts.addVisitLine1", "ADD"))}<br>${escapeHtml(appText("contacts.addVisitLine2", "VISIT"))}</span></button>
+                    <button class="btn-icon" data-contact-action="edit" data-contact-id="${escapeHtml(String(contact.id))}" title="${escapeHtml(appText("contacts.editDetails", "Edit Details"))}">✏️</button>
                     ${navigationUrl ? `<a class="btn-icon navigate-contact" href="${escapeHtml(navigationUrl)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(navigateLabel)}" title="${escapeHtml(navigateLabel)}"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2" fill="currentColor"/><path d="M6 16V9a4 4 0 0 1 4-4h8m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></a>` : ""}
-                    <button class="btn-icon share-contact-card" onclick="shareContact(${contact.id})" title="${escapeHtml(shareLabel)}" aria-label="${escapeHtml(shareLabel)}"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 15V3m-4 4 4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></button>
-                    <button class="btn-icon delete" onclick="deleteContact(${contact.id})" title="${escapeHtml(appText("contacts.delete", "Delete Contact"))}">🗑️</button>
+                    <button class="btn-icon share-contact-card" data-contact-action="share" data-contact-id="${escapeHtml(String(contact.id))}" title="${escapeHtml(shareLabel)}" aria-label="${escapeHtml(shareLabel)}"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 15V3m-4 4 4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></button>
+                    <button class="btn-icon delete" data-contact-action="delete" data-contact-id="${escapeHtml(String(contact.id))}" title="${escapeHtml(appText("contacts.delete", "Delete Contact"))}">🗑️</button>
                 </div>
             `;
       listContainer.appendChild(card);
+      card.querySelectorAll("[data-contact-action]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const id = button.dataset.contactId;
+          if (button.dataset.contactAction === "quick-visit") {
+            window.addQuickVisit(id);
+          } else if (button.dataset.contactAction === "edit") {
+            window.editContact(id);
+          } else if (button.dataset.contactAction === "share") {
+            window.shareContact(id);
+          } else if (button.dataset.contactAction === "delete") {
+            window.deleteContact(id);
+          }
+        });
+      });
     });
   };
 
@@ -6773,7 +6798,7 @@ const initializeApp = async () => {
       const navigationUrl = getNavigationUrl(contact);
       return `
         <div class="map-popup-actions">
-          <button type="button" onclick="editContact(${contact.id})">${escapeHtml(appText("contacts.editTitle", "Edit Contact"))}</button>
+          <button type="button" class="map-popup-edit" data-contact-id="${escapeHtml(String(contact.id))}">${escapeHtml(appText("contacts.editTitle", "Edit Contact"))}</button>
           ${
             navigationUrl
               ? `<a class="map-popup-directions" href="${escapeHtml(navigationUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(appText("map.directions", "Get Directions"))}</a>`
