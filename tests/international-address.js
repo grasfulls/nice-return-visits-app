@@ -55,6 +55,14 @@ vm.runInNewContext(
   context,
 );
 const helpers = context.addressHelpers;
+assert.strictEqual(
+  helpers.normalizeRegionData({
+    schemaVersion: 5, country: "United States", defaultCity: "", cities: ["Seattle"],
+    regions: [], areas: [],
+  }, []).settings.defaultCity,
+  "",
+  "an intentionally cleared default city remains empty",
+);
 const elements = new Map();
 const addElement = (id, value = "") => {
   const element = { textContent: value, placeholder: value };

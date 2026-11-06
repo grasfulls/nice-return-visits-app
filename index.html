@@ -358,9 +358,9 @@
           <form method="dialog">
             <h2 data-i18n="setup.ready">You're ready to get started</h2>
             <p data-i18n="setup.savedDefaults">
-              Your Defaults are saved. You can add or change Your Details and
-              Cities, Regions &amp; Areas in Settings whenever you like, or
-              add your first contact now.
+              You can add or change Defaults, Your Details and Cities, Regions
+              &amp; Areas in Settings whenever you like, or add your first
+              contact now.
             </p>
             <div class="restore-dialog-actions setup-next-steps-actions">
               <button type="button" id="btn-setup-add-first-contact" data-i18n="setup.addFirst">
@@ -429,8 +429,19 @@
             <h2 data-i18n="settings.title">Settings</h2>
             <details class="settings-section" id="defaults-your-details-section">
               <summary data-i18n="settings.defaultsDetails">Defaults &amp; Your Details</summary>
-              <h3 data-i18n="settings.defaults">Defaults</h3>
+              <details class="settings-section" id="defaults-section">
+              <summary data-i18n="settings.defaults">Defaults</summary>
               <form id="settings-form">
+                <label for="me-country" data-i18n="contacts.country">Country:</label>
+                <select id="me-country"></select>
+                <div id="new-me-country-container" hidden>
+                  <label for="input-new-me-country" data-i18n="location.newCountry">New country name:</label>
+                  <input type="text" id="input-new-me-country" placeholder="Enter country name..." data-i18n-attr="placeholder:location.enterCountry" />
+                  <div class="new-contact-area-actions">
+                    <button type="button" id="btn-save-new-me-country" data-i18n="location.addCountryButton">Add Country</button>
+                    <button type="button" id="btn-cancel-new-me-country" data-i18n="common.cancel">Cancel</button>
+                  </div>
+                </div>
                 <label id="setting-state-label" data-i18n="settings.defaultState">Default State / Province:</label>
                 <input type="text" id="setting-state" placeholder="State or province" data-i18n-attr="placeholder:location.statePlaceholder" />
 
@@ -442,43 +453,25 @@
                   Nominatim while the Map is open.
                 </small>
 
-                <button
-                  type="submit"
-                  style="
-                    background: #28a745;
-                    color: white;
-                    padding: 10px;
-                    border: none;
-                    border-radius: 4px;
-                    cursor: pointer;
-                  "
-                  data-i18n="settings.save"
-                >
-                  💾 Save Settings
-                </button>
               </form>
-              <h3 id="your-details-heading" data-i18n="settings.yourDetails">Your Details</h3>
+              </details>
+              <details class="settings-section" id="your-details-section">
+              <summary id="your-details-heading" data-i18n="settings.yourDetails">Your Details</summary>
               <form id="me-form">
                 <label for="me-name" data-i18n="settings.name">Name:</label>
                 <input type="text" id="me-name" autocomplete="name" enterkeyhint="next" />
-                <label for="me-country" data-i18n="contacts.country">Country:</label>
-                <select id="me-country"></select>
-                <div id="new-me-country-container" hidden>
-                  <label for="input-new-me-country" data-i18n="location.newCountry">New country name:</label>
-                  <input type="text" id="input-new-me-country" placeholder="Enter country name..." data-i18n-attr="placeholder:location.enterCountry" />
-                  <div class="new-contact-area-actions">
-                    <button type="button" id="btn-save-new-me-country" data-i18n="location.addCountryButton">Add Country</button>
-                    <button type="button" id="btn-cancel-new-me-country" data-i18n="common.cancel">Cancel</button>
-                  </div>
-                </div>
-                <label id="me-state-label" for="me-state" data-i18n="contacts.state">State / Province:</label>
-                <input type="text" id="me-state" placeholder="State or province" data-i18n-attr="placeholder:location.statePlaceholder" disabled />
+                <label for="me-street" data-i18n="contacts.address">Street Address:</label>
+                <input type="text" id="me-street" autocomplete="street-address" />
                 <label id="me-city-label" for="me-city" data-i18n="location.cityLabel">City:</label>
                 <input type="text" id="me-city" list="me-city-options" placeholder="Choose or enter a city" data-i18n-attr="placeholder:location.cityPlaceholder" autocomplete="off" disabled />
                 <datalist id="me-city-options"></datalist>
+                <label id="me-state-label" for="me-state" data-i18n="contacts.state">State / Province:</label>
+                <input type="text" id="me-state" placeholder="State or province" data-i18n-attr="placeholder:location.statePlaceholder" disabled />
+                <label for="me-postal-code" data-i18n="contacts.postalCode">Postal code (optional):</label>
+                <input type="text" id="me-postal-code" autocomplete="postal-code" />
                 <label id="me-region-label" for="me-region" data-i18n="location.regionLabel">Region:</label>
                 <select id="me-region" disabled>
-                  <option value="" data-i18n="location.chooseRegion">Choose a region (optional)</option>
+                  <option value="" data-i18n="common.none">None</option>
                 </select>
                 <div id="new-me-region-container" hidden>
                   <label id="me-new-region-label" for="input-new-me-region" data-i18n="location.newRegion">New region name:</label>
@@ -490,7 +483,7 @@
                 </div>
                 <label id="me-area-label" for="me-area" data-i18n="location.areaLabel">Area:</label>
                 <select id="me-area" disabled>
-                  <option value="" data-i18n="location.chooseArea">Choose an area (optional)</option>
+                  <option value="" data-i18n="common.none">None</option>
                 </select>
                 <div id="new-me-area-container" hidden>
                   <label id="me-new-area-label" for="input-new-me-area" data-i18n="location.newArea">New area name:</label>
@@ -500,10 +493,6 @@
                     <button type="button" id="btn-cancel-new-me-area" data-i18n="common.cancel">Cancel</button>
                   </div>
                 </div>
-                <label for="me-street" data-i18n="contacts.address">Street Address:</label>
-                <input type="text" id="me-street" autocomplete="street-address" />
-                <label for="me-postal-code" data-i18n="contacts.postalCode">Postal code (optional):</label>
-                <input type="text" id="me-postal-code" autocomplete="postal-code" />
                 <div class="coordinate-row">
                   <label><span data-i18n="map.latitude">Latitude:</span>
                     <input type="text" id="me-lat" inputmode="decimal" />
@@ -528,21 +517,27 @@
                   <button type="button" id="btn-me-gps" title="Use device location" aria-label="Use device location" data-i18n="settings.useLocation" data-i18n-attr="title:settings.useLocationLabel;aria-label:settings.useLocationLabel">📍 Use device location</button>
                 </div>
                 <div class="me-actions">
-                  <button type="submit" id="btn-me-save" title="Save your details" aria-label="Save your details" data-i18n-attr="title:settings.saveDetails;aria-label:settings.saveDetails">
-                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l4 4v14H5zM8 3v6h7V3M8 21v-7h8v7"/></svg>
-                  </button>
                   <button type="button" id="btn-me-clear" title="Clear your details" aria-label="Clear your details" data-i18n-attr="title:settings.clearDetails;aria-label:settings.clearDetails">🗑️</button>
                 </div>
                 <p id="me-status" role="status"></p>
               </form>
+              </details>
               <p id="setup-next-steps-notice" class="install-banner" role="status" hidden>
                 <strong data-i18n="setup.inProgress">Setup is in progress.</strong>
-                <span data-i18n="setup.detailsInstructions">Add default and personal details above and save them. Your Details are optional and can be changed later in Settings. You can also set up</span>
+                <span data-i18n="setup.detailsInstructions">Add default and personal details above, then save changes when leaving. Your Details are optional and can be changed later in Settings. You can also set up</span>
                 <button type="button" class="inline-icon-link" id="btn-setup-locations" data-i18n="setup.locations">Cities, Regions, and Areas</button>
                 <span data-i18n="setup.continueInstructions">now or as needed. When you're ready, continue to Contacts.</span>
                 <button type="button" id="btn-setup-finish" data-i18n="setup.readyContacts">I'm ready — go to Contacts</button>
               </p>
             </details>
+            <dialog id="settings-changes-dialog" aria-labelledby="settings-changes-title">
+              <h2 id="settings-changes-title" data-i18n="settings.unsavedTitle">Unsaved changes</h2>
+              <p data-i18n="settings.unsavedPrompt">Save or discard your changes before leaving?</p>
+              <div class="restore-dialog-actions">
+                <button type="button" id="btn-settings-save-changes" data-i18n="settings.saveChanges">Save Changes</button>
+                <button type="button" id="btn-settings-discard-changes" data-i18n="settings.discardChanges">Discard Changes</button>
+              </div>
+            </dialog>
             <details class="settings-section" id="locations-section">
               <summary data-i18n="location.manageTitle">Cities, Regions &amp; Areas</summary>
               <h3 data-i18n="location.addCityTitle">Add New City to List</h3>

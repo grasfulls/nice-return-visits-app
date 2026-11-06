@@ -121,7 +121,7 @@ The app helps a person keep track of people they want to revisit: who the person
 | **Map** | Main map screen via bottom navigation. | Interactive map; contact/home pins; popups; drag pins; live-location permission/status. Bottom printer opens **Print Map List**. Status messages cover locating pins, no matches, no coordinates, and lookup failures. |
 | **Time** / **Time in Service** | Appears in bottom navigation only when tracking is enabled. | Today timer total; optional month/year goal summaries; Start/Stop at Contacts; manual add/edit form; up to 60 time entries, each with edit/delete. **Cancel** exits entry editing. |
 | **Settings** | Settings screen via bottom navigation (gear). Accordion sections can expand/collapse. A section generally collapses a peer section. | Bottom printer prints settings; sections below contain settings, data, help and update controls. Navigating away with unsaved edits asks whether to discard or return. |
-| **Defaults & Your Details** | First Settings section. | Defaults form: default state/province, default city, **Save Settings**. Your Details form: name, country, state/province, city, region, area, street, latitude/longitude; add-country/region/area mini-forms; **Find from address**, **Use device location**, save icon, clear icon. Optional details affect share attribution and map home pin. |
+| **Defaults & Your Details** | First Settings section, with expandable **Defaults** and **Your Details** subsections. | Defaults contains country, default state/province and default city. Your Details contains name, street, city, state/province, postal code, region, area and coordinates, with location add controls, **Find from address**, **Use device location**, and clear. Region and area can be set to **None**. When leaving with changes, choose **Save Changes** or **Discard Changes** to continue. Optional details affect share attribution and map home pin. |
 | **Cities, Regions & Areas** | Settings location-management section. | Add City; choose city and add Region; choose city/region and add Area; hierarchy list with inline Edit/Save/Cancel/Delete. Duplicate/invalid selections and location-in-use deletions produce messages. |
 | **Time in Service** (Settings section) | Enables the Time screen and timer. | **Track Time in Service**; optional monthly and yearly goal checkboxes. Disabling warns that all time will be erased and requires confirmation. |
 | **Choices** | Settings section that contains passphrase and safety/backup sections in the current markup. | Expand **Passphrase to Open App**; **Keep Your Data Safe** contains **Backup & Restore** and **Cloud Backup (optional)**. |
@@ -216,9 +216,9 @@ The app helps a person keep track of people they want to revisit: who the person
 
 ### F. Configure Your Details and the location hierarchy
 
-1. Open Settings → Defaults & Your Details. Set default state/province and default city; save with **Save Settings**.
+1. Open Settings → Defaults & Your Details → Defaults. Set the country, default state/province and default city.
 2. Fill Your Details only as desired. Country selection affects available state/city fields; your entered name is appended to contact share messages as “Shared by [name]”.
-3. Use **Find from address** or **Use device location** to propose home coordinates; save Your Details. The home pin appears on Map and map fitting includes it.
+3. Use **Find from address** or **Use device location** to propose home coordinates. When leaving, choose **Save Changes** to keep your edits or **Discard Changes** to restore the saved values. The saved home pin appears on Map and map fitting includes it.
 4. For reusable locations, open Settings → Cities, Regions & Areas. Add cities first, then regions under a selected city, then areas under a selected region.
 5. To rename a location, select Edit, type the replacement, then Save. Existing assignments are updated.
 6. To delete, select Delete and confirm. Deletion is blocked while assigned contacts use that node or its children.

@@ -103,7 +103,7 @@ const updateAddressLabels = (prefix, country) => {
   }
   if (regionSelect?.firstElementChild) {
     regionSelect.firstElementChild.textContent = appText(
-      peru ? "location.chooseProvince" : "location.chooseRegion",
+      prefix === "me" ? "common.none" : (peru ? "location.chooseProvince" : "location.chooseRegion"),
       regionSelect.firstElementChild.textContent,
     );
     const addOption = Array.from(regionSelect.options).find(
@@ -118,7 +118,7 @@ const updateAddressLabels = (prefix, country) => {
   }
   if (areaSelect?.firstElementChild) {
     areaSelect.firstElementChild.textContent = appText(
-      peru ? "location.chooseDistrict" : "location.chooseArea",
+      prefix === "me" ? "common.none" : (peru ? "location.chooseDistrict" : "location.chooseArea"),
       areaSelect.firstElementChild.textContent,
     );
     const addOption = Array.from(areaSelect.options).find(
@@ -1207,7 +1207,9 @@ const normalizeRegionData = (settings, contacts) => {
   const cities = Array.isArray(settings.cities)
     ? [...new Set(settings.cities.filter((city) => typeof city === "string"))]
     : [...DEFAULT_SETTINGS.cities];
-  const defaultCity = cities.includes(settings.defaultCity)
+  const defaultCity = settings.defaultCity === ""
+    ? ""
+    : cities.includes(settings.defaultCity)
     ? settings.defaultCity
     : cities[0] || "";
   const legacyAreaDefinitions = (settings.areas || []).map((area) =>
@@ -2083,8 +2085,8 @@ const initializeApp = async () => {
     const meArea = document.getElementById("me-area");
     const populateMeRegionArea = (selectedRegion = "", selectedArea = "") => {
       const city = meCityInput.value.trim();
-      meRegion.innerHTML = '<option value="">Choose a region (optional)</option>';
-      meRegion.firstElementChild.textContent = appText("location.chooseRegion", "Choose a region (optional)");
+      meRegion.innerHTML = '<option value="">None</option>';
+      meRegion.firstElementChild.textContent = appText("common.none", "None");
       settings.regions
         .filter((region) => region.city === city)
         .forEach((region) => {
@@ -2099,12 +2101,11 @@ const initializeApp = async () => {
       meRegion.appendChild(addRegion);
       meRegion.disabled =
         !document.getElementById("me-country").value ||
-        !city ||
-        !settings.cities.includes(city);
+        !city;
       meRegion.value = selectedRegion;
 
-      meArea.innerHTML = '<option value="">Choose an area (optional)</option>';
-      meArea.firstElementChild.textContent = appText("location.chooseArea", "Choose an area (optional)");
+      meArea.innerHTML = '<option value="">None</option>';
+      meArea.firstElementChild.textContent = appText("common.none", "None");
       settings.areas
         .filter((area) => area.city === city)
         .forEach((area) => {
@@ -2479,39 +2480,10 @@ const initializeApp = async () => {
   document.getElementById("me-state").addEventListener("input", () => {
     updateMeLocationFields();
   });
-  document.getElementById("me-state").addEventListener("change", () => {
-    document.getElementById("me-city").value = "";
-    document.getElementById("me-region").value = "";
-    document.getElementById("me-area").value = "";
-    dropdownHelpers.populateMeRegionArea("", "");
-  });
   citySelect.addEventListener("input", () => {
     dropdownHelpers.populateContactRegionArea("", "");
   });
   document.getElementById("me-city").addEventListener("input", () => {
-    dropdownHelpers.populateMeRegionArea("", "");
-  });
-  document.getElementById("me-city").addEventListener("change", async () => {
-    const meCity = document.getElementById("me-city");
-    const entered = toTitleCase(meCity.value.trim());
-    if (!entered) return;
-    const existing = settings.cities.find(
-      (city) => city.toLowerCase() === entered.toLowerCase(),
-    );
-    if (existing) {
-      meCity.value = existing;
-    } else {
-      addCity(entered);
-      try {
-        await saveSettings();
-      } catch (error) {
-        rollbackNewCity(entered);
-        showStorageError("save city", error);
-        return;
-      }
-      populateDropdowns();
-      meCity.value = entered;
-    }
     dropdownHelpers.populateMeRegionArea("", "");
   });
   let pendingContactCitySave = Promise.resolve(true);
@@ -2821,40 +2793,8 @@ const initializeApp = async () => {
       }
     });
 
-  document
-    .getElementById("settings-form")
-    .addEventListener("submit", async (e) => {
-      e.preventDefault();
-      settings.state = normalizeLocationState(
-        settings.country,
-        settingStateInput.value,
-      );
-      settingStateInput.value = settings.state;
-      settings.defaultCity = toTitleCase(settingDefaultCityInput.value);
-      settingDefaultCityInput.value = settings.defaultCity;
-      const existingCity = settings.cities.find(
-        (city) =>
-          city.toLowerCase() === settings.defaultCity.toLowerCase(),
-      );
-      if (existingCity) {
-        settings.defaultCity = existingCity;
-      } else if (settings.defaultCity) {
-        addCity(settings.defaultCity);
-      }
-      try {
-        await saveSettings();
-      } catch (error) {
-        showStorageError("save settings", error);
-        return;
-      }
-      populateDropdowns();
-      document.getElementById("setting-default-city").value =
-        settings.defaultCity;
-      alert(appText("settings.defaultsSaved", "Defaults Saved"));
-      if (localStorage.getItem("return_visits_setup_pending") === "true") {
-        document.getElementById("setup-next-steps-notice").hidden = false;
-      }
-    });
+  document.getElementById("settings-form").addEventListener("submit", (e) => e.preventDefault());
+  document.getElementById("me-form").addEventListener("submit", (e) => e.preventDefault());
 
   const meFields = {
     name: document.getElementById("me-name"),
@@ -2873,7 +2813,7 @@ const initializeApp = async () => {
   meFields.name.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" || event.isComposing) return;
     event.preventDefault();
-    meFields.country.focus({ preventScroll: true });
+    meFields.street.focus({ preventScroll: true });
   });
   const populateMeForm = () => {
     const me = settings.me || {};
@@ -2881,7 +2821,7 @@ const initializeApp = async () => {
       if (key === "region" || key === "area") return;
       input.value = me[key] || "";
     });
-    meFields.country.value = me.country || settings.country;
+    meFields.country.value = settings.country;
     meCountrySelect.dataset.selectedCountry = meFields.country.value;
     populateDropdowns();
     meFields.region.value = me.region || "";
@@ -2910,7 +2850,7 @@ const initializeApp = async () => {
       );
     }
   });
-  const commitMeCity = async () => {
+  const commitMeCity = () => {
     const enteredCity = toTitleCase(meFields.city.value.trim());
     if (!enteredCity || enteredCity === "+ Add New City...") {
       meFields.city.value = "";
@@ -2931,20 +2871,13 @@ const initializeApp = async () => {
       populateDropdowns();
       return true;
     }
-    meFields.region.value = "";
-    meFields.area.value = "";
-    addCityWithDefaultRegions(enteredCity);
-    try {
-      await saveSettings();
-    } catch (error) {
-      rollbackNewCity(enteredCity);
-      meFields.city.value = lastCommittedMeCity;
-      showStorageError("save city", error);
-      return false;
+    if (enteredCity !== lastCommittedMeCity) {
+      meFields.region.value = "";
+      meFields.area.value = "";
     }
-    populateDropdowns();
     meFields.city.value = enteredCity;
     lastCommittedMeCity = enteredCity;
+    dropdownHelpers.populateMeRegionArea("", "");
     return true;
   };
   meFields.city.addEventListener("change", () => {
@@ -3002,11 +2935,14 @@ const initializeApp = async () => {
         return;
       }
       const region = { name, city };
+      const newCity = !settings.cities.includes(city);
+      if (newCity) addCity(city);
       settings.regions.push(region);
       try {
         await saveSettings();
       } catch (error) {
         settings.regions.pop();
+        if (newCity) rollbackNewCity(city);
         showStorageError("save region", error);
         return;
       }
@@ -3047,11 +2983,14 @@ const initializeApp = async () => {
         return;
       }
       const area = { name, city };
+      const newCity = !settings.cities.includes(city);
+      if (newCity) addCity(city);
       settings.areas.push(area);
       try {
         await saveSettings();
       } catch (error) {
         settings.areas.pop();
+        if (newCity) rollbackNewCity(city);
         showStorageError("save area", error);
         return;
       }
@@ -3122,7 +3061,7 @@ const initializeApp = async () => {
           }
           meFields.lat.value = fallbackLocation[0].toFixed(6);
           meFields.lng.value = fallbackLocation[1].toFixed(6);
-          meStatus.textContent = appText("settings.homeCentered", `Could not find this address. The pin has been centered near ${defaultLocation}. Choose Save, then move the pin to the correct location, or use Device Location if you are at the location.`, { location: defaultLocation });
+          meStatus.textContent = appText("settings.homeCentered", `Could not find this address. The pin has been centered near ${defaultLocation}. Save changes when leaving, then move the pin to the correct location, or use Device Location if you are at the location.`, { location: defaultLocation });
         } catch (error) {
           console.error(
             "Unable to center the home pin on the default location:",
@@ -3133,7 +3072,7 @@ const initializeApp = async () => {
       } else {
         meFields.lat.value = Number(results[0].lat).toFixed(6);
         meFields.lng.value = Number(results[0].lon).toFixed(6);
-        meStatus.textContent = appText("settings.homeFound", "Home pin found. Choose Save, then drag it on the Map to fine-tune.");
+        meStatus.textContent = appText("settings.homeFound", "Home pin found. Save changes when leaving, then drag it on the Map to fine-tune.");
       }
     } catch (error) {
       console.error("Home lookup failed:", error);
@@ -3155,7 +3094,7 @@ const initializeApp = async () => {
       (position) => {
         meFields.lat.value = position.coords.latitude.toFixed(6);
         meFields.lng.value = position.coords.longitude.toFixed(6);
-        meStatus.textContent = appText("settings.homeGpsSet", "Home pin set from device location. Choose Save to keep it.");
+        meStatus.textContent = appText("settings.homeGpsSet", "Home pin set from device location. Save changes when leaving to keep it.");
         button.disabled = false;
       },
       () => {
@@ -3166,9 +3105,26 @@ const initializeApp = async () => {
     );
   });
 
-  document.getElementById("me-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!(await commitMeCity())) return;
+  const captureDetailsState = () => JSON.stringify({
+    country: meFields.country.value,
+    defaultState: document.getElementById("setting-state").value.trim(),
+    defaultCity: document.getElementById("setting-default-city").value.trim(),
+    ...Object.fromEntries(
+      Object.entries(meFields)
+        .filter(([key]) => key !== "country")
+        .map(([key, input]) => [key, input.value.trim()]),
+    ),
+  });
+  let savedDetailsState = captureDetailsState();
+  const showDetailsValidationError = (message, input) => {
+    meStatus.textContent = message;
+    document.getElementById("defaults-your-details-section").open = true;
+    document.getElementById("your-details-section").open = true;
+    input.focus({ preventScroll: true });
+    alert(message);
+  };
+  const saveDefaultsAndDetails = async () => {
+    commitMeCity();
     const me = readMeForm();
     if (
       !me.country ||
@@ -3181,8 +3137,11 @@ const initializeApp = async () => {
           (area) => area.city === me.city && area.name === me.area,
         ))
     ) {
-      meStatus.textContent = appText("settings.validLocation", "Choose a valid country, city, region, and area.");
-      return;
+      showDetailsValidationError(
+        appText("settings.validLocation", "Choose a valid country, city, region, and area."),
+        meFields.city,
+      );
+      return false;
     }
     const lat = parseFloat(me.lat);
     const lng = parseFloat(me.lng);
@@ -3191,49 +3150,57 @@ const initializeApp = async () => {
       !(Number.isFinite(lat) && Number.isFinite(lng) &&
         Math.abs(lat) <= 90 && Math.abs(lng) <= 180)
     ) {
-      meStatus.textContent = appText("map.validCoordinates", "Enter valid latitude and longitude values.");
-      return;
+      showDetailsValidationError(
+        appText("map.validCoordinates", "Enter valid latitude and longitude values."),
+        meFields.lat,
+      );
+      return false;
     }
     const previousMe = settings.me;
     const previousDefaults = {
       country: settings.country,
       state: settings.state,
       defaultCity: settings.defaultCity,
+      cities: [...settings.cities],
     };
     settings.me = me;
     settings.country = me.country;
-    settings.state = me.state;
-    settings.defaultCity = me.city;
+    settings.state = normalizeLocationState(me.country, document.getElementById("setting-state").value);
+    settings.defaultCity = toTitleCase(document.getElementById("setting-default-city").value);
+    for (const key of ["defaultCity", "city"]) {
+      const owner = key === "city" ? me : settings;
+      const city = owner[key];
+      if (!city) continue;
+      const existing = settings.cities.find((item) => item.toLowerCase() === city.toLowerCase());
+      if (existing) owner[key] = existing;
+      else addCity(city);
+    }
     try {
       await saveSettings();
     } catch (error) {
       settings.me = previousMe;
       Object.assign(settings, previousDefaults);
       showStorageError("save your details", error);
-      return;
+      return false;
     }
     document.getElementById("setting-state").value = settings.state;
     document.getElementById("setting-default-city").value =
       settings.defaultCity;
     populateMeForm();
+    savedDetailsState = captureDetailsState();
     if (map) renderMapMarkers();
-    meStatus.textContent = appText("settings.detailsSaved", "Your details were saved.");
-  });
+    meStatus.textContent = "";
+    return true;
+  };
 
-  document.getElementById("btn-me-clear").addEventListener("click", async () => {
+  document.getElementById("btn-me-clear").addEventListener("click", () => {
     if (!confirm(appText("settings.clearConfirm", "Clear your details and remove your home pin?"))) return;
-    const previousMe = settings.me;
-    delete settings.me;
-    try {
-      await saveSettings();
-    } catch (error) {
-      settings.me = previousMe;
-      showStorageError("clear your details", error);
-      return;
-    }
-    populateMeForm();
-    if (map) renderMapMarkers();
-    meStatus.textContent = appText("settings.detailsCleared", "Your details were cleared.");
+    Object.entries(meFields).forEach(([key, input]) => {
+      if (key !== "country") input.value = "";
+    });
+    lastCommittedMeCity = "";
+    updateMeLocationFields();
+    meStatus.textContent = "";
   });
 
   let contacts = savedContacts;
@@ -3638,6 +3605,11 @@ const initializeApp = async () => {
           }
         });
         return;
+      }
+      if (section.id === "defaults-your-details-section") {
+        section.querySelectorAll("details[open]").forEach((child) => {
+          child.open = false;
+        });
       }
       section.querySelectorAll('[role="status"]').forEach((el) => {
         if (el.id.endsWith("-status")) el.textContent = "";
@@ -4400,6 +4372,7 @@ const initializeApp = async () => {
       const detailsHeading = document.getElementById("your-details-heading");
       if (detailsHeading) {
         document.getElementById("defaults-your-details-section").open = true;
+        document.getElementById("your-details-section").open = true;
         detailsHeading.scrollIntoView({ block: "start" });
       }
     });
@@ -4494,8 +4467,8 @@ const initializeApp = async () => {
           badge.textContent = "!";
           icon.appendChild(badge);
         }
-        btn.addEventListener("click", () => {
-          if (currentViewId === "settings-view" && !confirmLeaveSettings()) {
+        btn.addEventListener("click", async () => {
+          if (currentViewId === "settings-view" && !(await confirmLeaveSettings())) {
             return;
           }
           if (currentViewId === "map-view") stopMapLocationWatch();
@@ -4506,7 +4479,9 @@ const initializeApp = async () => {
                 section.open = false;
               });
           }
+          const previousViewId = currentViewId;
           currentViewId = btnConfig.id;
+          if (currentViewId === "settings-view") discardDefaultsAndDetails();
           document
             .querySelectorAll(".view")
             .forEach((v) => v.classList.remove("active"));
@@ -4522,7 +4497,7 @@ const initializeApp = async () => {
 
           if (currentViewId === "time-view") renderTimeView();
 
-          if (currentViewId === "contacts-view") {
+          if (currentViewId === "contacts-view" && previousViewId !== "settings-view") {
             showSetupNextStepsIfReady();
           }
 
@@ -4982,7 +4957,7 @@ const initializeApp = async () => {
   });
   settingStateInput.addEventListener("blur", () => {
     settingStateInput.value = normalizeLocationState(
-      settings.country,
+      meCountrySelect.value,
       settingStateInput.value,
     );
   });
@@ -5548,7 +5523,25 @@ const initializeApp = async () => {
       input.id;
     return String(label).replace(/:\s*$/, "").trim();
   };
-  const findPendingSettingsEdit = () => {
+  const findPendingDetailsEdit = () => {
+    const saved = JSON.parse(savedDetailsState);
+    const current = JSON.parse(captureDetailsState());
+    const fields = {
+      country: meFields.country,
+      defaultState: settingStateInput,
+      defaultCity: settingDefaultCityInput,
+      ...meFields,
+    };
+    const key = Object.keys(current).find((name) => current[name] !== saved[name]);
+    if (!key) return null;
+    const input = fields[key];
+    return {
+      input,
+      field: describeSettingsField(input),
+      section: input.closest("details")?.querySelector("summary")?.textContent.trim() || "Settings",
+    };
+  };
+  const findPendingOtherSettingsEdit = () => {
     const inputs = Array.from(
       document.querySelectorAll("#settings-view input"),
     ).filter(
@@ -5556,21 +5549,13 @@ const initializeApp = async () => {
         !["checkbox", "radio", "hidden", "button", "submit"].includes(
           input.type,
         ) &&
-        !input.closest("[hidden]"),
+        !input.closest("[hidden]") &&
+        !Object.values(meFields).includes(input) &&
+        !["setting-state", "setting-default-city"].includes(input.id),
     );
     for (const input of inputs) {
       let changed;
-      if (input.id === "setting-state") {
-        changed =
-          normalizeLocationState(settings.country, input.value) !==
-          settings.state;
-      } else if (input.id === "setting-default-city") {
-        changed = toTitleCase(input.value) !== settings.defaultCity;
-      } else if (input.closest("#me-form")) {
-        changed =
-          input.value.trim() !==
-          (settings.me?.[input.id.replace("me-", "")] || "");
-      } else if (input.type === "file") {
+      if (input.type === "file") {
         changed = input.files.length > 0;
       } else if (input.id === "setting-new-city") {
         const name = toTitleCase(input.value).toLowerCase();
@@ -5616,26 +5601,78 @@ const initializeApp = async () => {
     }
     return null;
   };
+  const findPendingSettingsEdit = () =>
+    findPendingDetailsEdit() || findPendingOtherSettingsEdit();
   const revealSettingsEdit = (pending) => {
     if (!pending || currentViewId !== "settings-view") return;
-    const section = pending.input.closest("details");
-    if (section) section.open = true;
+    let section = pending.input.closest("details");
+    while (section) {
+      section.open = true;
+      section = section.parentElement.closest("details");
+    }
     pending.input.scrollIntoView({ block: "center" });
     pending.input.focus();
   };
-  const discardSettingsEdits = () => {
+  const discardOtherSettingsEdits = () => {
     document.querySelectorAll("#settings-view input").forEach((input) => {
+      if (Object.values(meFields).includes(input) ||
+          ["setting-state", "setting-default-city"].includes(input.id)) return;
       if (["checkbox", "radio", "hidden", "button", "submit"].includes(input.type)) return;
       input.value = "";
       if (input.type === "file") input.dispatchEvent(new Event("change"));
     });
-    populateMeForm();
+  };
+  const discardDefaultsAndDetails = () => {
     settingStateInput.value = settings.state;
     settingDefaultCityInput.value = settings.defaultCity;
+    populateMeForm();
+    ["country", "region", "area"].forEach((name) => {
+      document.getElementById(`new-me-${name}-container`).hidden = true;
+      document.getElementById(`input-new-me-${name}`).value = "";
+    });
+    meStatus.textContent = "";
+    savedDetailsState = captureDetailsState();
   };
-  confirmLeaveSettings = () => {
-    const pending = findPendingSettingsEdit();
-    if (!pending) return true;
+  const changesDialog = document.getElementById("settings-changes-dialog");
+  const chooseSettingsChanges = () => new Promise((resolve) => {
+    const finish = (choice) => {
+      changesDialog.removeEventListener("cancel", cancel);
+      saveButton.removeEventListener("click", save);
+      discardButton.removeEventListener("click", discard);
+      changesDialog.close();
+      resolve(choice);
+    };
+    const cancel = (event) => { event.preventDefault(); finish("cancel"); };
+    const save = () => finish("save");
+    const discard = () => finish("discard");
+    const saveButton = document.getElementById("btn-settings-save-changes");
+    const discardButton = document.getElementById("btn-settings-discard-changes");
+    changesDialog.addEventListener("cancel", cancel);
+    saveButton.addEventListener("click", save);
+    discardButton.addEventListener("click", discard);
+    changesDialog.showModal();
+  });
+  let settingsLeavePending = false;
+  confirmLeaveSettings = async () => {
+    if (settingsLeavePending) return false;
+    settingsLeavePending = true;
+    try {
+      const other = findPendingOtherSettingsEdit();
+      if (other && !confirmDiscardOtherSettings(other)) return false;
+      const pending = findPendingDetailsEdit();
+      if (!pending) return true;
+      const choice = await chooseSettingsChanges();
+      if (choice === "cancel") return false;
+      if (choice === "discard") {
+        discardDefaultsAndDetails();
+        return true;
+      }
+      return await saveDefaultsAndDetails();
+    } finally {
+      settingsLeavePending = false;
+    }
+  };
+  const confirmDiscardOtherSettings = (pending) => {
     const pendingDescription =
       pending.input.type === "file"
         ? "A backup file is selected but has not been restored."
@@ -5645,12 +5682,25 @@ const initializeApp = async () => {
         `Discard unsaved changes?\n\n${pendingDescription}\n\nChoose OK to discard, or Cancel to go back and finish it.`,
       )
     ) {
-      discardSettingsEdits();
+      discardOtherSettingsEdits();
       return true;
     }
     revealSettingsEdit(pending);
     return false;
   };
+  const defaultsSection = document.getElementById("defaults-your-details-section");
+  document.querySelectorAll("#settings-view > .settings-container > details > summary").forEach((summary) => {
+    summary.addEventListener("click", async (event) => {
+      const section = summary.parentElement;
+      if (!defaultsSection.open || (section === defaultsSection && !section.open)) return;
+      if (section !== defaultsSection && section.open) return;
+      if (!findPendingSettingsEdit()) return;
+      event.preventDefault();
+      if (!(await confirmLeaveSettings())) return;
+      if (section === defaultsSection) section.open = false;
+      else section.open = true;
+    });
+  });
   revealAppRefreshBlock = () => revealSettingsEdit(findPendingSettingsEdit());
   getAppRefreshBlockMessage = () => {
     const contactEditorOpen = getComputedStyle(modal).display !== "none";
@@ -9333,6 +9383,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     goToView("settings-view");
     const defaults = document.getElementById("defaults-your-details-section");
     defaults.open = true;
+    document.getElementById("defaults-section").open = true;
     defaults.scrollIntoView({ block: "start" });
     return true;
   };
@@ -9379,7 +9430,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     showWizardStep(2, true);
   };
-  const openSettingsSection = (sectionId) => {
+  const openSettingsSection = async (sectionId) => {
+    if (document.getElementById("settings-view").classList.contains("active") &&
+        !document.getElementById("defaults-your-details-section").contains(document.getElementById(sectionId)) &&
+        !(await confirmLeaveSettings())) return;
     goToView("settings-view");
     const section = document.getElementById(sectionId);
     let ancestor = section.parentElement;
@@ -9392,7 +9446,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     section.open = true;
     section.scrollIntoView({ block: "start" });
   };
-  const finishSetup = () => {
+  const finishSetup = async () => {
+    if (document.getElementById("settings-view").classList.contains("active") &&
+        !(await confirmLeaveSettings())) return;
     if (!markInstalledSetupComplete()) {
       alert(
         appText("setup.saveDeviceProgressFailed", "We could not save your setup progress on this device. Check device storage and try again."),

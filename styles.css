@@ -1059,6 +1059,7 @@ main {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
 }
 
+#settings-changes-dialog,
 #app-update-dialog {
     width: calc(100% - 40px);
     max-width: 420px;
@@ -1068,10 +1069,13 @@ main {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
 }
 
+#settings-changes-dialog::backdrop,
 #app-update-dialog::backdrop {
     background: rgba(0, 0, 0, 0.55);
 }
 
+#settings-changes-dialog h2,
+#settings-changes-dialog p,
 #app-update-dialog h2,
 #app-update-dialog p {
     margin-top: 0;
