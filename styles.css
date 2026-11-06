@@ -2118,6 +2118,10 @@ body.install-setup-in-progress #bottom-nav {
     padding-bottom: 12px;
 }
 
+#your-details-section:not([open]) > #me-form {
+    display: none;
+}
+
 /* Shown as dots, but not a password field, so the phone does not offer to
    save the passphrase with a user name. */
 input[data-secret] {
