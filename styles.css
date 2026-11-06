@@ -91,6 +91,16 @@ html.show-launch-choice #launch-choice-screen[hidden] {
     margin: 0.75em 0;
 }
 
+.install-device-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.install-device-choices button {
+    min-height: 44px;
+}
+
 .install-screen-actions {
     display: flex;
     flex-direction: column;

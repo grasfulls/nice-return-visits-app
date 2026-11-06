@@ -208,6 +208,22 @@ const showLaunchChoice = () => {
       window.location.reload();
     });
 };
+const detectInstallEnvironment = (userAgent, maxTouchPoints) => {
+  const devices = [
+    ["iphone", /iPhone|iPod/i.test(userAgent)],
+    ["ipad", /iPad/i.test(userAgent)],
+    ["android", /Android/i.test(userAgent)],
+    ["windows", /Windows/i.test(userAgent) && !/Windows Phone/i.test(userAgent)],
+    ["mac", /Macintosh/i.test(userAgent)],
+  ].filter((entry) => entry[1]).map((entry) => entry[0]);
+  const ambiguousMac = devices[0] === "mac" &&
+    (!Number.isFinite(maxTouchPoints) || maxTouchPoints > 1);
+  const device = devices.length === 1 && !ambiguousMac &&
+    !/Windows Phone/i.test(userAgent) ? devices[0] : null;
+  const safariHint = /Version\/[\d.]+.*Safari\//i.test(userAgent) &&
+    !/CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo|Chrome|Chromium|Edg\/|OPR\/|SamsungBrowser|FBAN|FBAV|Instagram|GSA\/| wv\)/i.test(userAgent);
+  return { device, safariHint };
+};
 const showBrowserInstallGuide = () => {
   document.getElementById("launch-choice-screen").hidden = true;
   document.getElementById("unlock-screen").remove();
@@ -215,18 +231,48 @@ const showBrowserInstallGuide = () => {
   document.title = "NRV";
   const screen = document.getElementById("browser-install-screen");
   screen.hidden = false;
-  const userAgent = navigator.userAgent || "";
-  const isApplePhone =
-    /iPad|iPhone|iPod/i.test(userAgent) ||
-    (/Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1);
-  document.getElementById("browser-install-ios").hidden = !isApplePhone;
-  document.getElementById("browser-install-other").hidden = isApplePhone;
+  const environment = detectInstallEnvironment(navigator.userAgent || "", navigator.maxTouchPoints);
+  const selection = document.getElementById("browser-install-selection");
+  const instructions = document.getElementById("browser-install-instructions");
+  const changeDevice = document.getElementById("browser-install-change-device");
   const normalSafariCheck = document.getElementById(
     "browser-normal-safari-check",
   );
   const iosSteps = document.getElementById("browser-install-ios-steps");
+  const confirmation = document.getElementById("browser-install-confirmation");
+  const devices = ["iphone", "ipad", "android", "windows", "mac"];
+  const selectDevice = (device, moveFocus = false) => {
+    const isAppleMobile = device === "iphone" || device === "ipad";
+    selection.hidden = true;
+    instructions.hidden = false;
+    devices.forEach((name) => {
+      document.getElementById(`browser-install-heading-${name}`).hidden = name !== device;
+    });
+    document.getElementById("browser-install-ios").hidden = !isAppleMobile;
+    document.getElementById("browser-install-browser-uncertain").hidden =
+      environment.device === device && environment.safariHint;
+    document.getElementById("browser-install-iphone-steps").hidden = device !== "iphone";
+    document.getElementById("browser-install-ipad-steps").hidden = device !== "ipad";
+    normalSafariCheck.checked = false;
+    iosSteps.hidden = true;
+    confirmation.hidden = true;
+    document.getElementById("browser-install-handoff").hidden = true;
+    if (moveFocus) document.getElementById(`browser-install-heading-${device}`).focus();
+  };
+  document.querySelectorAll("[data-install-device]").forEach((button) => {
+    button.addEventListener("click", () => selectDevice(button.dataset.installDevice, true));
+  });
+  changeDevice.addEventListener("click", () => {
+    selection.hidden = false;
+    instructions.hidden = true;
+    selection.querySelector("button").focus();
+  });
   normalSafariCheck.addEventListener("change", () => {
     iosSteps.hidden = !normalSafariCheck.checked;
+    confirmation.hidden = !normalSafariCheck.checked;
+    if (!normalSafariCheck.checked) {
+      document.getElementById("browser-install-handoff").hidden = true;
+    }
   });
   document
     .getElementById("browser-install-added")
@@ -236,6 +282,7 @@ const showBrowserInstallGuide = () => {
         .getElementById("browser-install-handoff")
         .scrollIntoView({ block: "nearest" });
     });
+  if (environment.device) selectDevice(environment.device);
 };
 const markInstalledSetupComplete = () => {
   try {

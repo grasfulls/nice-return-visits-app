@@ -204,7 +204,27 @@
           icon, NRV will check for previous NRV information and continue setup
           or offer recovery choices.
         </p>
+        <div id="browser-install-selection">
+          <h2 data-i18n="install.chooseDevice">Choose your device</h2>
+          <div class="install-device-choices">
+            <button type="button" data-install-device="iphone">iPhone</button>
+            <button type="button" data-install-device="ipad">iPad</button>
+            <button type="button" data-install-device="android">Android</button>
+            <button type="button" data-install-device="windows" data-i18n="install.windows">Windows/Desktop</button>
+            <button type="button" data-install-device="mac">Mac</button>
+          </div>
+        </div>
+        <section id="browser-install-instructions" hidden>
+          <h2 id="browser-install-heading-iphone" tabindex="-1" data-i18n="install.forIphone" hidden>Instructions for iPhone</h2>
+          <h2 id="browser-install-heading-ipad" tabindex="-1" data-i18n="install.forIpad" hidden>Instructions for iPad</h2>
+          <h2 id="browser-install-heading-android" tabindex="-1" data-i18n="install.forAndroid" hidden>Instructions for Android</h2>
+          <h2 id="browser-install-heading-windows" tabindex="-1" data-i18n="install.forWindows" hidden>Instructions for Windows/Desktop</h2>
+          <h2 id="browser-install-heading-mac" tabindex="-1" data-i18n="install.forMac" hidden>Instructions for Mac</h2>
+          <button type="button" id="browser-install-change-device" class="inline-icon-link" data-i18n="install.changeDevice">Using a different device?</button>
+          <p data-i18n="install.general">Installation steps vary by device and browser. Look for an option such as “Install app” or “Add to Home Screen” in your browser menu. If you don’t see one, check your browser’s help for installing a website as an app.</p>
         <section id="browser-install-ios" hidden>
+          <h3 data-i18n="install.safariHeading">Safari instructions</h3>
+          <p id="browser-install-browser-uncertain" data-i18n="install.browserUncertain" hidden>Safari could not be identified reliably. Use these steps only if you are using Safari.</p>
           <p>
             <strong data-i18n="install.safariWarning">Use normal Safari, not Private Browsing.</strong> <span data-i18n="install.safariDetails">NRV
             cannot reliably identify Safari Private mode. If this page is in a
@@ -217,23 +237,27 @@
             <span data-i18n="install.safariConfirm">I am using a normal Safari tab, not a Private tab.</span>
           </label>
           <div id="browser-install-ios-steps" hidden>
-            <h2 data-i18n="install.scrollInstructions">Scroll down for instructions to install NRV to your Home Screen.</h2>
-            <ol>
-              <li data-i18n="install.stepDots">Tap the three horizontal dots in the bottom-right corner.</li>
-              <li><span data-i18n="install.tap">Tap</span> <strong data-i18n="install.viewMore">View More</strong>.</li>
-              <li data-i18n="install.stepShare">Tap Safari’s Share button (the square with an arrow pointing up).</li>
-              <li><span data-i18n="install.scrollTap">Scroll down and tap</span> <strong data-i18n="install.addHome">Add to Home Screen</strong>.</li>
-              <li><span data-i18n="install.tap">Tap</span> <strong data-i18n="install.add">Add</strong>.</li>
-              <li data-i18n="install.stepMinimize">After adding, this screen may minimize.</li>
-              <li data-i18n="install.stepReturn">Swipe up to bring this screen back.</li>
-              <li><span data-i18n="install.scrollTap">Scroll down and tap</span> <strong data-i18n="install.added">I added NRV to my Home Screen</strong>.</li>
-              <li data-i18n="install.stepOpen">Close this window, then tap the new NRV icon on your Home Screen.</li>
+            <ol id="browser-install-iphone-steps" hidden>
+              <li data-i18n="install.iphoneShare">Tap Share (the square with an upward arrow). If Share is not visible, tap More (three dots) near the address bar, then Share.</li>
+              <li data-i18n="install.iphoneAddHome">Scroll down and tap Add to Home Screen. If needed, use Edit Actions to add it to the Share menu.</li>
+              <li data-i18n="install.openAsApp">Turn on Open as Web App if offered, then tap Add.</li>
             </ol>
-            <p data-i18n="install.returnToIcon">
-              After Add to Home Screen, return to the icon—not to Contacts in
-              Safari. Setup or restoration continues when NRV opens from the
-              icon.
-            </p>
+            <ol id="browser-install-ipad-steps" hidden>
+              <li data-i18n="install.stepShare">Tap Safari’s Share button (the square with an arrow pointing up).</li>
+              <li data-i18n="install.ipadAddHome">Tap View More, then Add to Home Screen. You may need to scroll to find it.</li>
+              <li data-i18n="install.openAsApp">Turn on Open as Web App if offered, then tap Add.</li>
+            </ol>
+          </div>
+        </section>
+        <section>
+          <h2 data-i18n="install.openIconTitle">Open NRV from its installed icon</h2>
+          <p data-i18n="install.openIcon">
+            Install NRV to your device’s Home Screen, then close this browser
+            page and open NRV from the new icon. Do not use this browser page
+            as a second working copy.
+          </p>
+          <div id="browser-install-confirmation" hidden>
+            <p data-i18n="install.afterAdding">After adding the icon, return to this page if necessary and select the button below. Then close this page and open NRV from its icon.</p>
             <button type="button" id="browser-install-added" data-i18n="install.added">
               I added NRV to my Home Screen
             </button>
@@ -246,15 +270,8 @@
               </p>
             </section>
           </div>
-        </section>
-        <section id="browser-install-other" hidden>
-          <h2 data-i18n="install.openIconTitle">Open NRV from its installed icon</h2>
-          <p data-i18n="install.openIcon">
-            Install NRV to your device’s Home Screen, then close this browser
-            page and open NRV from the new icon. Do not use this browser page
-            as a second working copy.
-          </p>
           <p><a href="./help.html#install-guide" data-i18n="install.viewGuide">View installation guidance</a></p>
+        </section>
         </section>
       </div>
     </section>
