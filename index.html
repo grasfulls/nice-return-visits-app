@@ -1339,45 +1339,16 @@
           <div class="modal-body">
             <details class="settings-section" id="contact-info-section" open>
             <summary data-i18n="contacts.info">Contact Info</summary>
-            <label data-i18n="contacts.firstName">First Name:</label>
+            <label for="contact-firstname" data-i18n="contacts.firstName">First Name:</label>
             <input type="text" id="contact-firstname" required />
 
-            <label data-i18n="contacts.lastName">Last Name:</label>
+            <label for="contact-lastname" data-i18n="contacts.lastName">Last Name:</label>
             <input type="text" id="contact-lastname" />
 
-            <label for="contact-email" data-i18n="contacts.email">Email (optional):</label>
-            <input
-              type="text"
-              id="contact-email"
-              inputmode="email"
-              autocomplete="email"
-              autocapitalize="none"
-              spellcheck="false"
-              placeholder="name@someemail"
-            />
-
-            <label for="contact-phone" data-i18n="contacts.phone">Phone (optional):</label>
-            <input
-              type="tel"
-              id="contact-phone"
-              inputmode="tel"
-              autocomplete="tel"
-              placeholder="(555) 123-4567"
-            />
-
-            <label for="contact-country" data-i18n="contacts.country">Country:</label>
-            <select id="contact-country"></select>
-            <div id="new-contact-country-container" hidden>
-              <label for="input-new-contact-country" data-i18n="location.newCountry">New country name:</label>
-              <input type="text" id="input-new-contact-country" placeholder="Enter country name..." data-i18n-attr="placeholder:location.enterCountry" />
-              <div class="new-contact-area-actions">
-                <button type="button" id="btn-save-new-contact-country" data-i18n="location.addCountryButton">Add Country</button>
-                <button type="button" id="btn-cancel-new-contact-country" data-i18n="common.cancel">Cancel</button>
-              </div>
-            </div>
-
-            <label id="contact-state-label" for="contact-state" data-i18n="contacts.state">State / Province:</label>
-            <input type="text" id="contact-state" placeholder="State or province" data-i18n-attr="placeholder:location.statePlaceholder" disabled />
+            <label for="contact-address" data-i18n="contacts.address">Street Address:</label>
+            <input type="text" id="contact-address" autocapitalize="words" />
+            <button type="button" id="btn-gps" data-i18n="map.useDevice">📍 Use Device Location</button>
+            <small data-i18n="map.contactGpsHint">Sets the map pin to your device’s current location without changing the address fields.</small>
 
             <label id="contact-city-label" for="contact-city-select" data-i18n="contacts.city">City (optional):</label>
             <input
@@ -1395,9 +1366,23 @@
               city. New city names are saved as filter choices.
             </small>
 
-            <label id="contact-region-label" data-i18n="contacts.region">Region (optional):</label>
+            <label id="contact-state-label" for="contact-state" data-i18n="contacts.state">State / Province:</label>
+            <input type="text" id="contact-state" placeholder="State or province" data-i18n-attr="placeholder:location.statePlaceholder" disabled />
+
+            <label for="contact-country" data-i18n="contacts.country">Country:</label>
+            <select id="contact-country"></select>
+            <div id="new-contact-country-container" hidden>
+              <label for="input-new-contact-country" data-i18n="location.newCountry">New country name:</label>
+              <input type="text" id="input-new-contact-country" placeholder="Enter country name..." data-i18n-attr="placeholder:location.enterCountry" />
+              <div class="new-contact-area-actions">
+                <button type="button" id="btn-save-new-contact-country" data-i18n="location.addCountryButton">Add Country</button>
+                <button type="button" id="btn-cancel-new-contact-country" data-i18n="common.cancel">Cancel</button>
+              </div>
+            </div>
+
+            <label id="contact-region-label" for="contact-region-select" data-i18n="contacts.region">Region (optional):</label>
             <select id="contact-region-select" disabled>
-              <option value="" data-i18n="location.chooseRegion">Choose a region (optional)</option>
+              <option value="" data-i18n="common.none">None</option>
             </select>
             <div id="new-contact-region-container" hidden>
               <label id="contact-new-region-label" for="input-new-contact-region" data-i18n="location.newRegion">New region name:</label>
@@ -1421,9 +1406,9 @@
               </div>
             </div>
 
-            <label id="contact-area-label" data-i18n="contacts.area">Area (optional):</label>
+            <label id="contact-area-label" for="contact-area-select" data-i18n="contacts.area">Area (optional):</label>
             <select id="contact-area-select" disabled>
-              <option value="" data-i18n="location.chooseArea">Choose an area (optional)</option>
+              <option value="" data-i18n="common.none">None</option>
             </select>
             <div id="new-contact-area-container" hidden>
               <label id="contact-new-area-label" for="input-new-contact-area" data-i18n="location.newArea">New area name:</label>
@@ -1447,10 +1432,27 @@
               </div>
             </div>
 
-            <label for="contact-address" data-i18n="contacts.address">Street Address:</label>
-            <input type="text" id="contact-address" autocapitalize="words" />
-            <label for="contact-postal-code" data-i18n="contacts.postalCode">Postal code (optional):</label>
-            <input type="text" id="contact-postal-code" autocomplete="postal-code" />
+            <label for="contact-email" data-i18n="contacts.email">Email (optional):</label>
+            <input
+              type="text"
+              id="contact-email"
+              inputmode="email"
+              autocomplete="email"
+              autocapitalize="none"
+              spellcheck="false"
+              placeholder="name@someemail"
+            />
+
+            <label for="contact-phone" data-i18n="contacts.phone">Phone (optional):</label>
+            <input
+              type="tel"
+              id="contact-phone"
+              inputmode="tel"
+              autocomplete="tel"
+              placeholder="(555) 123-4567"
+            />
+
+            <p id="location-status" role="status" aria-live="polite"></p>
             <small id="pin-address-hint" data-i18n="map.addressHint">
               Entering or saving an address does not create a map pin by itself.
               Choose the lookup button below; partial street names can return
@@ -1476,9 +1478,6 @@
             <div class="location-source-actions">
               <button type="button" id="btn-find-address" data-i18n="map.findAddress">
                 📍 Find Address or City Pin
-              </button>
-              <button type="button" id="btn-gps" data-i18n="map.useDevice">
-                📍 Use Device Location
               </button>
             </div>
             <small data-i18n="map.lookupPrivacy">
@@ -1511,8 +1510,6 @@
                 Search Near Cross-Street
               </button>
             </div>
-            <p id="location-status" role="status" aria-live="polite"></p>
-
             <!-- Interactive Map Pin Picker inside Modal -->
             <label style="margin-top: 10px" data-i18n="map.adjustOnMap">Adjust the pin on the map:</label>
             <div

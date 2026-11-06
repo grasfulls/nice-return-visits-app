@@ -734,6 +734,8 @@
   "visits.noLogsYet": "No visit logs yet.",
   "map.addressChanged": "The address changed. Look up the pin again, or confirm the current pin.",
   "map.gettingFreshDevice": "Getting a fresh device location...",
+  "map.gpsPinChanged": "The pin changed while locating the device. Your newer pin was kept.",
+  "map.contactGpsHint": "Sets the map pin to your device’s current location without changing the address fields.",
   "map.gpsPinAccuracy": "Pin placed from device location (estimated accuracy: {accuracy} m). You can move it on the map.",
   "map.gpsPinPlaced": "Pin placed from device location. You can move it on the map.",
   "map.gpsInvalidCoordinates": "The device returned invalid coordinates. Try the address lookup or place the pin manually.",

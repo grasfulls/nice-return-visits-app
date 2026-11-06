@@ -734,6 +734,8 @@
   "visits.noLogsYet": "Aún no hay registros de visitas.",
   "map.addressChanged": "La dirección cambió. Busca el marcador de nuevo o confirma el marcador actual.",
   "map.gettingFreshDevice": "Obteniendo una ubicación actual del dispositivo...",
+  "map.gpsPinChanged": "El marcador cambió mientras se obtenía la ubicación del dispositivo. Se conservó el marcador más reciente.",
+  "map.contactGpsHint": "Coloca el marcador en la ubicación actual de tu dispositivo sin cambiar los campos de dirección.",
   "map.gpsPinAccuracy": "Marcador colocado según la ubicación del dispositivo (precisión estimada: {accuracy} m). Puedes moverlo en el mapa.",
   "map.gpsPinPlaced": "Marcador colocado según la ubicación del dispositivo. Puedes moverlo en el mapa.",
   "map.gpsInvalidCoordinates": "El dispositivo devolvió coordenadas no válidas. Busca la dirección o coloca el marcador manualmente.",

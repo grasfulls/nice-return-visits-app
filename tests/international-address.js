@@ -183,7 +183,7 @@ assert.strictEqual(elements.get("contact-region-label").textContent, "Province (
 assert.strictEqual(elements.get("contact-area-label").textContent, "District (optional):");
 assert.strictEqual(
   elements.get("contact-region-select").firstElementChild.textContent,
-  "Choose a province (optional)",
+  "None",
 );
 assert.strictEqual(elements.get("contact-region-select").options[1].textContent, "Add Province");
 context.appText = (key, fallback) => catalogs.es[key] || fallback;
@@ -196,7 +196,7 @@ assert(source.includes('citySelect.disabled = !hasCountry;'));
 assert(source.includes('document.getElementById("me-city").disabled = !hasCountry;'));
 assert(source.includes("const cityQuery = getFormattedContactAddress(locationParts);"));
 assert(source.includes("getFormattedContactAddress(contact)"));
-assert(source.includes("contact.postalCode = postalCode;"));
+assert(source.includes("const postalCode = getSavedContactFromEditor()?.postalCode || \"\";"));
 assert(source.includes('"contact-address",'));
 assert(source.includes('data-contact-action="edit"'));
 assert(!source.includes('onclick="editContact(${contact.id})"'));
