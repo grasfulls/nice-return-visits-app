@@ -13,6 +13,36 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
+const appText = (key, fallback, vars) =>
+  window.NRVI18n?.t(key, vars, fallback) || fallback;
+const localizeMapControls = (leafletMap) => {
+  const zoomControls = leafletMap.zoomControl.getContainer();
+  [
+    [".leaflet-control-zoom-in", appText("map.zoomIn", "Zoom in")],
+    [".leaflet-control-zoom-out", appText("map.zoomOut", "Zoom out")],
+  ].forEach(([selector, label]) => {
+    const button = zoomControls.querySelector(selector);
+    button.title = label;
+    button.setAttribute("aria-label", label);
+  });
+  leafletMap.on("popupopen", (event) => {
+    const button = event.popup.getElement().querySelector(".leaflet-popup-close-button");
+    if (button) button.setAttribute("aria-label", appText("map.closePopup", "Close popup"));
+  });
+};
+const displayCountry = (country) => {
+  const labels = {
+    Canada: appText("country.canada", "Canada"),
+    Mexico: appText("country.mexico", "Mexico"),
+    "United States": appText("country.unitedStates", "United States"),
+  };
+  return Object.prototype.hasOwnProperty.call(labels, country) ? labels[country] : country;
+};
+const locationTypeDisplay = (type) => ({
+  City: appText("location.typeCity", "city"),
+  Region: appText("location.typeRegion", "region"),
+  Area: appText("location.typeArea", "area"),
+})[type] || type.toLowerCase();
 
 // Bump on any change to the stored data shape, and add a migration in
 // normalizeRegionData. Version 3 added country to settings and contacts.
@@ -53,7 +83,7 @@ const showLaunchChoice = () => {
       } catch (error) {
         console.error("Unable to save the selected launch mode:", error);
         errorMessage.textContent =
-          "We could not save your choice on this device. Check your browser storage settings and try again.";
+          appText("launch.saveChoiceFailed", "We could not save your choice on this device. Check your browser storage settings and try again.");
         errorMessage.hidden = false;
         return;
       }
@@ -648,13 +678,13 @@ const replaceStoredValuesIfUnchanged = (
       reject(
         dataChanged
           ? new Error("Saved data changed during the passphrase update.")
-          : transaction.error || new Error("The storage update failed."),
+          : transaction.error || new Error(appText("storage.updateFailed", "The storage update failed.")),
       );
     transaction.onabort = () =>
       reject(
         dataChanged
           ? new Error("Saved data changed during the passphrase update.")
-          : transaction.error || new Error("The storage update was aborted."),
+          : transaction.error || new Error(appText("storage.updateAborted", "The storage update was aborted.")),
       );
   });
 
@@ -830,9 +860,9 @@ const showRecoveryCodeDialog = (recoveryCode) =>
     const onCopy = async () => {
       try {
         await navigator.clipboard.writeText(recoveryCode);
-        copyStatus.textContent = "Copied. Paste it somewhere safe.";
+        copyStatus.textContent = appText("recovery.copied", "Copied. Paste it somewhere safe.");
       } catch (error) {
-        copyStatus.textContent = "Could not copy. Write the code down instead.";
+        copyStatus.textContent = appText("recovery.copyFailed", "Could not copy. Write the code down instead.");
       }
     };
     const onDone = () => {
@@ -1360,7 +1390,7 @@ const requireUserAgreement = () => {
   } catch (error) {
     console.error("Unable to check the user agreement status:", error);
     errorMessage.textContent =
-      "We could not check this device's agreement status. You may review and accept the notices again to continue.";
+      appText("agreement.checkFailed", "We could not check this device's agreement status. You may review and accept the notices again to continue.");
     errorMessage.hidden = false;
   }
 
@@ -1389,7 +1419,7 @@ const requireUserAgreement = () => {
       } catch (error) {
         console.error("Unable to save the user agreement status:", error);
         errorMessage.textContent =
-          "We could not save your agreement on this device. Check your browser storage settings and try again.";
+          appText("agreement.saveFailed", "We could not save your agreement on this device. Check your browser storage settings and try again.");
         errorMessage.hidden = false;
         acceptButton.disabled = false;
         return;
@@ -1404,8 +1434,8 @@ const requireUserAgreement = () => {
 const createUnlockPrompt = (hasEncryption) => {
   const screen = document.getElementById("unlock-screen");
   document.getElementById("unlock-title").textContent = hasEncryption
-    ? "Unlock Nice Return Visits"
-    : "First-time use";
+    ? appText("unlock.title", "Unlock Nice Return Visits")
+    : appText("unlock.firstUse.heading", "First-time use");
   const description = document.getElementById("unlock-description");
   document.getElementById("first-use-notice").hidden = hasEncryption;
   const confirmContainer = document.getElementById(
@@ -1421,9 +1451,15 @@ const createUnlockPrompt = (hasEncryption) => {
   confirmContainer.hidden = hasEncryption;
   confirmInput.required = !hasEncryption;
   description.textContent = hasEncryption
-    ? "Enter your passphrase to decrypt and open your local contact database."
-    : `Create a passphrase to encrypt this device's contact database. Use at least ${MIN_PASSPHRASE_LENGTH} characters and keep it safe.`;
-  submitButton.textContent = hasEncryption ? "Unlock" : "Encrypt and Continue";
+    ? appText("unlock.description", "Enter your passphrase to decrypt and open your local contact database.")
+    : appText(
+        "unlock.createDescription",
+        `Create a passphrase to encrypt this device's contact database. Use at least ${MIN_PASSPHRASE_LENGTH} characters and keep it safe.`,
+        { count: MIN_PASSPHRASE_LENGTH },
+      );
+  submitButton.textContent = hasEncryption
+    ? appText("unlock.button", "Unlock")
+    : appText("unlock.createButton", "Encrypt and Continue");
   screen.hidden = false;
   return { screen, passphraseInput, confirmInput, submitButton, errorMessage };
 };
@@ -1520,7 +1556,7 @@ const initializeAppData = async () => {
         if (
           restored.wasLegacyPlaintext &&
           !confirm(
-            "This older backup is not encrypted. It will be encrypted with the passphrase you entered when restored. Continue?",
+            appText("backup.legacyConfirm", "This older backup is not encrypted. It will be encrypted with the passphrase you entered when restored. Continue?"),
           )
         ) {
           return;
@@ -1536,7 +1572,7 @@ const initializeAppData = async () => {
             localStorage.getItem("return_visits_settings") !== null ||
             localStorage.getItem("return_visits_contacts") !== null) &&
           !confirm(
-            "Restoring this backup will replace the data currently stored on this device. Continue?",
+            appText("backup.startupReplaceConfirm", "Restoring this backup will replace the data currently stored on this device. Continue?"),
           )
         ) {
           return;
@@ -1562,10 +1598,11 @@ const initializeAppData = async () => {
       } catch (error) {
         console.error("Unable to restore encrypted backup during startup:", error);
         prompt.errorMessage.textContent =
-          error.message === "Enter the backup passphrase before restoring." ||
-          error instanceof NewerDataVersionError
-            ? error.message
-            : "Could not restore that backup. Check that the file is valid and the passphrase is correct.";
+          error.message === "Enter the backup passphrase before restoring."
+            ? appText("backup.requirePassphrase", "Enter the backup passphrase before restoring.")
+            : error instanceof NewerDataVersionError
+              ? appText("backup.newerData", "This data was saved by a newer version of the app. Update the app (reload it) before opening this data. Nothing was changed. Your current data was not replaced.")
+              : appText("backup.startupRestoreFailed", "Could not restore that backup. Check that the file is valid and the passphrase is correct.");
       } finally {
         initialBackupInput.value = "";
         initialRestoreButton.disabled = false;
@@ -1613,7 +1650,7 @@ const initializeAppData = async () => {
               !Array.isArray(settings.areas) ||
               !Array.isArray(contacts)
             ) {
-              throw new Error("The encrypted database contents are invalid.");
+              throw new Error(appText("storage.invalidEncryptedDatabase", "The encrypted database contents are invalid."));
             }
             const normalized = normalizeRegionData(settings, contacts);
             settings = normalized.settings;
@@ -1684,7 +1721,7 @@ const initializeAppData = async () => {
               JSON.stringify(verifiedSettings) !== JSON.stringify(settings) ||
               JSON.stringify(verifiedContacts) !== JSON.stringify(contacts)
             ) {
-              throw new Error("Encrypted data verification did not match.");
+              throw new Error(appText("security.verificationFailed", "Encrypted data verification did not match."));
             }
             await writeStoredValues(database, [
               ["settings", encryptedSettings],
@@ -1703,7 +1740,7 @@ const initializeAppData = async () => {
           if (newRecoveryCode) await showRecoveryCodeDialog(newRecoveryCode);
           if (usedRecoveryCode) {
             alert(
-              "Unlocked with your recovery code. Open Settings → Data/Security → Passphrase to Open App and choose a new passphrase; you can enter your recovery code as the current passphrase. You will also get a new recovery code.",
+              appText("recovery.unlocked", "Unlocked with your recovery code. Open Settings → Data/Security → Passphrase to Open App and choose a new passphrase; you can enter your recovery code as the current passphrase. You will also get a new recovery code."),
             );
           }
           resolve({
@@ -1719,11 +1756,15 @@ const initializeAppData = async () => {
           console.error("Unable to unlock or encrypt local data:", error);
           prompt.errorMessage.textContent =
             error instanceof NewerDataVersionError
-              ? error.message
+              ? appText("storage.newerData", "This data was saved by a newer version of the app. Update the app (reload it) before opening this data. Nothing was changed.")
               : existingMetadata
-            ? "The passphrase was incorrect, or the encrypted data could not be read."
-            : error.message ||
-              "Could not encrypt existing data. The original data was preserved.";
+            ? appText("unlock.readFailed", "The passphrase was incorrect, or the encrypted data could not be read.")
+            : error.message === `Use a passphrase with at least ${MIN_PASSPHRASE_LENGTH} characters.`
+              ? appText("unlock.minLength", `Use a passphrase with at least ${MIN_PASSPHRASE_LENGTH} characters.`, { count: MIN_PASSPHRASE_LENGTH })
+              : error.message === "The passphrases do not match."
+                ? appText("security.mismatch", "The passphrases do not match.")
+                : error.message ||
+                  appText("unlock.encryptFailed", "Could not encrypt existing data. The original data was preserved.");
           prompt.passphraseInput.select();
         } finally {
           prompt.submitButton.disabled = false;
@@ -1734,8 +1775,24 @@ const initializeAppData = async () => {
 
 const showStorageError = (action, error) => {
   console.error(`Unable to ${action}:`, error);
+  const actions = {
+    "save country": appText("storage.actionCountry", "save country"),
+    "save city": appText("storage.actionCity", "save city"),
+    "save settings": appText("storage.actionSettings", "save settings"),
+    "save region": appText("storage.actionRegion", "save region"),
+    "save area": appText("storage.actionArea", "save area"),
+    "save your details": appText("storage.actionSaveDetails", "save your details"),
+    "clear your details": appText("storage.actionClearDetails", "clear your details"),
+    "save location changes": appText("storage.actionLocations", "save location changes"),
+    "delete the contact": appText("storage.actionDeleteContact", "delete the contact"),
+    "save time in service": appText("storage.actionTime", "save time in service"),
+    "save contacts": appText("storage.actionContacts", "save contacts"),
+    "save your home pin": appText("storage.actionHomePin", "save your home pin"),
+    "export encrypted backup": appText("storage.actionBackup", "export encrypted backup"),
+    "export contacts": appText("storage.actionExportContacts", "export contacts"),
+  };
   alert(
-    `Could not ${action}. Your changes may not have been saved. Please try again.`,
+    appText("storage.actionFailed", `Could not ${action}. Your changes may not have been saved. Please try again.`, { action: actions[action] || action }),
   );
 };
 
@@ -1815,12 +1872,12 @@ const initializeApp = async () => {
       )].forEach((country) => {
         const option = document.createElement("option");
         option.value = country;
-        option.textContent = country;
+        option.textContent = displayCountry(country);
         select.appendChild(option);
       });
       const addCountryOption = document.createElement("option");
       addCountryOption.value = "__ADD_COUNTRY__";
-      addCountryOption.textContent = "+ Country";
+      addCountryOption.textContent = appText("location.addCountry", "+ Country");
       select.appendChild(addCountryOption);
       select.value = Array.from(select.options).some(
         (option) => option.value === currentCountry,
@@ -1883,6 +1940,7 @@ const initializeApp = async () => {
     const filterCity = document.getElementById("filter-city");
     const currentCityFilter = filterCity.value;
     filterCity.innerHTML = '<option value="">All Cities</option>';
+    filterCity.firstElementChild.textContent = appText("filter.allCities", "All Cities");
     settings.cities.forEach((city) => {
       const opt = document.createElement("option");
       opt.value = city;
@@ -1898,6 +1956,7 @@ const initializeApp = async () => {
     const populateMeRegionArea = (selectedRegion = "", selectedArea = "") => {
       const city = meCityInput.value.trim();
       meRegion.innerHTML = '<option value="">Choose a region (optional)</option>';
+      meRegion.firstElementChild.textContent = appText("location.chooseRegion", "Choose a region (optional)");
       settings.regions
         .filter((region) => region.city === city)
         .forEach((region) => {
@@ -1908,7 +1967,7 @@ const initializeApp = async () => {
         });
       const addRegion = document.createElement("option");
       addRegion.value = "__ADD_NEW__";
-      addRegion.textContent = "+ Add New Region...";
+      addRegion.textContent = appText("location.addRegion", "+ Add New Region...");
       meRegion.appendChild(addRegion);
       meRegion.disabled =
         !document.getElementById("me-country").value ||
@@ -1918,6 +1977,7 @@ const initializeApp = async () => {
       meRegion.value = selectedRegion;
 
       meArea.innerHTML = '<option value="">Choose an area (optional)</option>';
+      meArea.firstElementChild.textContent = appText("location.chooseArea", "Choose an area (optional)");
       settings.areas
         .filter((area) => area.city === city)
         .forEach((area) => {
@@ -1928,7 +1988,7 @@ const initializeApp = async () => {
         });
       const addArea = document.createElement("option");
       addArea.value = "__ADD_NEW__";
-      addArea.textContent = "+ Add New Area...";
+      addArea.textContent = appText("location.addArea", "+ Add New Area...");
       meArea.appendChild(addArea);
       meArea.disabled = meRegion.disabled;
       meArea.value = selectedArea;
@@ -1940,6 +2000,7 @@ const initializeApp = async () => {
       const city = citySelect.value;
       contactRegion.innerHTML =
         '<option value="">Choose a region (optional)</option>';
+      contactRegion.firstElementChild.textContent = appText("location.chooseRegion", "Choose a region (optional)");
       settings.regions
         .filter((region) => region.city === city)
         .forEach((region) => {
@@ -1950,7 +2011,7 @@ const initializeApp = async () => {
         });
       const addRegionOption = document.createElement("option");
       addRegionOption.value = "__ADD_NEW__";
-      addRegionOption.textContent = "+ Add New Region...";
+      addRegionOption.textContent = appText("location.addRegion", "+ Add New Region...");
       contactRegion.appendChild(addRegionOption);
       contactRegion.disabled =
         !document.getElementById("contact-country").value ||
@@ -1961,6 +2022,7 @@ const initializeApp = async () => {
 
       contactArea.innerHTML =
         '<option value="">Choose an area (optional)</option>';
+      contactArea.firstElementChild.textContent = appText("location.chooseArea", "Choose an area (optional)");
       settings.areas
         .filter((area) => area.city === city)
         .forEach((area) => {
@@ -1971,7 +2033,7 @@ const initializeApp = async () => {
         });
       const addAreaOption = document.createElement("option");
       addAreaOption.value = "__ADD_NEW__";
-      addAreaOption.textContent = "+ Add New Area...";
+      addAreaOption.textContent = appText("location.addArea", "+ Add New Area...");
       contactArea.appendChild(addAreaOption);
       contactArea.disabled = contactRegion.disabled;
       contactArea.value = selectedArea;
@@ -1984,6 +2046,7 @@ const initializeApp = async () => {
     const filterRegion = document.getElementById("filter-region");
     const currentRegionFilter = filterRegion.value;
     filterRegion.innerHTML = '<option value="">All Regions</option>';
+    filterRegion.firstElementChild.textContent = appText("filter.allRegions", "All Regions");
     [
       ...new Set(
         settings.regions
@@ -2009,6 +2072,7 @@ const initializeApp = async () => {
     const filterArea = document.getElementById("filter-area");
     let currentAreaFilter = filterArea.value;
     filterArea.innerHTML = '<option value="">All Areas</option>';
+    filterArea.firstElementChild.textContent = appText("filter.allAreas", "All Areas");
     [
       ...new Set(
         settings.areas
@@ -2038,6 +2102,7 @@ const initializeApp = async () => {
     [settingRegionCity, settingAreaCity].forEach((select) => {
       const previousCity = select.value;
       select.innerHTML = '<option value="">Choose city</option>';
+      select.firstElementChild.textContent = appText("location.chooseCity", "Choose city");
       settings.cities.forEach((city) => {
         const option = document.createElement("option");
         option.value = city;
@@ -2074,10 +2139,14 @@ const initializeApp = async () => {
       ["Edit", "Delete"].forEach((action) => {
         const button = document.createElement("button");
         button.type = "button";
-        button.textContent = action;
+        button.textContent = action === "Edit"
+          ? appText("location.editAction", "Edit")
+          : appText("location.deleteAction", "Delete");
         button.setAttribute(
           "aria-label",
-          `${action} ${type.toLowerCase()} ${name}`,
+          action === "Edit"
+            ? appText("location.editLabel", `${action} ${type.toLowerCase()} ${name}`, { type: locationTypeDisplay(type), name })
+            : appText("location.deleteLabel", `${action} ${type.toLowerCase()} ${name}`, { type: locationTypeDisplay(type), name }),
         );
         button.addEventListener("click", () => {
           if (action === "Edit")
@@ -2095,30 +2164,30 @@ const initializeApp = async () => {
         if (!citiesByName.has(item.name)) citiesByName.set(item.name, []);
         citiesByName.get(item.name).push(item.city);
       });
-      [...citiesByName.keys()].sort(compareNames).forEach((name) =>
+      [...citiesByName.keys()].sort(compareNames).forEach((name) => {
+        const cities = citiesByName.get(name).sort(compareNames).join(", ");
         addHierarchyRow(
           type,
           name,
           className,
-          `Cities: ${citiesByName.get(name).sort(compareNames).join(", ")}`,
-        ),
-      );
+          appText("location.citiesValue", `Cities: ${cities}`, { value: cities }),
+        );
+      });
     };
 
     if (!settings.cities.length) {
-      hierarchyList.textContent =
-        "Add a city, then assign regions and areas to it.";
+      hierarchyList.textContent = appText("location.addCityFirst", "Add a city, then assign regions and areas to it.");
     } else {
-      addHierarchyHeading("Cities");
+      addHierarchyHeading(appText("location.citiesHeading", "Cities"));
       settings.cities.forEach((city) =>
         addHierarchyRow("City", city, "hierarchy-city"),
       );
       if (settings.regions.length) {
-        addHierarchyHeading("Regions");
+        addHierarchyHeading(appText("location.regionsHeading", "Regions"));
         addNameRows("Region", settings.regions, "hierarchy-region");
       }
       if (settings.areas.length) {
-        addHierarchyHeading("Areas");
+        addHierarchyHeading(appText("location.areasHeading", "Areas"));
         addNameRows("Area", settings.areas, "hierarchy-area");
       }
     }
@@ -2202,7 +2271,7 @@ const initializeApp = async () => {
     const { container, input } = getCountryAddFields(select);
     const enteredCountry = normalizeCountry(input.value);
     if (!enteredCountry) {
-      alert("Enter a country name.");
+      alert(appText("location.enterCountryError", "Enter a country name."));
       input.focus({ preventScroll: select === meCountrySelect });
       return;
     }
@@ -2386,12 +2455,12 @@ const initializeApp = async () => {
     const name = toTitleCase(input.value);
     const city = citySelect.value;
     if (!name) {
-      alert("Enter a name for the new region.");
+      alert(appText("location.enterRegionError", "Enter a name for the new region."));
       input.focus();
       return;
     }
     if (!city || city === "+ Add New City...") {
-      alert("Choose a city before adding a region.");
+      alert(appText("location.chooseCityRegion", "Choose a city before adding a region."));
       return;
     }
     const existingRegion = settings.regions.find(
@@ -2403,7 +2472,7 @@ const initializeApp = async () => {
       dropdownHelpers.populateContactRegionArea(existingRegion.name, "");
       newContactRegionContainer.hidden = true;
       input.value = "";
-      alert("That region already exists in this city.");
+      alert(appText("location.regionExists", "That region already exists in this city."));
       return;
     }
 
@@ -2436,12 +2505,12 @@ const initializeApp = async () => {
       const city = citySelect.value;
       const region = contactRegionSelect.value;
       if (!name) {
-        alert("Enter a name for the new area.");
+        alert(appText("location.enterAreaError", "Enter a name for the new area."));
         input.focus();
         return;
       }
       if (!city) {
-        alert("Choose a city before adding an area.");
+        alert(appText("location.chooseCityArea", "Choose a city before adding an area."));
         return;
       }
       const existingArea = settings.areas.find(
@@ -2451,7 +2520,7 @@ const initializeApp = async () => {
       if (existingArea) {
         dropdownHelpers.populateContactRegionArea(region, existingArea.name);
         document.getElementById("new-contact-area-container").hidden = true;
-        alert("That area already exists in this city.");
+        alert(appText("location.areaExists", "That area already exists in this city."));
         return;
       }
 
@@ -2503,10 +2572,10 @@ const initializeApp = async () => {
           return;
         }
         populateDropdowns();
-        alert(`City "${val}" added.`);
+        alert(appText("location.cityAdded", `City "${val}" added.`, { name: val }));
       } else if (val) {
         input.value = "";
-        alert("That city already exists.");
+        alert(appText("location.cityExists", "That city already exists."));
       }
     });
 
@@ -2533,7 +2602,7 @@ const initializeApp = async () => {
       const val = toTitleCase(input.value);
       const city = document.getElementById("setting-area-city").value;
       if (!city) {
-        alert("Choose a city for this area first.");
+        alert(appText("location.chooseCityAreaFirst", "Choose a city for this area first."));
         return;
       }
       if (
@@ -2555,10 +2624,10 @@ const initializeApp = async () => {
         input.value = "";
         updateAddAreaButton();
         populateDropdowns();
-        alert(`Area "${val}" added to ${city}.`);
+        alert(appText("location.areaAdded", `Area "${val}" added to ${city}.`, { name: val, city }));
       } else if (val) {
         input.value = "";
-        alert("That area already exists in this city.");
+        alert(appText("location.areaExists", "That area already exists in this city."));
       }
     });
 
@@ -2588,7 +2657,7 @@ const initializeApp = async () => {
         input.value = "";
         updateAddRegionButton();
         populateDropdowns();
-        alert(`Region "${region}" added to ${city}.`);
+        alert(appText("location.regionAdded", `Region "${region}" added to ${city}.`, { name: region, city }));
       } else if (region) {
         if (city) {
           input.value = "";
@@ -2631,7 +2700,7 @@ const initializeApp = async () => {
       populateDropdowns();
       document.getElementById("setting-default-city").value =
         settings.defaultCity;
-      alert("Defaults Saved");
+      alert(appText("settings.defaultsSaved", "Defaults Saved"));
       if (localStorage.getItem("return_visits_setup_pending") === "true") {
         document.getElementById("setup-next-steps-notice").hidden = false;
       }
@@ -2765,7 +2834,7 @@ const initializeApp = async () => {
       const name = toTitleCase(input.value);
       const city = meFields.city.value.trim();
       if (!name || !city) {
-        alert("Enter a region name after choosing a city.");
+        alert(appText("location.enterRegionAfterCity", "Enter a region name after choosing a city."));
         input.focus({ preventScroll: true });
         return;
       }
@@ -2778,7 +2847,7 @@ const initializeApp = async () => {
         populateDropdowns();
         meFields.region.value = existing.name;
         document.getElementById("new-me-region-container").hidden = true;
-        alert("That region already exists in this city.");
+        alert(appText("location.regionExists", "That region already exists in this city."));
         return;
       }
       const region = { name, city };
@@ -2811,7 +2880,7 @@ const initializeApp = async () => {
       const city = meFields.city.value.trim();
       const region = meFields.region.value;
       if (!name || !city) {
-        alert("Enter an area name after choosing a city.");
+        alert(appText("location.enterAreaAfterCity", "Enter an area name after choosing a city."));
         input.focus({ preventScroll: true });
         return;
       }
@@ -2823,7 +2892,7 @@ const initializeApp = async () => {
         populateDropdowns();
         meFields.area.value = existing.name;
         document.getElementById("new-me-area-container").hidden = true;
-        alert("That area already exists in this city.");
+        alert(appText("location.areaExists", "That area already exists in this city."));
         return;
       }
       const area = { name, city };
@@ -2852,12 +2921,12 @@ const initializeApp = async () => {
   document.getElementById("btn-me-find").addEventListener("click", async () => {
     const me = readMeForm();
     if (!me.street && !me.city) {
-      meStatus.textContent = "Enter your street address or city first.";
+      meStatus.textContent = appText("settings.enterAddress", "Enter your street address or city first.");
       return;
     }
     const button = document.getElementById("btn-me-find");
     button.disabled = true;
-    meStatus.textContent = "Looking up your address...";
+    meStatus.textContent = appText("settings.lookupAddress", "Looking up your address...");
     try {
       const url = new URL("https://nominatim.openstreetmap.org/search");
       url.search = new URLSearchParams({
@@ -2883,8 +2952,7 @@ const initializeApp = async () => {
           .filter(Boolean)
           .join(", ");
         if (!defaultLocation) {
-          meStatus.textContent =
-            "Could not find this address. Set your default city and state, or use Device Location if you are at the location.";
+          meStatus.textContent = appText("settings.homeNotFoundDefault", "Could not find this address. Set your default city and state, or use Device Location if you are at the location.");
           return;
         }
         try {
@@ -2895,29 +2963,27 @@ const initializeApp = async () => {
             ].join(", "),
           );
           if (!fallbackLocation) {
-            meStatus.textContent = `Could not find this address or locate ${defaultLocation}. Use Device Location if you are at the location, or enter coordinates.`;
+            meStatus.textContent = appText("settings.homeNotFoundCoordinates", `Could not find this address or locate ${defaultLocation}. Use Device Location if you are at the location, or enter coordinates.`, { location: defaultLocation });
             return;
           }
           meFields.lat.value = fallbackLocation[0].toFixed(6);
           meFields.lng.value = fallbackLocation[1].toFixed(6);
-          meStatus.textContent = `Could not find this address. The pin has been centered near ${defaultLocation}. Choose Save, then move the pin to the correct location, or use Device Location if you are at the location.`;
+          meStatus.textContent = appText("settings.homeCentered", `Could not find this address. The pin has been centered near ${defaultLocation}. Choose Save, then move the pin to the correct location, or use Device Location if you are at the location.`, { location: defaultLocation });
         } catch (error) {
           console.error(
             "Unable to center the home pin on the default location:",
             error,
           );
-          meStatus.textContent = `Could not find this address or locate ${defaultLocation}. Check your connection, or use Device Location if you are at the location.`;
+          meStatus.textContent = appText("settings.homeNotFoundConnection", `Could not find this address or locate ${defaultLocation}. Check your connection, or use Device Location if you are at the location.`, { location: defaultLocation });
         }
       } else {
         meFields.lat.value = Number(results[0].lat).toFixed(6);
         meFields.lng.value = Number(results[0].lon).toFixed(6);
-        meStatus.textContent =
-          "Home pin found. Choose Save, then drag it on the Map to fine-tune.";
+        meStatus.textContent = appText("settings.homeFound", "Home pin found. Choose Save, then drag it on the Map to fine-tune.");
       }
     } catch (error) {
       console.error("Home lookup failed:", error);
-      meStatus.textContent =
-        "Could not look up the address. Check your connection and try again.";
+      meStatus.textContent = appText("settings.homeLookupFailed", "Could not look up the address. Check your connection and try again.");
     } finally {
       button.disabled = false;
     }
@@ -2925,23 +2991,21 @@ const initializeApp = async () => {
 
   document.getElementById("btn-me-gps").addEventListener("click", () => {
     if (!navigator.geolocation) {
-      meStatus.textContent = "Device location is not supported by this browser.";
+      meStatus.textContent = appText("map.deviceUnsupported", "Device location is not supported by this browser.");
       return;
     }
     const button = document.getElementById("btn-me-gps");
     button.disabled = true;
-    meStatus.textContent = "Getting your device location...";
+    meStatus.textContent = appText("map.gettingDevice", "Getting your device location...");
     navigator.geolocation.getCurrentPosition(
       (position) => {
         meFields.lat.value = position.coords.latitude.toFixed(6);
         meFields.lng.value = position.coords.longitude.toFixed(6);
-        meStatus.textContent =
-          "Home pin set from device location. Choose Save to keep it.";
+        meStatus.textContent = appText("settings.homeGpsSet", "Home pin set from device location. Choose Save to keep it.");
         button.disabled = false;
       },
       () => {
-        meStatus.textContent =
-          "Could not get a device location. Check permission, or use the address lookup.";
+        meStatus.textContent = appText("settings.homeGpsFailed", "Could not get a device location. Check permission, or use the address lookup.");
         button.disabled = false;
       },
       { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
@@ -2963,7 +3027,7 @@ const initializeApp = async () => {
           (area) => area.city === me.city && area.name === me.area,
         ))
     ) {
-      meStatus.textContent = "Choose a valid country, city, region, and area.";
+      meStatus.textContent = appText("settings.validLocation", "Choose a valid country, city, region, and area.");
       return;
     }
     const lat = parseFloat(me.lat);
@@ -2973,7 +3037,7 @@ const initializeApp = async () => {
       !(Number.isFinite(lat) && Number.isFinite(lng) &&
         Math.abs(lat) <= 90 && Math.abs(lng) <= 180)
     ) {
-      meStatus.textContent = "Enter valid latitude and longitude values.";
+      meStatus.textContent = appText("map.validCoordinates", "Enter valid latitude and longitude values.");
       return;
     }
     const previousMe = settings.me;
@@ -2999,11 +3063,11 @@ const initializeApp = async () => {
       settings.defaultCity;
     populateMeForm();
     if (map) renderMapMarkers();
-    meStatus.textContent = "Your details were saved.";
+    meStatus.textContent = appText("settings.detailsSaved", "Your details were saved.");
   });
 
   document.getElementById("btn-me-clear").addEventListener("click", async () => {
-    if (!confirm("Clear your details and remove your home pin?")) return;
+    if (!confirm(appText("settings.clearConfirm", "Clear your details and remove your home pin?"))) return;
     const previousMe = settings.me;
     delete settings.me;
     try {
@@ -3015,7 +3079,7 @@ const initializeApp = async () => {
     }
     populateMeForm();
     if (map) renderMapMarkers();
-    meStatus.textContent = "Your details were cleared.";
+    meStatus.textContent = appText("settings.detailsCleared", "Your details were cleared.");
   });
 
   let contacts = savedContacts;
@@ -3066,7 +3130,12 @@ const initializeApp = async () => {
     const input = document.createElement("input");
     input.type = "text";
     input.value = location.name;
-    input.setAttribute("aria-label", `New ${type.toLowerCase()} name`);
+    const newNameLabel = type === "City"
+      ? appText("location.newCityName", "New city name")
+      : type === "Region"
+        ? appText("location.newRegionName", "New region name")
+        : appText("location.newAreaName", "New area name");
+    input.setAttribute("aria-label", newNameLabel);
     actions.innerHTML = "";
 
     let getSelectedCities = null;
@@ -3083,7 +3152,7 @@ const initializeApp = async () => {
       editor.className = "hierarchy-editor";
       const cityGroup = document.createElement("fieldset");
       const legend = document.createElement("legend");
-      legend.textContent = "Assigned to cities";
+      legend.textContent = appText("location.assignedCities", "Assigned to cities");
       cityGroup.appendChild(legend);
       const checkboxes = settings.cities.map((city) => {
         const cityLabel = document.createElement("label");
@@ -3104,7 +3173,7 @@ const initializeApp = async () => {
 
     const saveButton = document.createElement("button");
     saveButton.type = "button";
-    saveButton.textContent = "Save";
+    saveButton.textContent = appText("common.save", "Save");
     saveButton.addEventListener("click", async () => {
       if (type === "City") await renameLocation(type, location, input.value);
       else
@@ -3117,7 +3186,7 @@ const initializeApp = async () => {
     });
     const cancelButton = document.createElement("button");
     cancelButton.type = "button";
-    cancelButton.textContent = "Cancel";
+    cancelButton.textContent = appText("common.cancel", "Cancel");
     cancelButton.addEventListener("click", () => populateDropdowns());
     actions.append(saveButton, cancelButton);
     input.focus();
@@ -3152,7 +3221,7 @@ const initializeApp = async () => {
   const renameLocation = async (type, location, proposedName) => {
     const name = toTitleCase(proposedName);
     if (!name) {
-      alert("A location name cannot be blank.");
+      alert(appText("location.blankName", "A location name cannot be blank."));
       return false;
     }
     if (name === location.name) return true;
@@ -3161,7 +3230,7 @@ const initializeApp = async () => {
       (city) => city.toLowerCase() === name.toLowerCase(),
     );
     if (duplicate) {
-      alert("A city with that name already exists.");
+      alert(appText("location.cityNameExists", "A city with that name already exists."));
       return false;
     }
 
@@ -3228,13 +3297,14 @@ const initializeApp = async () => {
   ) => {
     const name = toTitleCase(proposedName);
     const typeLabel = type.toLowerCase();
+    const displayType = locationTypeDisplay(type);
     if (!name) {
-      alert(`A ${typeLabel} name cannot be blank.`);
+      alert(appText("location.typeBlank", `A ${typeLabel} name cannot be blank.`, { type: displayType }));
       return false;
     }
     if (!selectedCities.length) {
       alert(
-        `Choose at least one city for this ${typeLabel}, or use Delete to remove it.`,
+        appText("location.typeChooseCity", `Choose at least one city for this ${typeLabel}, or use Delete to remove it.`, { type: displayType }),
       );
       return false;
     }
@@ -3253,7 +3323,7 @@ const initializeApp = async () => {
       ),
     );
     if (clashCity) {
-      alert(`${clashCity} already has a ${typeLabel} named "${name}".`);
+      alert(appText("location.typeClash", `${clashCity} already has a ${typeLabel} named "${name}".`, { city: clashCity, type: displayType, name }));
       return false;
     }
     const blockedCity = currentCities.find(
@@ -3266,7 +3336,7 @@ const initializeApp = async () => {
     );
     if (blockedCity) {
       alert(
-        `Cannot remove "${oldName}" from ${blockedCity} while contacts there use it. Reassign those contacts first.`,
+        appText("location.removeBlocked", `Cannot remove "${oldName}" from ${blockedCity} while contacts there use it. Reassign those contacts first.`, { name: oldName, city: blockedCity }),
       );
       return false;
     }
@@ -3303,18 +3373,20 @@ const initializeApp = async () => {
         : 0;
     if (assignedContacts.length) {
       alert(
-        `Cannot delete this ${type.toLowerCase()} while it has ${assignedContacts.length} assigned contact${assignedContacts.length === 1 ? "" : "s"}. Reassign those contacts first.`,
+        appText("location.deleteBlocked", `Cannot delete this ${type.toLowerCase()} while it has ${assignedContacts.length} assigned contact${assignedContacts.length === 1 ? "" : "s"}. Reassign those contacts first.`, { type: locationTypeDisplay(type), count: assignedContacts.length }),
       );
       return;
     }
-    const childDescription = `${settings.regions.filter((region) => region.city === location.name).length} region(s) and ${settings.areas.filter((area) => area.city === location.name).length} area(s)`;
+    const regionCount = settings.regions.filter((region) => region.city === location.name).length;
+    const areaCount = settings.areas.filter((area) => area.city === location.name).length;
+    const childDescription = appText("location.childCounts", `${regionCount} region(s) and ${areaCount} area(s)`, { regions: regionCount, areas: areaCount });
     if (
       !confirm(
         childLocations
-          ? `Delete ${type.toLowerCase()} "${location.name}" and its ${childDescription}? No contacts are assigned to them.`
+          ? appText("location.deleteWithChildren", `Delete ${type.toLowerCase()} "${location.name}" and its ${childDescription}? No contacts are assigned to them.`, { type: locationTypeDisplay(type), name: location.name, children: childDescription })
           : type === "City"
-            ? `Delete ${type.toLowerCase()} "${location.name}"?`
-            : `Delete ${type.toLowerCase()} "${location.name}" from every city?`,
+            ? appText("location.deleteCityConfirm", `Delete ${type.toLowerCase()} "${location.name}"?`, { type: locationTypeDisplay(type), name: location.name })
+            : appText("location.deleteAllCitiesConfirm", `Delete ${type.toLowerCase()} "${location.name}" from every city?`, { type: locationTypeDisplay(type), name: location.name }),
       )
     ) {
       return;
@@ -3364,10 +3436,10 @@ const initializeApp = async () => {
     show("passphrase-section-description", menu);
     const title = document.getElementById("passphrase-section-title");
     title.textContent = protectedNow
-      ? "Passphrase is on"
+      ? appText("security.isOn", "Passphrase is on")
       : mode === "turn-on"
-        ? "Turn On Passphrase"
-        : "Passphrase is off";
+        ? appText("security.turnOn", "Turn On Passphrase")
+        : appText("security.isOff", "Passphrase is off");
     document.getElementById("change-passphrase-status").textContent = "";
     document.getElementById("turn-off-passphrase-status").textContent = "";
   };
@@ -3376,17 +3448,17 @@ const initializeApp = async () => {
     const protectedNow = Boolean(cryptoMetadata);
     document.getElementById("passphrase-section-description").textContent =
       protectedNow
-        ? "A passphrase is on for this app copy. You may change it or turn it off."
-        : `A passphrase is optional. It locks the app so only you can open it; it does not back anything up. A passphrase is currently off. Turn it on to encrypt the data on this device; you will be asked for it each time you open the app. Use at least ${MIN_PASSPHRASE_LENGTH} characters. You will be given a recovery code to keep; without the passphrase or that code, the data cannot be opened.`;
+        ? appText("security.onDescription", "A passphrase is on for this app copy. You may change it or turn it off.")
+        : appText("security.offDescription", `A passphrase is optional. It locks the app so only you can open it; it does not back anything up. A passphrase is currently off. Turn it on to encrypt the data on this device; you will be asked for it each time you open the app. Use at least ${MIN_PASSPHRASE_LENGTH} characters. You will be given a recovery code to keep; without the passphrase or that code, the data cannot be opened.`, { count: MIN_PASSPHRASE_LENGTH });
     document.getElementById("current-passphrase-fields").hidden =
       !protectedNow;
     document.getElementById("current-passphrase").required = protectedNow;
     document.getElementById("btn-change-passphrase").textContent =
-      protectedNow ? "Change Passphrase" : "Save Passphrase";
+      protectedNow ? appText("security.change", "Change Passphrase") : appText("security.save", "Save Passphrase");
     document.getElementById("recovery-code-state").textContent =
       cryptoMetadata?.recovery
-        ? "A recovery code is set for this app copy. It is stored, locked, inside your backups too. If you lost the code, make a new one below."
-        : "No recovery code is set yet. Make one now so a forgotten passphrase does not lock you out.";
+        ? appText("recovery.isSet", "A recovery code is set for this app copy. It is stored, locked, inside your backups too. If you lost the code, make a new one below.")
+        : appText("recovery.notSet", "No recovery code is set yet. Make one now so a forgotten passphrase does not lock you out.");
     const keepStatus = [
       document.getElementById("change-passphrase-status").textContent,
       document.getElementById("turn-off-passphrase-status").textContent,
@@ -3475,7 +3547,7 @@ const initializeApp = async () => {
         } catch (error) {
           console.error("Unable to verify current passphrase:", error);
           throw new Error(
-            "The passphrase is incorrect. No recovery code was made.",
+            appText("recovery.incorrectPassphrase", "The passphrase is incorrect. No recovery code was made."),
           );
         }
         const { metadata: newMetadata, recoveryCode } = await withRecoveryCode(
@@ -3486,13 +3558,12 @@ const initializeApp = async () => {
         cryptoMetadata = newMetadata;
         newRecoveryCode = recoveryCode;
         document.getElementById("recovery-code-form").reset();
-        statusMessage =
-          "New recovery code made. Any older recovery code no longer works.";
+        statusMessage = appText("recovery.created", "New recovery code made. Any older recovery code no longer works.");
         updatePassphraseSection();
       } catch (error) {
         console.error("Unable to make a recovery code:", error);
         statusMessage =
-          error.message || "Could not make a recovery code. Nothing was changed.";
+          error.message || appText("recovery.createFailed", "Could not make a recovery code. Nothing was changed.");
       } finally {
         appContainer.inert = false;
         submitButton.disabled = false;
@@ -3517,7 +3588,7 @@ const initializeApp = async () => {
       try {
         if (
           !confirm(
-            "Turn off the passphrase? Your data on this device will be stored without encryption, and the app will open without asking for a passphrase. You can turn it on again later.",
+            appText("security.turnOffConfirm", "Turn off the passphrase? Your data on this device will be stored without encryption, and the app will open without asking for a passphrase. You can turn it on again later."),
           )
         ) {
           return;
@@ -3542,7 +3613,7 @@ const initializeApp = async () => {
         } catch (error) {
           console.error("Unable to verify current passphrase:", error);
           throw new Error(
-            "The passphrase is incorrect, or the saved data could not be decrypted. Your data was not changed.",
+            appText("security.turnOffVerifyFailed", "The passphrase is incorrect, or the saved data could not be decrypted. Your data was not changed."),
           );
         }
 
@@ -3561,17 +3632,16 @@ const initializeApp = async () => {
         );
         encryptionKey = null;
         cryptoMetadata = null;
-        statusMessage =
-          "Passphrase turned off. The app will open without asking for one. Backups you export now will not be encrypted.";
+        statusMessage = appText("security.turnedOff", "Passphrase turned off. The app will open without asking for one. Backups you export now will not be encrypted.");
         document.getElementById("turn-off-passphrase-form").reset();
         updatePassphraseSection();
       } catch (error) {
         console.error("Unable to turn off passphrase:", error);
         statusMessage =
           error.message === "Saved data changed during the passphrase update."
-            ? "Your data changed during the update. No changes were made; please try again."
+            ? appText("security.dataChangedTurnOff", "Your data changed during the update. No changes were made; please try again.")
             : error.message ||
-              "Could not turn off the passphrase. Your saved data was not changed.";
+              appText("security.turnOffFailed", "Could not turn off the passphrase. Your saved data was not changed.");
       } finally {
         appContainer.inert = false;
         submitButton.disabled = false;
@@ -3602,15 +3672,15 @@ const initializeApp = async () => {
       try {
         if (newPassphrase.value.length < MIN_PASSPHRASE_LENGTH) {
           throw new Error(
-            `Use a new passphrase with at least ${MIN_PASSPHRASE_LENGTH} characters.`,
+            appText("security.newMinLength", `Use a new passphrase with at least ${MIN_PASSPHRASE_LENGTH} characters.`, { count: MIN_PASSPHRASE_LENGTH }),
           );
         }
         if (newPassphrase.value !== confirmNewPassphrase.value) {
-          throw new Error("The new passphrases do not match.");
+          throw new Error(appText("security.newMismatch", "The new passphrases do not match."));
         }
         if (cryptoMetadata && newPassphrase.value === currentPassphrase.value) {
           throw new Error(
-            "Choose a new passphrase that differs from the current one.",
+            appText("security.newMustDiffer", "Choose a new passphrase that differs from the current one."),
           );
         }
 
@@ -3639,7 +3709,7 @@ const initializeApp = async () => {
         } catch (error) {
           console.error("Unable to verify current passphrase:", error);
           throw new Error(
-            "The current passphrase is incorrect, or the saved data could not be decrypted. Your data was not changed.",
+            appText("security.currentVerifyFailed", "The current passphrase is incorrect, or the saved data could not be decrypted. Your data was not changed."),
           );
         }
 
@@ -3662,7 +3732,7 @@ const initializeApp = async () => {
           JSON.stringify(verifiedSettings) !== JSON.stringify(currentSettings) ||
           JSON.stringify(verifiedContacts) !== JSON.stringify(currentContacts)
         ) {
-          throw new Error("Encrypted data verification did not match.");
+          throw new Error(appText("security.verificationFailed", "Encrypted data verification did not match."));
         }
 
         await replaceStoredValuesIfUnchanged(
@@ -3681,8 +3751,8 @@ const initializeApp = async () => {
         encryptionKey = newKey;
         cryptoMetadata = newMetadata;
         statusMessage = wasProtected
-          ? "Passphrase changed. Use the new passphrase next time you open this app copy. Your old recovery code no longer works; keep the new one."
-          : "Passphrase turned on. You will be asked for it each time you open this app. Keep your recovery code safe; it is the only way back in if you forget the passphrase.";
+          ? appText("security.changed", "Passphrase changed. Use the new passphrase next time you open this app copy. Your old recovery code no longer works; keep the new one.")
+          : appText("security.turnedOn", "Passphrase turned on. You will be asked for it each time you open this app. Keep your recovery code safe; it is the only way back in if you forget the passphrase.");
         document.getElementById("change-passphrase-form").reset();
         updatePassphraseSection();
         await showRecoveryCodeDialog(newRecoveryCode);
@@ -3690,9 +3760,9 @@ const initializeApp = async () => {
         console.error("Unable to change passphrase:", error);
         statusMessage =
           error.message === "Saved data changed during the passphrase update."
-            ? "Your data changed while the passphrase was being updated. No changes were made; please try again."
+            ? appText("security.dataChanged", "Your data changed while the passphrase was being updated. No changes were made; please try again.")
             : error.message ||
-              "Could not change the passphrase. Your existing passphrase remains active and your saved data was not changed.";
+              appText("security.changeFailed", "Could not change the passphrase. Your existing passphrase remains active and your saved data was not changed.");
       } finally {
         appContainer.inert = false;
         submitButton.disabled = false;
@@ -3729,14 +3799,23 @@ const initializeApp = async () => {
 
   const getContactAreas = (contact) => (contact.area ? [contact.area] : []);
 
+  const getStatusDisplay = (status) => {
+    const labels = {
+      Normal: appText("urgency.normal", "Normal"),
+      Urgent: appText("urgency.urgent", "Urgent"),
+      Immediate: appText("urgency.immediate", "Immediate"),
+    };
+    return labels[status.label] || status.label;
+  };
+
   const getContactLocationSummary = (contact) =>
     [
-      contact.city && `City: ${contact.city}`,
-      contact.region && `Region: ${contact.region}`,
-      contact.area && `Area: ${contact.area}`,
+      contact.city && appText("location.cityValue", `City: ${contact.city}`, { value: contact.city }),
+      contact.region && appText("location.regionValue", `Region: ${contact.region}`, { value: contact.region }),
+      contact.area && appText("location.areaValue", `Area: ${contact.area}`, { value: contact.area }),
     ]
       .filter(Boolean)
-      .join(" · ") || "No city, region or area assigned";
+      .join(" · ") || appText("location.unassigned", "No city, region or area assigned");
 
   const updatePrintVisibleButton = () => {
     const count = visibleContacts.length;
@@ -3865,6 +3944,7 @@ const initializeApp = async () => {
     const city = settings.defaultCity.trim();
     const state = settings.state.trim();
     if (!city) return;
+    const displayLocation = `${city}${state ? `, ${state}` : ""}`;
 
     const query = getDefaultCityQuery();
     if (query === lastDefaultCityCenterQuery) return;
@@ -3873,11 +3953,11 @@ const initializeApp = async () => {
     if (cachedLocation) {
       map.setView(cachedLocation, 13);
       lastDefaultCityCenterQuery = query;
-      status.textContent = `No contact pins to show. The map is centered near ${city}${state ? `, ${state}` : ""}.`;
+      status.textContent = appText("map.centeredNear", `No contact pins to show. The map is centered near ${displayLocation}.`, { location: displayLocation });
       return;
     }
 
-    status.textContent = `Locating the default city, ${city}${state ? `, ${state}` : ""}...`;
+    status.textContent = appText("map.locatingDefault", `Locating the default city, ${displayLocation}...`, { location: displayLocation });
     try {
       let lookup = pendingDefaultCityLookups.get(query);
       if (!lookup) {
@@ -3921,13 +4001,13 @@ const initializeApp = async () => {
       )
         return;
       if (!location) {
-        status.textContent = `Couldn't locate ${city}${state ? `, ${state}` : ""}. Choose Find Address or City Pin on a contact to locate an address.`;
+        status.textContent = appText("map.defaultNotFound", `Couldn't locate ${displayLocation}. Choose Find Address or City Pin on a contact to locate an address.`, { location: displayLocation });
         return;
       }
 
       map.setView(location, 13);
       lastDefaultCityCenterQuery = query;
-      status.textContent = `No contact pins to show. The map is centered near ${city}${state ? `, ${state}` : ""}.`;
+      status.textContent = appText("map.centeredNear", `No contact pins to show. The map is centered near ${displayLocation}.`, { location: displayLocation });
     } catch (error) {
       if (
         mapMarkers.length > 0 ||
@@ -3936,7 +4016,7 @@ const initializeApp = async () => {
       )
         return;
       console.error("Unable to locate the default city on the map:", error);
-      status.textContent = `Couldn't locate ${city}${state ? `, ${state}` : ""}. Check your connection or use Find Address or City Pin on a contact.`;
+      status.textContent = appText("map.defaultLookupFailed", `Couldn't locate ${displayLocation}. Check your connection or use Find Address or City Pin on a contact.`, { location: displayLocation });
     } finally {
       pendingDefaultCityLookups.delete(query);
     }
@@ -3948,6 +4028,7 @@ const initializeApp = async () => {
       [39.8283, -98.5795],
       4,
     );
+    localizeMapControls(map);
     map.createPane("userLocationPane");
     map.getPane("userLocationPane").style.zIndex = "650";
     window.mapInstance = map;
@@ -3983,11 +4064,11 @@ const initializeApp = async () => {
   const startMapLocationWatch = () => {
     const status = document.getElementById("map-user-location-status");
     if (!navigator.geolocation) {
-      status.textContent = "This browser does not support device location.";
+      status.textContent = appText("map.locationUnsupported", "This browser does not support device location.");
       return;
     }
     if (userLocationWatchId !== null) return;
-    status.textContent = "Requesting device location for the blue dot...";
+    status.textContent = appText("map.requestingLocation", "Requesting device location for the blue dot...");
     userLocationWatchId = navigator.geolocation.watchPosition(
       (position) => {
         if (currentViewId !== "map-view" || !map) return;
@@ -3999,7 +4080,7 @@ const initializeApp = async () => {
           Math.abs(latitude) > 90 ||
           Math.abs(longitude) > 180
         ) {
-          status.textContent = "The device returned an invalid location.";
+          status.textContent = appText("map.invalidDeviceLocation", "The device returned an invalid location.");
           return;
         }
         const firstFix = !userLocationMarker;
@@ -4034,15 +4115,15 @@ const initializeApp = async () => {
           userLocationAccuracy.setRadius(accuracyRadius);
         }
         if (firstFix) fitMapToContactPoints();
-        status.textContent = "Your live location is shown by the blue dot.";
+        status.textContent = appText("map.liveLocation", "Your live location is shown by the blue dot.");
       },
       (error) => {
         if (currentViewId !== "map-view") return;
         console.error("Unable to get the live map location:", error);
         status.textContent =
           error.code === error.PERMISSION_DENIED
-            ? "Location permission was denied. Allow location access to show your blue dot."
-            : "Could not get your location. Check location services and try again.";
+            ? appText("map.permissionDenied", "Location permission was denied. Allow location access to show your blue dot.")
+            : appText("map.locationFailed", "Could not get your location. Check location services and try again.");
         if (error.code === error.PERMISSION_DENIED) {
           navigator.geolocation.clearWatch(userLocationWatchId);
           userLocationWatchId = null;
@@ -4067,7 +4148,7 @@ const initializeApp = async () => {
         {
           id: "btn-print-visible",
           icon: "print",
-          title: "Print the contacts shown",
+          title: appText("print.contactsShown", "Print the contacts shown"),
           onClick: () => printVisibleContacts(),
         },
       ];
@@ -4077,7 +4158,7 @@ const initializeApp = async () => {
         {
           id: "btn-print-map",
           icon: "print",
-          title: "Print the map contacts",
+          title: appText("print.mapContacts", "Print the map contacts"),
           onClick: () => requestMapPrint(),
         },
       ];
@@ -4087,7 +4168,7 @@ const initializeApp = async () => {
         {
           id: "btn-print-settings",
           icon: "print",
-          title: "Print all settings",
+          title: appText("print.settings", "Print all settings"),
           onClick: () => printSettings(),
         },
       ];
@@ -4097,19 +4178,19 @@ const initializeApp = async () => {
 
   const updateHeaderTitle = () => {
     const names = {
-      "contacts-view": "Contacts",
-      "map-view": "Map",
-      "time-view": "Time",
-      "settings-view": "Settings",
+      "contacts-view": appText("view.contacts", "Contacts"),
+      "map-view": appText("view.map", "Map"),
+      "time-view": appText("view.time", "Time"),
+      "settings-view": appText("settings.title", "Settings"),
     };
     const contactModal = document.getElementById("contact-modal");
     const modalOpen =
       contactModal && contactModal.style.display === "flex";
     const name = document.body.classList.contains("install-setup-in-progress")
-      ? "Install"
+      ? appText("view.install", "Install")
       : modalOpen
         ? document.getElementById("modal-title").textContent
-        : names[currentViewId] || "Contacts";
+        : names[currentViewId] || appText("view.contacts", "Contacts");
     const h1 = document.getElementById("app-title");
     if (h1) h1.textContent = `NRV - ${name}`;
   };
@@ -4122,7 +4203,7 @@ const initializeApp = async () => {
   );
   const notifySetupSaveFailure = () =>
     alert(
-      "We could not save your setup progress on this device. Check device storage and try again.",
+      appText("setup.saveDeviceProgressFailed", "We could not save your setup progress on this device. Check device storage and try again."),
     );
   const showSetupNextStepsIfReady = () => {
     try {
@@ -4184,12 +4265,12 @@ const initializeApp = async () => {
 
   const renderBottomNav = () => {
     const pageNames = {
-      "contacts-view": "Contacts",
-      "map-view": "Map",
-      "time-view": "Time",
-      "settings-view": "Settings",
+      "contacts-view": appText("view.contacts", "Contacts"),
+      "map-view": appText("view.map", "Map"),
+      "time-view": appText("view.time", "Time"),
+      "settings-view": appText("settings.title", "Settings"),
     };
-    document.title = `NRV - ${pageNames[currentViewId] || "Contacts"}`;
+    document.title = `NRV - ${pageNames[currentViewId] || appText("view.contacts", "Contacts")}`;
     if (document.body.classList.contains("install-setup-in-progress")) {
       document.title = "NRV-Install";
     }
@@ -4224,7 +4305,7 @@ const initializeApp = async () => {
         if (btnConfig.pinLabel) {
           const pin = document.createElement("span");
           pin.className = "nav-map-pin";
-          pin.textContent = btnConfig.pinLabel;
+          pin.textContent = appText("view.map", btnConfig.pinLabel);
           icon.appendChild(pin);
         } else {
           const glyph = document.createElement("span");
@@ -4234,9 +4315,16 @@ const initializeApp = async () => {
         }
         btn.appendChild(icon);
         btn.title = btnConfig.id.replace("-view", "");
+        const navLabels = {
+          "contacts-view": appText("view.contacts", "Contacts"),
+          "map-view": appText("view.map", "Map"),
+          "time-view": appText("view.time", "Time"),
+          "settings-view": appText("settings.title", "Settings"),
+        };
+        btn.setAttribute("aria-label", navLabels[btnConfig.id]);
         if (btnConfig.id === "time-view" && timeTracking.runningSince) {
           btn.title = "Time — timer running";
-          btn.setAttribute("aria-label", "Time, timer running");
+          btn.setAttribute("aria-label", appText("time.timerRunning", "Time, timer running"));
           const dot = document.createElement("span");
           dot.className = "nav-timer-dot";
           dot.setAttribute("aria-hidden", "true");
@@ -4244,7 +4332,7 @@ const initializeApp = async () => {
         }
         if (btnConfig.id === "settings-view" && appUpdateAvailable) {
           btn.title = "Settings — app update available";
-          btn.setAttribute("aria-label", "Settings, app update available");
+          btn.setAttribute("aria-label", appText("settings.updateAvailable", "Settings, app update available"));
           const badge = document.createElement("span");
           badge.className = "nav-update-badge";
           badge.setAttribute("aria-hidden", "true");
@@ -4427,13 +4515,13 @@ const initializeApp = async () => {
       edit.type = "button";
       edit.className = "btn-icon";
       edit.textContent = "✏️";
-      edit.title = "Edit this time";
+      edit.title = appText("time.editEntry", "Edit this time");
       edit.addEventListener("click", () => startEditingTimeEntry(entry.id));
       const remove = document.createElement("button");
       remove.type = "button";
       remove.className = "btn-icon delete";
       remove.textContent = "🗑️";
-      remove.title = "Delete this time";
+      remove.title = appText("time.deleteEntry", "Delete this time");
       remove.addEventListener("click", () => deleteTimeEntry(entry.id));
       row.append(text, edit, remove);
       list.appendChild(row);
@@ -4446,7 +4534,7 @@ const initializeApp = async () => {
     const today = toDateKey(new Date());
     document.getElementById("time-entry-date").value = today;
     document.getElementById("time-entry-date").max = today;
-    document.getElementById("btn-time-entry-save").textContent = "Add Time";
+    document.getElementById("btn-time-entry-save").textContent = appText("time.addButton", "Add Time");
     document.getElementById("btn-time-entry-cancel").hidden = true;
   };
 
@@ -4501,11 +4589,11 @@ const initializeApp = async () => {
     const note = document.getElementById("time-entry-note").value.trim();
     const seconds = Math.round(hours * 3600 + minutes * 60);
     if (!date || date > toDateKey(new Date())) {
-      alert("Choose a date that is today or earlier.");
+      alert(appText("time.validDate", "Choose a date that is today or earlier."));
       return;
     }
     if (hours < 0 || minutes < 0 || minutes > 59 || seconds <= 0 || hours > 24) {
-      alert("Enter hours (up to 24) and minutes (0–59) greater than zero.");
+      alert(appText("time.validDuration", "Enter hours (up to 24) and minutes (0–59) greater than zero."));
       return;
     }
     const tracking = settings.timeTracking;
@@ -4532,13 +4620,13 @@ const initializeApp = async () => {
     document.getElementById("time-entry-hours").value = Math.floor(entry.seconds / 3600);
     document.getElementById("time-entry-minutes").value = Math.floor((entry.seconds % 3600) / 60);
     document.getElementById("time-entry-note").value = entry.note;
-    document.getElementById("btn-time-entry-save").textContent = "Save Changes";
+    document.getElementById("btn-time-entry-save").textContent = appText("time.saveChanges", "Save Changes");
     document.getElementById("btn-time-entry-cancel").hidden = false;
     timeEntryForm.scrollIntoView({ block: "center" });
   };
 
   const deleteTimeEntry = async (id) => {
-    if (!confirm("Delete this time entry?")) return;
+    if (!confirm(appText("time.deleteConfirm", "Delete this time entry?"))) return;
     const tracking = settings.timeTracking;
     const previous = JSON.parse(JSON.stringify(tracking));
     tracking.entries = tracking.entries.filter((entry) => entry.id !== id);
@@ -4800,7 +4888,7 @@ const initializeApp = async () => {
       (note) => note.text,
     ).length;
     contactBeingShared = contact;
-    contactShareTitle.textContent = `Share: ${fullName}`;
+    contactShareTitle.textContent = appText("contacts.shareTitle", `Share: ${fullName}`, { name: fullName });
     contactShareDialog.querySelector(
       'input[name="share-notes"][value="none"]',
     ).checked = true;
@@ -4959,13 +5047,13 @@ const initializeApp = async () => {
     document.getElementById("contact-cross-street").value = "";
     clearAddressMatches();
     setLocationStatus(
-      `Pin placed near ${result.display_name}. Check its position and move it on the map if needed.`,
+      appText("map.pinPlacedNear", `Pin placed near ${result.display_name}. Check its position and move it on the map if needed.`, { location: result.display_name }),
     );
   };
   const showAddressMatches = (results, enteredStreet) => {
     addressMatchResults.replaceChildren();
     const heading = document.createElement("strong");
-    heading.textContent = "Choose the matching street or location:";
+    heading.textContent = appText("map.chooseMatch", "Choose the matching street or location:");
     addressMatchResults.appendChild(heading);
     const list = document.createElement("div");
     list.className = "address-match-options";
@@ -4990,12 +5078,12 @@ const initializeApp = async () => {
         pickerMap.removeLayer(pickerMarker);
         pickerMarker = null;
       }
-      setLocationStatus("Pin cleared. Choose a location or place it on the map.");
+      setLocationStatus(appText("map.pinCleared", "Pin cleared. Choose a location or place it on the map."));
       updatePinUi();
       return;
     }
     if (!latitude || !longitude) {
-      setLocationStatus("Enter both latitude and longitude to set the pin.");
+      setLocationStatus(appText("map.enterBothCoordinates", "Enter both latitude and longitude to set the pin."));
       return;
     }
     const lat = Number(latitude);
@@ -5008,19 +5096,19 @@ const initializeApp = async () => {
       lng < -180 ||
       lng > 180
     ) {
-      setLocationStatus("Enter valid coordinates before setting the pin.");
+      setLocationStatus(appText("map.enterValidCoordinates", "Enter valid coordinates before setting the pin."));
       return;
     }
     setPickerLocation(lat, lng);
     setLocationStatus(
-      "Pin updated from the entered coordinates. You can move it on the map.",
+      appText("map.pinUpdatedCoordinates", "Pin updated from the entered coordinates. You can move it on the map."),
     );
   };
 
   const findAddressOnMap = async () => {
     if (!pickerMap) {
       setLocationStatus(
-        "The map is still loading. Please try again in a moment.",
+        appText("map.stillLoading", "The map is still loading. Please try again in a moment."),
       );
       return;
     }
@@ -5034,7 +5122,7 @@ const initializeApp = async () => {
     contactStateInput.value = state;
     if ((!street && !city) || city === "+ Add New City...") {
       setLocationStatus(
-        "Enter a street address or choose a city before looking up its location.",
+        appText("map.enterAddressOrCity", "Enter a street address or choose a city before looking up its location."),
       );
       return;
     }
@@ -5045,8 +5133,9 @@ const initializeApp = async () => {
     const cityQuery = city
       ? [city, state, country].filter(Boolean).join(", ")
       : "";
+    const cityState = `${city}${state ? `, ${state}` : ""}`;
     btnFindAddress.disabled = true;
-    setLocationStatus("Looking up the entered address...");
+    setLocationStatus(appText("map.lookingUpAddress", "Looking up the entered address..."));
     try {
       const lookup = async (searchQuery) => {
         const url = new URL("https://nominatim.openstreetmap.org/search");
@@ -5069,12 +5158,12 @@ const initializeApp = async () => {
         if (cityResults.length > 0) {
           setPickerLocation(cityResults[0].lat, cityResults[0].lon, 13);
           setLocationStatus(
-            `An approximate pin was placed near ${city}${state ? `, ${state}` : ""}. Move it to the contact's exact location before saving.`,
+            appText("map.approximatePlaced", `An approximate pin was placed near ${cityState}. Move it to the contact's exact location before saving.`, { location: cityState }),
           );
           return;
         }
         setLocationStatus(
-          `Couldn't locate ${city}${state ? `, ${state}` : ""}. Try a street address or place the pin on the map.`,
+          appText("map.cityNotFound", `Couldn't locate ${cityState}. Try a street address or place the pin on the map.`, { location: cityState }),
         );
         return;
       }
@@ -5084,14 +5173,14 @@ const initializeApp = async () => {
         crossStreetSearch.hidden = true;
         showAddressMatches(addressResults, street);
         setLocationStatus(
-          `Found ${addressResults.length} possible matches. Choose the correct street or location to place the pin.`,
+          appText("map.possibleMatches", `Found ${addressResults.length} possible matches. Choose the correct street or location to place the pin.`, { count: addressResults.length }),
         );
         return;
       }
       const streetOnly = street.replace(/^\d+[A-Za-z]?\s*/, "").trim();
       if (addressResults.length === 0 && streetOnly && streetOnly !== street) {
         setLocationStatus(
-          "Couldn't match that house number. Searching for streets with a similar name...",
+          appText("map.houseNumberNotFound", "Couldn't match that house number. Searching for streets with a similar name..."),
         );
         await new Promise((resolve) => setTimeout(resolve, 1000));
         const streetResults = getUniqueStreetMatches(
@@ -5103,14 +5192,14 @@ const initializeApp = async () => {
           crossStreetSearch.hidden = true;
           showAddressMatches(streetResults, street);
           setLocationStatus(
-            `Found ${streetResults.length} possible street matches. Choose the correct one to place an approximate pin.`,
+            appText("map.streetMatches", `Found ${streetResults.length} possible street matches. Choose the correct one to place an approximate pin.`, { count: streetResults.length }),
           );
           return;
         }
         if (streetResults.length === 1) {
           selectAddressMatch(streetResults[0], street);
           setLocationStatus(
-            `Pin placed near ${streetResults[0].display_name} based on the street name. Check and adjust its position before saving.`,
+            appText("map.streetPinPlaced", `Pin placed near ${streetResults[0].display_name} based on the street name. Check and adjust its position before saving.`, { location: streetResults[0].display_name }),
           );
           return;
         }
@@ -5118,26 +5207,26 @@ const initializeApp = async () => {
       if (addressResults.length === 0 && cityQuery) {
         crossStreetSearch.hidden = false;
         setLocationStatus(
-          "Couldn't find the street address. Looking for the city to place an approximate pin...",
+          appText("map.searchingCity", "Couldn't find the street address. Looking for the city to place an approximate pin..."),
         );
         await new Promise((resolve) => setTimeout(resolve, 1000));
         const cityResults = await lookup(cityQuery);
         if (cityResults.length > 0) {
           setPickerLocation(cityResults[0].lat, cityResults[0].lon, 13);
           setLocationStatus(
-            `Couldn't find the street address. The map is centered near ${city}${state ? `, ${state}` : ""}. Enter a nearby cross-street below to narrow the pin, or adjust it on the map.`,
+            appText("map.addressMissingCentered", `Couldn't find the street address. The map is centered near ${cityState}. Enter a nearby cross-street below to narrow the pin, or adjust it on the map.`, { location: cityState }),
           );
           return;
         }
         setLocationStatus(
-          `Couldn't find the street address or locate ${city}${state ? `, ${state}` : ""}. Enter a nearby cross-street below to try a more specific search, or place the pin on the map.`,
+          appText("map.addressCityMissing", `Couldn't find the street address or locate ${cityState}. Enter a nearby cross-street below to try a more specific search, or place the pin on the map.`, { location: cityState }),
         );
         return;
       }
       if (addressResults.length === 0) {
         crossStreetSearch.hidden = false;
         setLocationStatus(
-          "Couldn't find the street address. Choose a city, enter a nearby cross-street, or place the pin on the map.",
+          appText("map.addressNotFound", "Couldn't find the street address. Choose a city, enter a nearby cross-street, or place the pin on the map."),
         );
         return;
       }
@@ -5147,7 +5236,7 @@ const initializeApp = async () => {
     } catch (error) {
       console.error("Unable to find address on map:", error);
       setLocationStatus(
-        "Address lookup failed. Check your connection, then try again or place the pin manually.",
+        appText("map.addressLookupFailed", "Address lookup failed. Check your connection, then try again or place the pin manually."),
       );
     } finally {
       btnFindAddress.disabled = false;
@@ -5157,7 +5246,7 @@ const initializeApp = async () => {
   const findCrossStreetOnMap = async () => {
     if (!pickerMap) {
       setLocationStatus(
-        "The map is still loading. Please try again in a moment.",
+        appText("map.stillLoading", "The map is still loading. Please try again in a moment."),
       );
       return;
     }
@@ -5171,13 +5260,13 @@ const initializeApp = async () => {
     );
     contactStateInput.value = state;
     if (!crossStreet) {
-      setLocationStatus("Enter a nearby cross-street or intersection first.");
+      setLocationStatus(appText("map.enterCrossStreet", "Enter a nearby cross-street or intersection first."));
       return;
     }
 
     btnFindCrossStreet.disabled = true;
     clearAddressMatches();
-    setLocationStatus("Searching near the cross-street...");
+    setLocationStatus(appText("map.searchingCrossStreet", "Searching near the cross-street..."));
     try {
       const url = new URL("https://nominatim.openstreetmap.org/search");
       url.search = new URLSearchParams({
@@ -5201,18 +5290,18 @@ const initializeApp = async () => {
       const results = await response.json();
       if (results.length === 0) {
         setLocationStatus(
-          "Couldn't find that cross-street. Check the names or move the city-centered pin on the map.",
+          appText("map.crossStreetMissing", "Couldn't find that cross-street. Check the names or move the city-centered pin on the map."),
         );
         return;
       }
       setPickerLocation(results[0].lat, results[0].lon, 16);
       setLocationStatus(
-        "Pin placed near the cross-street search. Check its position and adjust it if needed.",
+        appText("map.crossStreetPlaced", "Pin placed near the cross-street search. Check its position and adjust it if needed."),
       );
     } catch (error) {
       console.error("Unable to find cross-street on map:", error);
       setLocationStatus(
-        "Cross-street lookup failed. Check your connection, then try again or adjust the pin on the map.",
+        appText("map.crossStreetFailed", "Cross-street lookup failed. Check your connection, then try again or adjust the pin on the map."),
       );
     } finally {
       btnFindCrossStreet.disabled = false;
@@ -5402,7 +5491,7 @@ const initializeApp = async () => {
     if (!appUpdateAvailable) return;
     renderBottomNav();
     document.getElementById("app-update-notice").hidden = false;
-    document.getElementById("btn-check-updates").textContent = "Update Now";
+    document.getElementById("btn-check-updates").textContent = appText("update.nowTitle", "Update Now");
     if (getAppRefreshBlockMessage()) {
       if (currentViewId === "settings-view") {
         appUpdateStatus.textContent =
@@ -5459,7 +5548,7 @@ const initializeApp = async () => {
       }
 
       button.disabled = true;
-      status.textContent = "Checking for updates...";
+      status.textContent = appText("update.checking", "Checking for updates...");
       try {
         const registration = await navigator.serviceWorker.getRegistration();
         if (!registration) {
@@ -5468,7 +5557,7 @@ const initializeApp = async () => {
         await registration.update();
         const incoming = registration.installing || registration.waiting;
         if (!incoming && !appUpdateAvailable) {
-          status.textContent = "You have the latest version.";
+          status.textContent = appText("update.latest", "You have the latest version.");
           button.disabled = false;
           document.getElementById("app-no-update-dialog").showModal();
           return;
@@ -5495,7 +5584,7 @@ const initializeApp = async () => {
       } catch (error) {
         console.error("Unable to check for app updates:", error);
         status.textContent =
-          "Could not check for updates. Confirm you are online and try again.";
+          appText("update.checkFailed", "Could not check for updates. Confirm you are online and try again.");
         button.disabled = false;
       }
     });
@@ -5508,7 +5597,7 @@ const initializeApp = async () => {
   const attemptExit = () => {
     const currentState = captureFormState();
     if (currentState !== initialFormState) {
-      const confirmExit = confirm("Changes were made, exit without saving?");
+      const confirmExit = confirm(appText("contacts.discardExit", "Changes were made, exit without saving?"));
       if (confirmExit) {
         modal.style.display = "none";
       }
@@ -5553,6 +5642,7 @@ const initializeApp = async () => {
             lat !== null && lng !== null ? [lat, lng] : defaultMapCenter,
             15,
           );
+          localizeMapControls(pickerMap);
           L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             maxZoom: 19,
             attribution: "&copy; OpenStreetMap",
@@ -5622,8 +5712,8 @@ const initializeApp = async () => {
     );
     delete document.getElementById("new-log-timestamp").dataset.touched;
     document.getElementById("modal-notes-history-container").innerHTML =
-      '<span style="color: #888;">No visit logs yet.</span>';
-    document.getElementById("modal-title").textContent = "Add Contact";
+      `<span style="color: #888;">${escapeHtml(appText("visits.noLogsYet", "No visit logs yet."))}</span>`;
+    document.getElementById("modal-title").textContent = appText("contacts.addTitle", "Add Contact");
     await openModalWithCoords(null, null);
   });
 
@@ -5643,7 +5733,7 @@ const initializeApp = async () => {
       return;
     setPinPanel(true);
     setLocationStatus(
-      "The address changed. Look up the pin again, or confirm the current pin.",
+      appText("map.addressChanged", "The address changed. Look up the pin again, or confirm the current pin."),
     );
   };
   ["contact-address", "contact-city-select", "contact-state"].forEach((id) =>
@@ -5666,7 +5756,7 @@ const initializeApp = async () => {
     .addEventListener("click", () => {
       if (
         captureFormState() !== initialFormState &&
-        !confirm("Changes were made, discard them and add a new contact?")
+        !confirm(appText("contacts.discardNew", "Changes were made, discard them and add a new contact?"))
       ) {
         return;
       }
@@ -5676,17 +5766,17 @@ const initializeApp = async () => {
   document.getElementById("btn-gps").addEventListener("click", () => {
     if (!pickerMap) {
       setLocationStatus(
-        "The map is still loading. Please try again in a moment.",
+        appText("map.stillLoading", "The map is still loading. Please try again in a moment."),
       );
       return;
     }
     if (!navigator.geolocation) {
-      setLocationStatus("Device location is not supported by this browser.");
+      setLocationStatus(appText("map.deviceUnsupported", "Device location is not supported by this browser."));
       return;
     }
     const gpsButton = document.getElementById("btn-gps");
     gpsButton.disabled = true;
-    setLocationStatus("Getting a fresh device location...");
+    setLocationStatus(appText("map.gettingFreshDevice", "Getting a fresh device location..."));
     navigator.geolocation.getCurrentPosition(
       (position) => {
         try {
@@ -5697,13 +5787,13 @@ const initializeApp = async () => {
           const accuracy = Math.round(position.coords.accuracy);
           setLocationStatus(
             Number.isFinite(accuracy)
-              ? `Pin placed from device location (estimated accuracy: ${accuracy} m). You can move it on the map.`
-              : "Pin placed from device location. You can move it on the map.",
+              ? appText("map.gpsPinAccuracy", `Pin placed from device location (estimated accuracy: ${accuracy} m). You can move it on the map.`, { accuracy })
+              : appText("map.gpsPinPlaced", "Pin placed from device location. You can move it on the map."),
           );
         } catch (error) {
           console.error("Invalid device location coordinates:", error);
           setLocationStatus(
-            "The device returned invalid coordinates. Try the address lookup or place the pin manually.",
+            appText("map.gpsInvalidCoordinates", "The device returned invalid coordinates. Try the address lookup or place the pin manually."),
           );
         } finally {
           gpsButton.disabled = false;
@@ -5713,8 +5803,8 @@ const initializeApp = async () => {
         console.error("Unable to get device location:", error);
         setLocationStatus(
           error.code === error.PERMISSION_DENIED
-            ? "Location permission was denied. Allow location access or set the pin from the address or map."
-            : "Could not get a device location. Check location services or set the pin from the address or map.",
+            ? appText("map.gpsPermissionDenied", "Location permission was denied. Allow location access or set the pin from the address or map.")
+            : appText("map.gpsLocationFailed", "Could not get a device location. Check location services or set the pin from the address or map."),
         );
         gpsButton.disabled = false;
       },
@@ -5739,7 +5829,7 @@ const initializeApp = async () => {
     const country = normalizeCountry(contactCountrySelect.value);
     const state = normalizeLocationState(country, contactStateInput.value);
     if (!country) {
-      alert("Choose a country before saving this contact.");
+      alert(appText("contacts.countryRequired", "Choose a country before saving this contact."));
       contactCountrySelect.focus();
       return;
     }
@@ -5750,17 +5840,17 @@ const initializeApp = async () => {
     const latitude = Number(lat);
     const longitude = Number(lng);
     if (email && !/^[^\s@]+@[^\s@]+$/.test(email)) {
-      alert("Enter an email address in the format name@example.com.");
+      alert(appText("contacts.emailInvalid", "Enter an email address in the format name@example.com."));
       document.getElementById("contact-email").focus();
       return;
     }
     if (phone && !/^\(\d{3}\) \d{3}-\d{4}$/.test(phone)) {
-      alert("Enter a 10-digit phone number in the format (555) 123-4567.");
+      alert(appText("contacts.phoneInvalid", "Enter a 10-digit phone number in the format (555) 123-4567."));
       phoneInput.focus();
       return;
     }
     if (city === "+ Add New City...") {
-      alert("Enter a city name, choose a saved city, or leave City blank.");
+      alert(appText("contacts.cityInvalid", "Enter a city name, choose a saved city, or leave City blank."));
       return;
     }
     if (
@@ -5773,7 +5863,7 @@ const initializeApp = async () => {
           (item) => item.name === area && item.city === city,
         ))
     ) {
-      alert("Choose a region and area that belong to the selected city.");
+      alert(appText("contacts.locationInvalid", "Choose a region and area that belong to the selected city."));
       return;
     }
     if (
@@ -5890,7 +5980,7 @@ const initializeApp = async () => {
     editContact(targetId, contactVisitsSection.open ? "visits" : "info");
     // Re-baseline right after the form is repopulated so a quick close is not seen as unsaved.
     initialFormState = captureFormState();
-    alert("Contact saved successfully!");
+    alert(appText("contacts.saved", "Contact saved successfully!"));
     initialFormState = captureFormState();
   });
 
@@ -5925,8 +6015,8 @@ const initializeApp = async () => {
         : "./help.html#install-guide";
     document.getElementById("copy-notice-text").textContent =
       kind === "empty-installed"
-        ? "This installed copy is empty. If you already added contacts in your browser, open the app in that browser, go to Settings → Backup or Restore and back up, then restore here. Or connect Dropbox in both copies."
-        : "Tip: for the best experience, add this app to your Home Screen or install it and use only that icon. Browser and installed copies keep separate contacts, so using one keeps all your data in one place.";
+        ? appText("contacts.emptyInstalled", "This installed copy is empty. If you already added contacts in your browser, open the app in that browser, go to Settings → Backup or Restore and back up, then restore here. Or connect Dropbox in both copies.")
+        : appText("contacts.browserCopy", "Tip: for the best experience, add this app to your Home Screen or install it and use only that icon. Browser and installed copies keep separate contacts, so using one keeps all your data in one place.");
   };
   document
     .getElementById("btn-copy-notice-dismiss")
@@ -6011,7 +6101,9 @@ const initializeApp = async () => {
     if (filtered.length === 0) {
       visibleContacts = [];
       updatePrintVisibleButton();
-      listContainer.innerHTML = "<p>No matching contacts found.</p>";
+      const empty = document.createElement("p");
+      empty.textContent = appText("contacts.noMatches", "No matching contacts found.");
+      listContainer.appendChild(empty);
       if (map) renderMapMarkers();
       return;
     }
@@ -6038,8 +6130,8 @@ const initializeApp = async () => {
         : null;
       const lastVisitHtml =
         lastVisitDate && !Number.isNaN(lastVisitDate.getTime())
-          ? `<br><small>Last visit: ${escapeHtml(lastVisitDate.toLocaleDateString())} • ${sortedNotes.length} visit note${sortedNotes.length === 1 ? "" : "s"}</small>`
-          : '<br><small style="color: #888;">No visit notes yet</small>';
+          ? `<br><small>${escapeHtml(appText("contacts.lastVisit", `Last visit: ${lastVisitDate.toLocaleDateString()}`, { date: lastVisitDate.toLocaleDateString() }))} • ${escapeHtml(appText("contacts.visitCount", `${sortedNotes.length} visit note${sortedNotes.length === 1 ? "" : "s"}`, { count: sortedNotes.length }))}</small>`
+          : `<br><small style="color: #888;">${escapeHtml(appText("contacts.noVisits", "No visit notes yet"))}</small>`;
       const lastNoteText = lastNote && (lastNote.text || "").trim();
       const lastNoteHtml = lastNoteText
         ? `<br><small class="card-last-note">${escapeHtml(lastNoteText.length > 140 ? lastNoteText.slice(0, 140) + "…" : lastNoteText)}</small>`
@@ -6055,26 +6147,30 @@ const initializeApp = async () => {
           area.toLowerCase().includes(searchTerm),
         );
       const noteMatchHtml = matchedOnlyInNotes
-        ? '<br><small style="color: #004080; font-weight: bold;">Matches a visit note</small>'
+        ? `<br><small style="color: #004080; font-weight: bold;">${escapeHtml(appText("contacts.noteMatch", "Matches a visit note"))}</small>`
         : "";
 
+      const fullName = `${contact.firstName} ${contact.lastName}`;
+      const navigateLabel = appText("contacts.navigate", `Navigate to ${fullName}`, { name: fullName });
+      const shareLabel = appText("contacts.share", `Share ${fullName}`, { name: fullName });
+      const addVisit = escapeHtml(appText("contacts.addVisit", "Add a visit"));
       card.innerHTML = `
-                <strong><span class="contact-number" title="Matches the number on the map pin">${cardIndex + 1}.</span> ${escapeHtml(contact.firstName)} ${escapeHtml(contact.lastName)}</strong><br>
-                <small class="contact-record-id">Contact ID: ${escapeHtml(contact.id)}</small><br>
-                <small>${escapeHtml(getFormattedContactAddress(contact) || "No address provided")}</small><br>
+                <strong><span class="contact-number" title="${escapeHtml(appText("contacts.mapNumber", "Matches the number on the map pin"))}">${cardIndex + 1}.</span> ${escapeHtml(contact.firstName)} ${escapeHtml(contact.lastName)}</strong><br>
+                <small class="contact-record-id">${escapeHtml(appText("contacts.id", `Contact ID: ${contact.id}`, { id: contact.id }))}</small><br>
+                <small>${escapeHtml(getFormattedContactAddress(contact) || appText("contacts.noAddress", "No address provided"))}</small><br>
                 <small>${escapeHtml(getContactLocationSummary(contact))}</small><br>
-                ${contact.phone ? `<small>Phone: ${escapeHtml(contact.phone)}</small><br>` : ""}
-                ${contact.email ? `<small>Email: ${escapeHtml(contact.email)}</small><br>` : ""}
-                <span>Days Since Last Contact: <strong>${status.days} days</strong> (${status.label})</span>
+                ${contact.phone ? `<small>${escapeHtml(appText("contacts.phoneValue", `Phone: ${contact.phone}`, { value: contact.phone }))}</small><br>` : ""}
+                ${contact.email ? `<small>${escapeHtml(appText("contacts.emailValue", `Email: ${contact.email}`, { value: contact.email }))}</small><br>` : ""}
+                <span>${escapeHtml(appText("contacts.daysSince", "Days Since Last Contact:"))} <strong>${escapeHtml(appText("contacts.dayCount", `${status.days} days`, { count: status.days }))}</strong> (${escapeHtml(getStatusDisplay(status))})</span>
                 ${lastVisitHtml}
                 ${lastNoteHtml}
                 ${noteMatchHtml}
                 <div class="card-actions">
-                    <button class="btn-icon" onclick="addQuickVisit(${contact.id})" title="Add a visit" aria-label="Add a visit"><span class="btn-add-visit">ADD<br>VISIT</span></button>
-                    <button class="btn-icon" onclick="editContact(${contact.id})" title="Edit Details">✏️</button>
-                    ${navigationUrl ? `<a class="btn-icon navigate-contact" href="${escapeHtml(navigationUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Navigate to ${escapeHtml(contact.firstName)} ${escapeHtml(contact.lastName)}" title="Navigate to ${escapeHtml(contact.firstName)} ${escapeHtml(contact.lastName)}"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2" fill="currentColor"/><path d="M6 16V9a4 4 0 0 1 4-4h8m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></a>` : ""}
-                    <button class="btn-icon share-contact-card" onclick="shareContact(${contact.id})" title="Share ${escapeHtml(contact.firstName)} ${escapeHtml(contact.lastName)}" aria-label="Share ${escapeHtml(contact.firstName)} ${escapeHtml(contact.lastName)}"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 15V3m-4 4 4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></button>
-                    <button class="btn-icon delete" onclick="deleteContact(${contact.id})" title="Delete Contact">🗑️</button>
+                    <button class="btn-icon" onclick="addQuickVisit(${contact.id})" title="${addVisit}" aria-label="${addVisit}"><span class="btn-add-visit">${escapeHtml(appText("contacts.addVisitLine1", "ADD"))}<br>${escapeHtml(appText("contacts.addVisitLine2", "VISIT"))}</span></button>
+                    <button class="btn-icon" onclick="editContact(${contact.id})" title="${escapeHtml(appText("contacts.editDetails", "Edit Details"))}">✏️</button>
+                    ${navigationUrl ? `<a class="btn-icon navigate-contact" href="${escapeHtml(navigationUrl)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(navigateLabel)}" title="${escapeHtml(navigateLabel)}"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2" fill="currentColor"/><path d="M6 16V9a4 4 0 0 1 4-4h8m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></a>` : ""}
+                    <button class="btn-icon share-contact-card" onclick="shareContact(${contact.id})" title="${escapeHtml(shareLabel)}" aria-label="${escapeHtml(shareLabel)}"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 15V3m-4 4 4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></button>
+                    <button class="btn-icon delete" onclick="deleteContact(${contact.id})" title="${escapeHtml(appText("contacts.delete", "Delete Contact"))}">🗑️</button>
                 </div>
             `;
       listContainer.appendChild(card);
@@ -6092,12 +6188,16 @@ const initializeApp = async () => {
   const getPrintableNoteDate = (note) => {
     const parsedDate = new Date(note.rawDate || note.date || "");
     return Number.isNaN(parsedDate.getTime())
-      ? note.date || "Date not recorded"
+      ? note.date || appText("print.dateNotRecorded", "Date not recorded")
       : parsedDate.toLocaleString();
   };
 
   const getPrintGroup = (contact) => {
     if (contact.area || contact.region) {
+      const location = [contact.city, contact.region, contact.area]
+        .filter(Boolean)
+        .join(" → ");
+      const sortTitle = location + (contact.area ? "" : " (No area assigned)");
       return {
         key: JSON.stringify([
           "location",
@@ -6105,21 +6205,21 @@ const initializeApp = async () => {
           contact.region,
           contact.area,
         ]),
-        title:
-          [contact.city, contact.region, contact.area]
-            .filter(Boolean)
-            .join(" → ") + (contact.area ? "" : " (No area assigned)"),
+        title: contact.area ? location : appText("print.noAreaGroup", sortTitle, { location }),
+        sortTitle,
       };
     }
     if (contact.city) {
       return {
         key: JSON.stringify(["city", contact.city]),
-        title: `${contact.city} (No region or area assigned)`,
+        title: appText("print.noRegionAreaGroup", `${contact.city} (No region or area assigned)`, { city: contact.city }),
+        sortTitle: `${contact.city} (No region or area assigned)`,
       };
     }
     return {
       key: JSON.stringify(["unassigned"]),
-      title: "No location assigned",
+      title: appText("print.noLocationGroup", "No location assigned"),
+      sortTitle: "No location assigned",
     };
   };
 
@@ -6127,21 +6227,21 @@ const initializeApp = async () => {
     const latestNote = getSortedVisitNotes(contact)[0];
     const streetAddress =
       normalizeStreetName(getStreetAddress(contact)) ||
-      "No street address recorded";
+      appText("print.noStreet", "No street address recorded");
     const fullName = `${contact.firstName} ${contact.lastName}`.trim();
     return `
       <article class="print-contact-entry">
         <h3>${escapeHtml(fullName)}</h3>
-        <p class="print-contact-id">Contact ID: ${escapeHtml(contact.id)}</p>
+        <p class="print-contact-id">${escapeHtml(appText("contacts.id", `Contact ID: ${contact.id}`, { id: contact.id }))}</p>
         <p class="print-contact-address">${escapeHtml(streetAddress)}</p>
-        ${contact.phone ? `<p>Phone: ${escapeHtml(contact.phone)}</p>` : ""}
-        ${contact.email ? `<p>Email: ${escapeHtml(contact.email)}</p>` : ""}
+        ${contact.phone ? `<p>${escapeHtml(appText("contacts.phoneValue", `Phone: ${contact.phone}`, { value: contact.phone }))}</p>` : ""}
+        ${contact.email ? `<p>${escapeHtml(appText("contacts.emailValue", `Email: ${contact.email}`, { value: contact.email }))}</p>` : ""}
         <div class="print-latest-note">
-          <strong>Most recent note:</strong>
+          <strong>${escapeHtml(appText("print.mostRecentNote", "Most recent note:"))}</strong>
           ${
             latestNote
               ? `<p class="print-note-date">${escapeHtml(getPrintableNoteDate(latestNote))}</p><p class="print-note">${escapeHtml(latestNote.text)}</p>`
-              : '<p class="print-note">No visit notes recorded.</p>'
+              : `<p class="print-note">${escapeHtml(appText("print.noVisitNotes", "No visit notes recorded."))}</p>`
           }
         </div>
       </article>
@@ -6165,7 +6265,7 @@ const initializeApp = async () => {
       printContainer.hidden = true;
       printContainer.setAttribute("aria-hidden", "true");
       console.error("Unable to open the print dialog:", error);
-      alert("Could not open the print dialog. Please try again.");
+      alert(appText("print.openFailed", "Could not open the print dialog. Please try again."));
     }
   };
 
@@ -6187,29 +6287,29 @@ const initializeApp = async () => {
           .map((a) => escapeHtml(a.name))
           .join(", ");
         return `<h3>${escapeHtml(city)}</h3><ul>${
-          regions ? `<li>Regions: ${regions}</li>` : ""
-        }${areas ? `<li>Areas: ${areas}</li>` : ""}</ul>`;
+          regions ? `<li>${escapeHtml(appText("print.regions", "Regions:"))} ${regions}</li>` : ""
+        }${areas ? `<li>${escapeHtml(appText("print.areas", "Areas:"))} ${areas}</li>` : ""}</ul>`;
       })
       .join("");
     printContent(
-      "Settings",
+      appText("settings.title", "Settings"),
       new Date().toLocaleDateString(),
       `<section class="print-location-group">
-        <p>Default country: ${escapeHtml(settings.country || "Not set")}</p>
-        <p>Default state / province: ${escapeHtml(settings.state || "Not set")}</p>
-        <p>Default city: ${escapeHtml(settings.defaultCity || "Not set")}</p>
+        <p>${escapeHtml(appText("print.defaultCountry", `Default country: ${settings.country || "Not set"}`, { value: settings.country || appText("print.notSet", "Not set") }))}</p>
+        <p>${escapeHtml(appText("print.defaultState", `Default state / province: ${settings.state || "Not set"}`, { value: settings.state || appText("print.notSet", "Not set") }))}</p>
+        <p>${escapeHtml(appText("print.defaultCity", `Default city: ${settings.defaultCity || "Not set"}`, { value: settings.defaultCity || appText("print.notSet", "Not set") }))}</p>
         ${
           settings.me && (settings.me.name || settings.me.street || settings.me.city)
-            ? `<p>Your details: ${escapeHtml(
+            ? `<p>${escapeHtml(appText("print.yourDetails", "Your details:"))} ${escapeHtml(
                 [settings.me.name, settings.me.street, settings.me.city, settings.me.state, settings.me.country]
                   .filter(Boolean)
                   .join(", "),
               )}</p>`
             : ""
         }
-        <p>Passphrase: ${encryptionKey ? "On" : "Off"}</p>
-        <h2>Cities, regions and areas</h2>
-        ${rows || "<p>None.</p>"}
+        <p>${escapeHtml(appText("print.passphrase", `Passphrase: ${encryptionKey ? "On" : "Off"}`, { value: encryptionKey ? appText("print.on", "On") : appText("print.off", "Off") }))}</p>
+        <h2>${escapeHtml(appText("print.locationsHeading", "Cities, regions and areas"))}</h2>
+        ${rows || `<p>${escapeHtml(appText("print.none", "None."))}</p>`}
       </section>`,
     );
   };
@@ -6219,7 +6319,7 @@ const initializeApp = async () => {
       const count = visibleContacts.length;
       if (
         !confirm(
-          `Print ${count} visible contact${count === 1 ? "" : "s"}? The printout will include only the most recent note for each contact.`,
+          appText("print.visibleConfirm", `Print ${count} visible contact${count === 1 ? "" : "s"}? The printout will include only the most recent note for each contact.`, { count }),
         )
       ) {
         return;
@@ -6229,12 +6329,12 @@ const initializeApp = async () => {
       visibleContacts.forEach((contact) => {
         const group = getPrintGroup(contact);
         if (!groups.has(group.key)) {
-          groups.set(group.key, { title: group.title, contacts: [] });
+          groups.set(group.key, { title: group.title, sortTitle: group.sortTitle, contacts: [] });
         }
         groups.get(group.key).contacts.push(contact);
       });
       const content = [...groups.values()]
-        .sort((a, b) => a.title.localeCompare(b.title))
+        .sort((a, b) => a.sortTitle.localeCompare(b.sortTitle))
         .map(
           (group) => `
             <section class="print-location-group">
@@ -6255,8 +6355,8 @@ const initializeApp = async () => {
         )
         .join("");
       printContent(
-        "Visible Contacts",
-        `${count} contact${count === 1 ? "" : "s"} • most recent note per contact • ${new Date().toLocaleDateString()}`,
+        appText("print.visibleTitle", "Visible Contacts"),
+        appText("print.visibleSubtitle", `${count} contact${count === 1 ? "" : "s"} • most recent note per contact • ${new Date().toLocaleDateString()}`, { count, date: new Date().toLocaleDateString() }),
         content,
       );
     };
@@ -6295,9 +6395,9 @@ const initializeApp = async () => {
       const address =
         normalizeStreetName(getStreetAddress(contact)) ||
         (approximateCity
-          ? `Approximate city location: ${approximateCity}`
+          ? appText("print.approximateCity", `Approximate city location: ${approximateCity}`, { city: approximateCity })
           : "") ||
-        "No street address recorded";
+        appText("print.noStreet", "No street address recorded");
       const latestNote = getSortedVisitNotes(contact)[0];
       return `
         <article class="print-contact-entry">
@@ -6305,10 +6405,10 @@ const initializeApp = async () => {
           <p class="print-contact-address">${escapeHtml(address)}</p>
           ${
             detail === "details"
-              ? `${contact.phone ? `<p>Phone: ${escapeHtml(contact.phone)}</p>` : ""}
-                 ${contact.email ? `<p>Email: ${escapeHtml(contact.email)}</p>` : ""}
-                 <p>Location: ${escapeHtml(getContactLocationSummary(contact))}</p>
-                 <p>${latestNote ? `Last visit ${escapeHtml(getPrintableNoteDate(latestNote))}: ${escapeHtml(latestNote.text)}` : "No visit notes recorded."}</p>`
+              ? `${contact.phone ? `<p>${escapeHtml(appText("contacts.phoneValue", `Phone: ${contact.phone}`, { value: contact.phone }))}</p>` : ""}
+                 ${contact.email ? `<p>${escapeHtml(appText("contacts.emailValue", `Email: ${contact.email}`, { value: contact.email }))}</p>` : ""}
+                 <p>${escapeHtml(appText("print.locationValue", `Location: ${getContactLocationSummary(contact)}`, { value: getContactLocationSummary(contact) }))}</p>
+                 <p>${latestNote ? `${escapeHtml(appText("print.lastVisitDate", `Last visit ${getPrintableNoteDate(latestNote)}:`, { date: getPrintableNoteDate(latestNote) }))} ${escapeHtml(latestNote.text)}` : escapeHtml(appText("print.noVisitNotes", "No visit notes recorded."))}</p>`
               : ""
           }
         </article>`;
@@ -6328,19 +6428,19 @@ const initializeApp = async () => {
     const pinCount = precisePins.length + approximateCityPins.size;
     const content = `
       <section class="print-location-group">
-        <h2>Map pins</h2>
+        <h2>${escapeHtml(appText("print.mapPins", "Map pins"))}</h2>
         ${precisePins.map((contact, index) => entry(contact, index + 1)).join("")}
         ${cityPinContent}
-        ${pinCount ? "" : "<p>No pins.</p>"}
+        ${pinCount ? "" : `<p>${escapeHtml(appText("print.noPins", "No pins."))}</p>`}
       </section>
       ${
         unpinned.length
-          ? `<section class="print-location-group"><h2>No map pin</h2>${unpinned.map((c) => entry(c, 0)).join("")}</section>`
+          ? `<section class="print-location-group"><h2>${escapeHtml(appText("print.noMapPin", "No map pin"))}</h2>${unpinned.map((c) => entry(c, 0)).join("")}</section>`
           : ""
       }`;
     printContent(
-      "Map Contacts",
-      `${pinCount} map location${pinCount === 1 ? "" : "s"} • ${new Date().toLocaleDateString()}`,
+      appText("print.mapContactsTitle", "Map Contacts"),
+      appText("print.mapLocationCount", `${pinCount} map location${pinCount === 1 ? "" : "s"} • ${new Date().toLocaleDateString()}`, { count: pinCount, date: new Date().toLocaleDateString() }),
       content,
     );
   };
@@ -6348,7 +6448,7 @@ const initializeApp = async () => {
   const mapPrintDialog = document.getElementById("map-print-dialog");
   const requestMapPrint = () => {
     if (!visibleContacts.length) {
-      alert("There are no contacts to print.");
+      alert(appText("print.noContacts", "There are no contacts to print."));
       return;
     }
     mapPrintDialog.showModal();
@@ -6379,7 +6479,7 @@ const initializeApp = async () => {
     if (shareContactButton.disabled) return;
     const contact = getSavedContactFromEditor();
     if (!contact) {
-      alert("Save this contact before sharing.");
+      alert(appText("contacts.saveBeforeShare", "Save this contact before sharing."));
       return;
     }
     openContactShareDialog(contact);
@@ -6389,7 +6489,7 @@ const initializeApp = async () => {
     if (exportContactButton.disabled) return;
     const contact = getSavedContactFromEditor();
     if (!contact) {
-      alert("Save this contact before exporting.");
+      alert(appText("contacts.saveBeforeExport", "Save this contact before exporting."));
       return;
     }
     exportContact(contact);
@@ -6402,12 +6502,12 @@ const initializeApp = async () => {
       (contact) => String(contact.id) === String(contactId),
     );
     if (!selectedContactToPrint) {
-      alert("Save this contact before printing.");
+      alert(appText("contacts.saveBeforePrint", "Save this contact before printing."));
       return;
     }
     const fullName =
       `${selectedContactToPrint.firstName} ${selectedContactToPrint.lastName}`.trim();
-    printContactDescription.textContent = `Choose which visit notes to print for ${fullName} (ID ${selectedContactToPrint.id}).`;
+    printContactDescription.textContent = appText("print.chooseContactNotes", `Choose which visit notes to print for ${fullName} (ID ${selectedContactToPrint.id}).`, { name: fullName, id: selectedContactToPrint.id });
     contactPrintForm.elements.namedItem("print-notes").value = "latest";
     contactPrintDialog.showModal();
   });
@@ -6494,10 +6594,10 @@ const initializeApp = async () => {
       const navigationUrl = getNavigationUrl(contact);
       return `
         <div class="map-popup-actions">
-          <button type="button" onclick="editContact(${contact.id})">Edit Contact</button>
+          <button type="button" onclick="editContact(${contact.id})">${escapeHtml(appText("contacts.editTitle", "Edit Contact"))}</button>
           ${
             navigationUrl
-              ? `<a class="map-popup-directions" href="${escapeHtml(navigationUrl)}" target="_blank" rel="noopener noreferrer">Get Directions</a>`
+              ? `<a class="map-popup-directions" href="${escapeHtml(navigationUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(appText("map.directions", "Get Directions"))}</a>`
               : '<span aria-hidden="true"></span>'
           }
         </div>`;
@@ -6508,13 +6608,13 @@ const initializeApp = async () => {
         <section class="map-popup-contact">
           <strong>${number}. ${escapeHtml(contact.firstName)} ${escapeHtml(contact.lastName)}</strong><br>
           ${escapeHtml(getFormattedContactAddress(contact))}<br>
-          ${contact.phone ? `Phone: ${escapeHtml(contact.phone)}<br>` : ""}
-          ${contact.email ? `Email: ${escapeHtml(contact.email)}<br>` : ""}
-          Location: ${escapeHtml(getContactLocationSummary(contact))}<br>
-          Days Since Contact: ${status.days} (${status.label})<br>
-          ${approximate ? "<em>Approximate city location</em><br>" : ""}
+          ${contact.phone ? `${escapeHtml(appText("contacts.phoneValue", `Phone: ${contact.phone}`, { value: contact.phone }))}<br>` : ""}
+          ${contact.email ? `${escapeHtml(appText("contacts.emailValue", `Email: ${contact.email}`, { value: contact.email }))}<br>` : ""}
+          ${escapeHtml(appText("map.location", "Location:"))} ${escapeHtml(getContactLocationSummary(contact))}<br>
+          ${escapeHtml(appText("map.daysSince", `Days Since Contact: ${status.days}`, { count: status.days }))} (${escapeHtml(getStatusDisplay(status))})<br>
+          ${approximate ? `<em>${escapeHtml(appText("map.approximate", "Approximate city location"))}</em><br>` : ""}
           ${contactActions(contact)}
-          ${approximate ? "" : "<small>Drag this pin to move it. The new location saves automatically.</small>"}
+          ${approximate ? "" : `<small>${escapeHtml(appText("map.dragPin", "Drag this pin to move it. The new location saves automatically."))}</small>`}
         </section>`;
     };
 
@@ -6553,10 +6653,10 @@ const initializeApp = async () => {
             mapContactPoints[pointIndex] = [movedTo.lat, movedTo.lng];
           }
           const status = document.getElementById("map-location-status");
-          status.textContent = "Saving moved pin...";
+          status.textContent = appText("map.savingPin", "Saving moved pin...");
           if (await saveContacts()) {
             map.setView(previousCenter, previousZoom);
-            status.textContent = "Pin moved and saved.";
+            status.textContent = appText("map.pinSaved", "Pin moved and saved.");
           } else {
             contact.lat = previousCoordinates.lat;
             contact.lng = previousCoordinates.lng;
@@ -6564,7 +6664,7 @@ const initializeApp = async () => {
             renderMapMarkers();
             map.setView(previousCenter, previousZoom);
             status.textContent =
-              "Could not save the moved pin. The previous location was restored.";
+              appText("map.saveMovedFailed", "Could not save the moved pin. The previous location was restored.");
           }
         });
 
@@ -6602,11 +6702,11 @@ const initializeApp = async () => {
         zIndexOffset: 1000,
       }).addTo(map);
       homeMarker.bindPopup(
-        `<b>${escapeHtml(me.name || "My home")}</b><br>${escapeHtml(
-          [me.street, me.city, me.state, me.country]
+        `<b>${escapeHtml(me.name || appText("map.myHome", "My home"))}</b><br>${escapeHtml(
+          [me.street, me.city, me.state, displayCountry(me.country)]
             .filter(Boolean)
             .join(", "),
-        )}<br><br>Drag this pin to move it. The new location saves automatically.`,
+        )}<br><br>${escapeHtml(appText("map.dragPin", "Drag this pin to move it. The new location saves automatically."))}`,
       );
       homeMarker.on("dragend", async () => {
         const movedTo = homeMarker.getLatLng();
@@ -6624,7 +6724,7 @@ const initializeApp = async () => {
     fitMapToContactPoints();
     if (exactPoints.length > 0) {
       lastDefaultCityCenterQuery = null;
-      mapStatus.textContent = `Showing ${exactPoints.length} contact pin${exactPoints.length === 1 ? "" : "s"} with saved coordinates. Drag a pin to move it; changes save automatically.`;
+      mapStatus.textContent = appText("map.exactPinStatus", `Showing ${exactPoints.length} contact pin${exactPoints.length === 1 ? "" : "s"} with saved coordinates. Drag a pin to move it; changes save automatically.`, { count: exactPoints.length });
     }
 
     if (cityGroups.size > 0) {
@@ -6632,7 +6732,9 @@ const initializeApp = async () => {
         (count, group) => count + group.contacts.length,
         0,
       );
-      mapStatus.textContent = `Locating ${cityGroups.size} approximate city location${cityGroups.size === 1 ? "" : "s"} for ${cityContactsCount} contact${cityContactsCount === 1 ? "" : "s"}...`;
+      const locationCount = appText("map.approximateLocationCount", `${cityGroups.size} approximate city location${cityGroups.size === 1 ? "" : "s"}`, { count: cityGroups.size });
+      const contactCount = appText("map.contactCount", `${cityContactsCount} contact${cityContactsCount === 1 ? "" : "s"}`, { count: cityContactsCount });
+      mapStatus.textContent = appText("map.locatingCityPins", `Locating ${locationCount} for ${contactCount}...`, { locations: locationCount, contacts: contactCount });
       const locatedCityPoints = [];
       let locatedCityContacts = 0;
       let failedCityContacts = 0;
@@ -6665,7 +6767,7 @@ const initializeApp = async () => {
             .join(", ");
           marker.bindPopup(`
             <div>
-              <strong>Approximate city location: ${escapeHtml(cityLabel)}</strong>
+              <strong>${escapeHtml(appText("print.approximateCity", `Approximate city location: ${cityLabel}`, { city: cityLabel }))}</strong>
               ${group.contacts
                 .map(({ contact, number }) => contactDetails(contact, number, true))
                 .join("")}
@@ -6683,14 +6785,15 @@ const initializeApp = async () => {
         const pinCount = exactPoints.length + locatedCityPins;
         if (pinCount > 0) {
           lastDefaultCityCenterQuery = null;
-          mapStatus.textContent =
-            `${exactPoints.length} contact pin${exactPoints.length === 1 ? "" : "s"} with saved coordinates and ${locatedCityPins} approximate city pin${locatedCityPins === 1 ? "" : "s"} shown for ${locatedCityContacts} city-only contact${locatedCityContacts === 1 ? "" : "s"}.` +
-            (unlocatedContacts > 0
-              ? ` ${unlocatedContacts} contact${unlocatedContacts === 1 ? " has" : "s have"} no mappable city.`
-              : "");
+          const exact = appText("map.exactPinCount", `${exactPoints.length} contact pin${exactPoints.length === 1 ? "" : "s"} with saved coordinates`, { count: exactPoints.length });
+          const approximate = appText("map.approximatePinCount", `${locatedCityPins} approximate city pin${locatedCityPins === 1 ? "" : "s"}`, { count: locatedCityPins });
+          const cityOnly = appText("map.cityOnlyContactCount", `${locatedCityContacts} city-only contact${locatedCityContacts === 1 ? "" : "s"}`, { count: locatedCityContacts });
+          mapStatus.textContent = appText("map.pinSummary", `${exact} and ${approximate} shown for ${cityOnly}.`, { exact, approximate, contacts: cityOnly }) +
+            (unlocatedContacts > 0 ? appText("map.unlocatedContacts", ` ${unlocatedContacts} contact${unlocatedContacts === 1 ? " has" : "s have"} no mappable city.`, { count: unlocatedContacts }) : "");
         } else {
           mapStatus.textContent =
-            `No city-only contacts could be located.${failedCityContacts ? " Check your connection and try opening the Map again." : ""}`;
+            appText("map.noCityContacts", "No city-only contacts could be located.") +
+            (failedCityContacts ? appText("map.checkConnectionAgain", " Check your connection and try opening the Map again.") : "");
         }
         if (mapMarkers.length === 0 && !homeMarker) {
           centerMapOnDefaultCity();
@@ -6699,10 +6802,10 @@ const initializeApp = async () => {
       if (currentViewId === "map-view") renderCityPins();
     } else if (visibleContacts.length > 0 && exactPoints.length === 0) {
       mapStatus.textContent =
-        `${visibleContacts.length} matching contact${visibleContacts.length === 1 ? " has" : "s have"} no saved coordinates or city. Add a city or use Find Address or City Pin to locate a contact.`;
+        appText("map.contactsWithoutLocation", `${visibleContacts.length} matching contact${visibleContacts.length === 1 ? " has" : "s have"} no saved coordinates or city. Add a city or use Find Address or City Pin to locate a contact.`, { count: visibleContacts.length });
     } else if (visibleContacts.length === 0) {
       mapStatus.textContent =
-        "No matching contacts to show. Change the search or filters, or add map coordinates to a contact.";
+        appText("map.noMatchingContacts", "No matching contacts to show. Change the search or filters, or add map coordinates to a contact.");
     }
 
     if (currentViewId === "map-view" && mapMarkers.length === 0 && !homeMarker) {
@@ -6722,7 +6825,7 @@ const initializeApp = async () => {
 
   // Inline Visit Log Editor Functions
   window.deleteVisitLog = async (contactId, logId) => {
-    if (confirm("Are you sure you want to delete this visit log?")) {
+    if (confirm(appText("visits.confirmDelete", "Are you sure you want to delete this visit log?"))) {
       const contact = contacts.find((c) => c.id == contactId);
       if (contact && contact.notesHistory) {
         contact.notesHistory = contact.notesHistory.filter(
@@ -6759,7 +6862,7 @@ const initializeApp = async () => {
       },
     );
     const recordIdLabel = document.getElementById("contact-record-id");
-    recordIdLabel.textContent = `Permanent contact ID: ${contact.id}`;
+    recordIdLabel.textContent = appText("contacts.permanentId", `Permanent contact ID: ${contact.id}`, { id: contact.id });
     recordIdLabel.hidden = false;
     document.getElementById("contact-firstname").value = contact.firstName;
     document.getElementById("contact-lastname").value = contact.lastName;
@@ -6825,8 +6928,8 @@ const initializeApp = async () => {
           const editBtn = document.createElement("button");
           editBtn.type = "button";
           editBtn.className = "btn-icon";
-          editBtn.title = "Edit Log";
-          editBtn.textContent = "✏️ Edit";
+          editBtn.title = appText("visits.editLog", "Edit Log");
+          editBtn.textContent = appText("visits.editButton", "✏️ Edit");
           editBtn.style.fontSize = "12px";
           editBtn.style.padding = "4px 8px";
           editBtn.addEventListener("click", (ev) => {
@@ -6838,8 +6941,8 @@ const initializeApp = async () => {
           const delBtn = document.createElement("button");
           delBtn.type = "button";
           delBtn.className = "btn-icon delete";
-          delBtn.title = "Delete Log";
-          delBtn.textContent = "🗑️ Delete";
+          delBtn.title = appText("visits.deleteLog", "Delete Log");
+          delBtn.textContent = appText("visits.deleteButton", "🗑️ Delete");
           delBtn.style.fontSize = "12px";
           delBtn.style.padding = "4px 8px";
           delBtn.addEventListener("click", (ev) => {
@@ -6885,7 +6988,7 @@ const initializeApp = async () => {
 
           const saveLogBtn = document.createElement("button");
           saveLogBtn.type = "button";
-          saveLogBtn.textContent = "💾 Update Log";
+          saveLogBtn.textContent = appText("visits.updateLog", "💾 Update Log");
           saveLogBtn.style.background = "#28a745";
           saveLogBtn.style.color = "white";
           saveLogBtn.style.border = "none";
@@ -6898,7 +7001,7 @@ const initializeApp = async () => {
             ev.stopPropagation();
             const updatedText = textArea.value.trim();
             if (!updatedText) {
-              alert("Note text cannot be empty.");
+              alert(appText("visits.emptyError", "Note text cannot be empty."));
               return;
             }
             const updatedDate = new Date(dateInput.value);
@@ -6912,7 +7015,7 @@ const initializeApp = async () => {
 
           const cancelLogBtn = document.createElement("button");
           cancelLogBtn.type = "button";
-          cancelLogBtn.textContent = "❌ Cancel";
+          cancelLogBtn.textContent = appText("visits.cancelButton", "❌ Cancel");
           cancelLogBtn.style.background = "#6c757d";
           cancelLogBtn.style.color = "white";
           cancelLogBtn.style.border = "none";
@@ -6940,12 +7043,16 @@ const initializeApp = async () => {
         historyContainer.appendChild(entry);
       });
     } else {
-      historyContainer.innerHTML =
-        '<span style="color: #888;">No visit logs recorded yet.</span>';
+      const empty = document.createElement("span");
+      empty.style.color = "#888";
+      empty.textContent = appText("visits.noLogsRecorded", "No visit logs recorded yet.");
+      historyContainer.appendChild(empty);
     }
 
     document.getElementById("modal-title").textContent =
-      view === "visits" ? "Add/Edit Visit" : "Edit Contact";
+      view === "visits"
+        ? appText("visits.addEdit", "Add/Edit Visit")
+        : appText("contacts.editTitle", "Edit Contact");
     const lat = Number.parseFloat(contact.lat);
     const lng = Number.parseFloat(contact.lng);
     await openModalWithCoords(
@@ -6956,7 +7063,7 @@ const initializeApp = async () => {
   };
 
   window.deleteContact = async (id) => {
-    if (confirm("Delete this contact and all of its data?")) {
+    if (confirm(appText("contacts.confirmDelete", "Delete this contact and all of its data?"))) {
       const previousState = cloneLocationState();
       contacts = contacts.filter((c) => c.id != id);
       settings.deletedContacts = [
@@ -7310,13 +7417,13 @@ const initializeApp = async () => {
       contactTransferMode = mode;
       contactTransferDialogResolve = resolve;
       document.getElementById("contact-transfer-title").textContent =
-        mode === "export" ? "Protect Contact File" : "Unlock Contact File";
+        mode === "export" ? appText("contacts.protectFile", "Protect Contact File") : appText("contacts.unlockFile", "Unlock Contact File");
       document.getElementById("contact-transfer-description").textContent =
         mode === "export"
-          ? "Create a passphrase of at least 8 characters. Give it to the recipient separately from the contact file."
-          : "Enter the passphrase that was used to protect this contact file.";
+          ? appText("contacts.protectFileDescription", "Create a passphrase of at least 8 characters. Give it to the recipient separately from the contact file.")
+          : appText("contacts.unlockFileDescription", "Enter the passphrase that was used to protect this contact file.");
       document.getElementById("contact-transfer-submit").textContent =
-        mode === "export" ? "Export Contact" : "Import Contact";
+        mode === "export" ? appText("contacts.exportContact", "Export Contact") : appText("contacts.importContact", "Import Contact");
       contactTransferConfirmContainer.hidden = mode !== "export";
       contactTransferPassphrase.value = "";
       contactTransferConfirm.value = "";
@@ -7355,14 +7462,14 @@ const initializeApp = async () => {
     event.preventDefault();
     const passphrase = contactTransferPassphrase.value;
     if (passphrase.length < 8) {
-      alert("Use a passphrase with at least 8 characters.");
+      alert(appText("security.minEight", "Use a passphrase with at least 8 characters."));
       return;
     }
     if (
       contactTransferMode === "export" &&
       passphrase !== contactTransferConfirm.value
     ) {
-      alert("The passphrases do not match.");
+      alert(appText("security.mismatch", "The passphrases do not match."));
       contactTransferConfirm.select();
       return;
     }
@@ -7429,7 +7536,7 @@ const initializeApp = async () => {
       window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
     } catch (error) {
       console.error("Unable to export contact:", error);
-      alert("Could not export this contact. No contact data was changed.");
+      alert(appText("contacts.exportFailed", "Could not export this contact. No contact data was changed."));
     }
   };
 
@@ -7466,7 +7573,7 @@ const initializeApp = async () => {
         }
         if (
           !confirm(
-            `Import ${importedList.length} contact${importedList.length === 1 ? "" : "s"} as new? Visit history is included. Existing contacts will not be changed.`,
+            appText("contacts.importConfirm", `Import ${importedList.length} contact${importedList.length === 1 ? "" : "s"} as new? Visit history is included. Existing contacts will not be changed.`, { count: importedList.length }),
           )
         ) {
           contactFileInput.value = "";
@@ -7566,13 +7673,28 @@ const initializeApp = async () => {
         renderContacts();
         contactFileInput.value = "";
         alert(
-          `${importedList.length} contact${importedList.length === 1 ? "" : "s"} imported.`,
+          appText("contacts.importedCount", `${importedList.length} contact${importedList.length === 1 ? "" : "s"} imported.`, { count: importedList.length }),
         );
       } catch (error) {
         contactFileInput.value = "";
         console.error("Unable to import contacts:", error);
+        const importErrors = {
+          "This is not a supported contact file.": appText("contacts.unsupportedFile", "This is not a supported contact file."),
+          "The contact file contents are invalid.": appText("contacts.invalidFile", "The contact file contents are invalid."),
+          "The contact file contains no contacts.": appText("contacts.emptyFile", "The contact file contains no contacts."),
+          "Encrypted data is invalid or unsupported.": appText("contacts.invalidEncryptedData", "Encrypted data is invalid or unsupported."),
+        };
+        const detail = error instanceof NewerDataVersionError
+          ? appText("storage.newerData", "This data was saved by a newer version of the app. Update the app (reload it) before opening this data. Nothing was changed.")
+          : error instanceof SyntaxError
+            ? appText("contacts.invalidJson", "The file is not valid JSON.")
+            : error.name === "OperationError"
+              ? appText("contacts.decryptFailed", "The file could not be decrypted. Check that the file is valid and the passphrase is correct.")
+              : Object.prototype.hasOwnProperty.call(importErrors, error.message)
+                ? importErrors[error.message]
+                : error.message || appText("contacts.importCheckFile", "Check that the file is valid and the passphrase is correct.");
         alert(
-          `Could not import. ${error.message || "Check that the file is valid and the passphrase is correct."} Your current contacts were not changed.`,
+          appText("contacts.importFailed", `Could not import. ${detail} Your current contacts were not changed.`, { detail }),
         );
       }
     });
@@ -7616,8 +7738,8 @@ const initializeApp = async () => {
     console.error("Unable to restore encrypted backup:", error);
     alert(
       error instanceof NewerDataVersionError
-        ? `${error.message} Your current data was not replaced.`
-        : "Could not restore that backup. Check that the file is valid and the passphrase is correct. Your current data was not replaced.",
+        ? appText("backup.newerData", "This data was saved by a newer version of the app. Update the app (reload it) before opening this data. Nothing was changed. Your current data was not replaced.")
+        : appText("backup.restoreFailed", "Could not restore that backup. Check that the file is valid and the passphrase is correct. Your current data was not replaced."),
     );
   };
 
@@ -7650,18 +7772,15 @@ const initializeApp = async () => {
     restored.wasLegacyPlaintext = false;
     let passphraseNote = "";
     if (!plainBackup && !deviceProtected) {
-      passphraseNote =
-        " This backup is protected by a passphrase, so restoring it turns the passphrase on for this device. It will be the backup's passphrase and recovery code, and you will be asked for it each time you open the app.";
+      passphraseNote = appText("backup.restoreTurnsOn", " This backup is protected by a passphrase, so restoring it turns the passphrase on for this device. It will be the backup's passphrase and recovery code, and you will be asked for it each time you open the app.");
     } else if (!plainBackup) {
-      passphraseNote =
-        " This device will switch to the passphrase and recovery code of this backup.";
+      passphraseNote = appText("backup.restoreSwitchesPassphrase", " This device will switch to the passphrase and recovery code of this backup.");
     } else if (deviceProtected) {
-      passphraseNote =
-        " This backup is not encrypted; the restored data will be protected by this device's passphrase.";
+      passphraseNote = appText("backup.restoreDevicePassphrase", " This backup is not encrypted; the restored data will be protected by this device's passphrase.");
     }
     if (
       !confirm(
-        `This will replace all ${contacts.length} current contacts with ${restored.contacts.length} contacts from the backup.${passphraseNote} Continue?`,
+        appText("backup.replaceConfirm", `This will replace all ${contacts.length} current contacts with ${restored.contacts.length} contacts from the backup.${passphraseNote} Continue?`, { current: contacts.length, restored: restored.contacts.length, note: passphraseNote }),
       )
     ) {
       return false;
@@ -7690,15 +7809,15 @@ const initializeApp = async () => {
     markBackupDone();
     alert(
       encryptionKey && !restored.metadata?.recovery
-        ? "Backup restored. It has no recovery code yet; open Settings → Data/Security → Passphrase to Open App and choose Make a New Recovery Code."
-        : "Backup restored successfully.",
+        ? appText("backup.restoredNoRecovery", "Backup restored. It has no recovery code yet; open Settings → Data/Security → Passphrase to Open App and choose Make a New Recovery Code.")
+        : appText("backup.restored", "Backup restored successfully."),
     );
     return true;
   };
 
   const restoreBackupFile = async (file) => {
     if (!file) {
-      alert("Choose an encrypted backup file first.");
+      alert(appText("backup.chooseEncrypted", "Choose an encrypted backup file first."));
       return false;
     }
 
@@ -7768,31 +7887,31 @@ const initializeApp = async () => {
         icon: "⚠️",
         text:
           localStorage.getItem(CLOUD_RECONNECT_DECISION_KEY) === "1"
-            ? "Dropbox is connected, but automatic sync is paused until you choose whether to restore its existing backup or replace it with this device's data."
-            : "Dropbox sync is paused. Open Settings → Data/Security → Backup or Restore → Cloud Backup/Restore (Dropbox) for details.",
+            ? appText("dropbox.pausedDecision", "Dropbox is connected, but automatic sync is paused until you choose whether to restore its existing backup or replace it with this device's data.")
+            : appText("dropbox.paused", "Dropbox sync is paused. Open Settings → Data/Security → Backup or Restore → Cloud Backup/Restore (Dropbox) for details."),
       };
     }
     if (!navigator.onLine) {
       return {
         icon: "📴",
         text: waiting
-          ? "Offline. Your changes are saved on this device and will upload when the connection returns."
-          : "Offline. Changes will sync when the connection returns.",
+          ? appText("dropbox.offlinePending", "Offline. Your changes are saved on this device and will upload when the connection returns.")
+          : appText("dropbox.offline", "Offline. Changes will sync when the connection returns."),
       };
     }
-    if (cloudBusy) return { icon: "🔄", text: "Syncing with Dropbox…" };
+    if (cloudBusy) return { icon: "🔄", text: appText("dropbox.syncing", "Syncing with Dropbox…") };
     if (waiting) {
       return {
         icon: "⏳",
-        text: "Changes saved on this device are waiting to upload to Dropbox.",
+        text: appText("dropbox.pending", "Changes saved on this device are waiting to upload to Dropbox."),
       };
     }
     const last = Number(localStorage.getItem(CLOUD_LAST_KEY) || 0);
     return {
       icon: "☁️",
       text: last
-        ? `Synced with Dropbox (${new Date(last).toLocaleString()}).`
-        : "Connected to Dropbox.",
+        ? appText("dropbox.syncedAt", `Synced with Dropbox (${new Date(last).toLocaleString()}).`, { date: new Date(last).toLocaleString() })
+        : appText("dropbox.connected", "Connected to Dropbox."),
     };
   };
   const refreshSyncIcon = () => {
@@ -7817,25 +7936,25 @@ const initializeApp = async () => {
     document.getElementById("cloud-on").hidden = !connected;
     cloudSection.hidden = !connected && !cloudChosen;
     document.getElementById("backup-mode-status").textContent = connected
-      ? "You are using Dropbox cloud backup. Local backup files are still available below."
+      ? appText("backup.usingDropbox", "You are using Dropbox cloud backup. Local backup files are still available below.")
       : cloudChosen
-        ? "You are using Local backup. Finish the Dropbox steps below, or go back to local only."
-        : "You are using Local backup (files saved on this device).";
+        ? appText("backup.finishDropbox", "You are using Local backup. Finish the Dropbox steps below, or go back to local only.")
+        : appText("backup.usingLocal", "You are using Local backup (files saved on this device).");
     document.getElementById("btn-backup-mode-switch").textContent = connected
-      ? "Stop using Dropbox (use local only)"
+      ? appText("dropbox.stopUsing", "Stop using Dropbox (use local only)")
       : cloudChosen
-        ? "Cancel (use local only)"
-        : "Switch to Dropbox cloud backup";
+        ? appText("dropbox.cancelSetup", "Cancel (use local only)")
+        : appText("dropbox.switchTo", "Switch to Dropbox cloud backup");
     if (!connected) return;
     const last = Number(localStorage.getItem(CLOUD_LAST_KEY) || 0);
     document.getElementById("cloud-last-backup").textContent = last
-      ? `Last Dropbox backup: ${new Date(last).toLocaleString()}`
-      : "No Dropbox backup yet.";
+      ? appText("dropbox.lastBackup", `Last Dropbox backup: ${new Date(last).toLocaleString()}`, { date: new Date(last).toLocaleString() })
+      : appText("dropbox.noBackup", "No Dropbox backup yet.");
     const accountStatus = document.getElementById("cloud-account-status");
-    accountStatus.textContent = "Connected to Dropbox.";
+    accountStatus.textContent = appText("dropbox.connected", "Connected to Dropbox.");
     try {
       const email = await dropbox.accountEmail();
-      if (email) accountStatus.textContent = `Connected to Dropbox as ${email}.`;
+      if (email) accountStatus.textContent = appText("dropbox.connectedAs", `Connected to Dropbox as ${email}.`, { email });
     } catch (error) {
       console.error("Unable to read the Dropbox account:", error);
     }
@@ -8071,13 +8190,13 @@ const initializeApp = async () => {
         cloudPaused = true;
         refreshSyncIcon();
         setCloudStatus(
-          "Automatic backup is paused because Dropbox has a backup from another device that uses a different passphrase, so it cannot be combined automatically. Tap Check for a Newer Backup to restore it, or Back Up to Dropbox Now to replace it with this device's data.",
+          appText("dropbox.autoPausedDifferentPassphrase", "Automatic backup is paused because Dropbox has a backup from another device that uses a different passphrase, so it cannot be combined automatically. Tap Check for a Newer Backup to restore it, or Back Up to Dropbox Now to replace it with this device's data."),
         );
         return false;
       }
       console.error("Automatic Dropbox backup failed:", error);
       setCloudStatus(
-        "The last automatic Dropbox sync did not finish. Your changes are saved on this device and it will try again.",
+        appText("dropbox.autoSyncFailed", "The last automatic Dropbox sync did not finish. Your changes are saved on this device and it will try again."),
       );
       window.clearTimeout(cloudTimer);
       cloudTimer = window.setTimeout(() => {
@@ -8135,14 +8254,14 @@ const initializeApp = async () => {
     }
     if (!navigator.onLine) {
       refreshSyncIcon();
-      if (manual) setCloudStatus("You are offline. Changes will sync when the connection returns.");
+      if (manual) setCloudStatus(appText("dropbox.offlineChanges", "You are offline. Changes will sync when the connection returns."));
       return;
     }
     cloudChecking = true;
     cloudCheckedAt = Date.now();
     cloudBusy = true;
     refreshSyncIcon();
-    if (manual) setCloudStatus("Checking Dropbox for changes…");
+    if (manual) setCloudStatus(appText("dropbox.checkingChanges", "Checking Dropbox for changes…"));
     try {
       const remote = await getRemoteLatest();
       if (!remoteIsNewer(remote)) {
@@ -8150,7 +8269,7 @@ const initializeApp = async () => {
           cloudBusy = false;
           await autoCloudBackup();
         }
-        if (manual) setCloudStatus("This device is up to date with Dropbox.");
+        if (manual) setCloudStatus(appText("dropbox.upToDate", "This device is up to date with Dropbox."));
         return;
       }
       if (!manual && cloudDeclinedFor === remote.modified) return;
@@ -8160,7 +8279,7 @@ const initializeApp = async () => {
       } catch (error) {
         if (error instanceof NewerDataVersionError) {
           setCloudStatus(
-            "The Dropbox copy was made by a newer version of the app. Update the app, then try again.",
+            appText("dropbox.newerApp", "The Dropbox copy was made by a newer version of the app. Update the app, then try again."),
           );
           return;
         }
@@ -8169,7 +8288,7 @@ const initializeApp = async () => {
       if (merged) {
         cloudPaused = false;
         setCloudStatus(
-          "Combined this device with the latest changes from Dropbox.",
+          appText("dropbox.combined", "Combined this device with the latest changes from Dropbox."),
         );
         if (merged.uploadNeeded) {
           cloudBusy = false;
@@ -8181,29 +8300,27 @@ const initializeApp = async () => {
       const when = new Date(remote.modified).toLocaleString();
       const unsaved =
         localStorage.getItem(CLOUD_DIRTY_KEY) === "1"
-          ? " This device also has changes that are not in Dropbox yet; restoring will replace them."
+          ? appText("dropbox.remoteUnsaved", " This device also has changes that are not in Dropbox yet; restoring will replace them.")
           : "";
       if (
         confirm(
-          `Dropbox has a backup from another device (${when}) that uses a different passphrase, so it cannot be combined automatically.${unsaved} Restore it onto this device now?`,
+          appText("dropbox.remoteDifferentPassphrase", `Dropbox has a backup from another device (${when}) that uses a different passphrase, so it cannot be combined automatically.${unsaved} Restore it onto this device now?`, { when, unsaved }),
         )
       ) {
-        setCloudStatus("Downloading from Dropbox…");
+        setCloudStatus(appText("dropbox.downloading", "Downloading from Dropbox…"));
         if (await restoreFromCloud(remote.path, remote.modified)) {
           cloudPaused = false;
-          setCloudStatus("Restored the Dropbox backup.");
+          setCloudStatus(appText("dropbox.restored", "Restored the Dropbox backup."));
           return;
         }
       }
       cloudDeclinedFor = remote.modified;
       cloudPaused = true;
-      setCloudStatus(
-        "Not restored. Automatic backup stays paused until you restore, or tap Back Up to Dropbox Now to replace the Dropbox copy with this device's data.",
-      );
+      setCloudStatus(appText("dropbox.notRestoredPaused", "Not restored. Automatic backup stays paused until you restore, or tap Back Up to Dropbox Now to replace the Dropbox copy with this device's data."));
     } catch (error) {
       console.error("Unable to check Dropbox:", error);
       if (manual) {
-        setCloudStatus("Could not reach Dropbox. Check your connection.");
+        setCloudStatus(appText("dropbox.connectionFailed", "Could not reach Dropbox. Check your connection."));
       }
     } finally {
       cloudChecking = false;
@@ -8269,11 +8386,11 @@ const initializeApp = async () => {
     .getElementById("btn-cloud-connect")
     .addEventListener("click", async () => {
       const encryptionWarning = encryptionKey
-        ? "Your Dropbox backups will be encrypted with this app's passphrase before they are uploaded. Keep that passphrase and your recovery code safe; anyone who obtains an unencrypted export or a copy made before encryption may still read it."
-        : "No app passphrase is on, so backups in Dropbox will not be encrypted. Anyone who can access those Dropbox files may be able to read them. Turning on a passphrase first (Settings → Data/Security → Passphrase to Open App) is optional and will encrypt new backups; existing unencrypted Dropbox copies remain readable until you delete them.";
+        ? appText("dropbox.warningEncrypted", "Your Dropbox backups will be encrypted with this app's passphrase before they are uploaded. Keep that passphrase and your recovery code safe; anyone who obtains an unencrypted export or a copy made before encryption may still read it.")
+        : appText("dropbox.warningUnencrypted", "No app passphrase is on, so backups in Dropbox will not be encrypted. Anyone who can access those Dropbox files may be able to read them. Turning on a passphrase first (Settings → Data/Security → Passphrase to Open App) is optional and will encrypt new backups; existing unencrypted Dropbox copies remain readable until you delete them.");
       if (
         !confirm(
-          `Dropbox is optional. Connecting sends Nice Return Visits backups to the Dropbox folder named Return Visits in your account. ${encryptionWarning} You can also protect your Dropbox account with a strong password and two-step verification. Dropbox account or device security can still be compromised. Continue to Dropbox sign-in?`,
+          appText("dropbox.connectionWarning", `Dropbox is optional. Connecting sends Nice Return Visits backups to the Dropbox folder named Return Visits in your account. ${encryptionWarning} You can also protect your Dropbox account with a strong password and two-step verification. Dropbox account or device security can still be compromised. Continue to Dropbox sign-in?`, { warning: encryptionWarning }),
         )
       ) {
         return;
@@ -8282,7 +8399,7 @@ const initializeApp = async () => {
         await dropbox.startConnect();
       } catch (error) {
         console.error(error);
-        setCloudStatus("Could not start the Dropbox sign-in. Please try again.");
+        setCloudStatus(appText("dropbox.signInStartFailed", "Could not start the Dropbox sign-in. Please try again."));
       }
     });
 
@@ -8294,7 +8411,7 @@ const initializeApp = async () => {
       if (
         reconnectNeedsDecision &&
         !confirm(
-          "Dropbox already has NRV backup data. Backing up now will replace its latest copy with this device's data. Older dated copies stay in Dropbox. Continue?",
+          appText("dropbox.replaceConfirm", "Dropbox already has NRV backup data. Backing up now will replace its latest copy with this device's data. Older dated copies stay in Dropbox. Continue?"),
         )
       ) {
         return;
@@ -8302,12 +8419,12 @@ const initializeApp = async () => {
       if (
         !contacts.length &&
         !confirm(
-          "There are no contacts on this device. Backing up now could replace your latest Dropbox copy with an empty one. Continue?",
+          appText("dropbox.emptyBackupConfirm", "There are no contacts on this device. Backing up now could replace your latest Dropbox copy with an empty one. Continue?"),
         )
       ) {
         return;
       }
-      setCloudStatus("Backing up to Dropbox…");
+      setCloudStatus(appText("dropbox.backingUp", "Backing up to Dropbox…"));
       try {
         try {
           await runCloudBackup({
@@ -8319,10 +8436,10 @@ const initializeApp = async () => {
           if (error.code !== "cloud-newer") throw error;
           if (
             !confirm(
-              `Dropbox has a newer backup from another device (${new Date(error.remote.modified).toLocaleString()}). Replace it with this device's data? Older dated copies stay in Dropbox. Choose Cancel, then Check for a Newer Backup, to restore it instead.`,
+              appText("dropbox.replaceNewerConfirm", `Dropbox has a newer backup from another device (${new Date(error.remote.modified).toLocaleString()}). Replace it with this device's data? Older dated copies stay in Dropbox. Choose Cancel, then Check for a Newer Backup, to restore it instead.`, { when: new Date(error.remote.modified).toLocaleString() }),
             )
           ) {
-            setCloudStatus("Not backed up. Dropbox still has the newer backup.");
+            setCloudStatus(appText("dropbox.notBackedUp", "Not backed up. Dropbox still has the newer backup."));
             return;
           }
           await runCloudBackup({
@@ -8334,11 +8451,11 @@ const initializeApp = async () => {
         localStorage.removeItem(CLOUD_RECONNECT_DECISION_KEY);
         cloudPaused = false;
         await refreshCloudUi();
-        setCloudStatus("Backed up to Dropbox.");
+        setCloudStatus(appText("dropbox.backupSuccess", "Backed up to Dropbox."));
       } catch (error) {
         console.error(error);
         setCloudStatus(
-          "Could not back up to Dropbox. Check your connection and try again.",
+          appText("dropbox.backupFailed", "Could not back up to Dropbox. Check your connection and try again."),
         );
       }
     });
@@ -8348,7 +8465,7 @@ const initializeApp = async () => {
     .addEventListener("click", async () => {
       if (
         !confirm(
-          "Disconnect Dropbox? Your existing backups stay in your Dropbox, but the app will stop backing up there.",
+          appText("dropbox.disconnectConfirm", "Disconnect Dropbox? Your existing backups stay in your Dropbox, but the app will stop backing up there."),
         )
       ) {
         return;
@@ -8360,7 +8477,7 @@ const initializeApp = async () => {
       localStorage.removeItem(CLOUD_DIRTY_KEY);
       localStorage.removeItem(CLOUD_RECONNECT_DECISION_KEY);
       cloudPaused = false;
-      setCloudStatus("Dropbox disconnected.");
+      setCloudStatus(appText("dropbox.disconnected", "Dropbox disconnected."));
       cloudChosen = false;
       document.getElementById("btn-cloud-begin").hidden = false;
       showCloudStep("");
@@ -8388,13 +8505,13 @@ const initializeApp = async () => {
   const cloudRestoreSelect = document.getElementById("cloud-restore-select");
   let cloudLatestModified = 0;
   const openCloudRestore = async () => {
-    setCloudStatus("Looking for backups in Dropbox…");
+    setCloudStatus(appText("dropbox.lookingForBackups", "Looking for backups in Dropbox…"));
     let files;
     try {
       files = await dropbox.list();
     } catch (error) {
       console.error(error);
-      setCloudStatus("Could not reach Dropbox. Check your connection.");
+      setCloudStatus(appText("dropbox.connectionFailed", "Could not reach Dropbox. Check your connection."));
       return;
     }
     const backups = files
@@ -8405,7 +8522,7 @@ const initializeApp = async () => {
         return b.name.localeCompare(a.name);
       });
     if (!backups.length) {
-      setCloudStatus("No backups were found in your Dropbox yet.");
+      setCloudStatus(appText("dropbox.noBackupsFound", "No backups were found in your Dropbox yet."));
       return;
     }
     setCloudStatus("");
@@ -8417,7 +8534,7 @@ const initializeApp = async () => {
       option.value = file.path_lower;
       const when = new Date(file.server_modified).toLocaleString();
       option.textContent =
-        file.name === "latest.json" ? `Latest copy (${when})` : when;
+        file.name === "latest.json" ? appText("dropbox.latestCopy", `Latest copy (${when})`, { when }) : when;
       cloudRestoreSelect.appendChild(option);
     });
     cloudRestoreDialog.showModal();
@@ -8434,7 +8551,7 @@ const initializeApp = async () => {
       event.preventDefault();
       const path = cloudRestoreSelect.value;
       cloudRestoreDialog.close();
-      setCloudStatus("Downloading from Dropbox…");
+      setCloudStatus(appText("dropbox.downloading", "Downloading from Dropbox…"));
       await restoreFromCloud(path, cloudLatestModified || Date.now());
     });
 
@@ -8456,7 +8573,11 @@ const initializeApp = async () => {
     cloudSection.open = true;
     if (!result.ok) {
       await refreshCloudUi();
-      setCloudStatus(result.message);
+      const callbackMessages = {
+        "Dropbox was not connected because access was not allowed.": appText("dropbox.denied", "Dropbox was not connected because access was not allowed."),
+        "Dropbox could not be connected. Please try again.": appText("dropbox.connectFailed", "Dropbox could not be connected. Please try again."),
+      };
+      setCloudStatus(callbackMessages[result.message] || result.message);
       cloudSection.scrollIntoView({ block: "start" });
       return;
     }
@@ -8472,14 +8593,14 @@ const initializeApp = async () => {
         if (existing.length) {
           if (
             confirm(
-              "Dropbox already has NRV backup data. Do you want to choose a backup to restore onto this device now?",
+              appText("dropbox.chooseExistingConfirm", "Dropbox already has NRV backup data. Do you want to choose a backup to restore onto this device now?"),
             )
           ) {
             await openCloudRestore();
             return;
           }
           setCloudStatus(
-            "Dropbox is connected, but automatic backup and restore are paused. Choose Restore from Dropbox, or Back Up to Dropbox Now to deliberately replace its latest copy.",
+            appText("dropbox.connectedPaused", "Dropbox is connected, but automatic backup and restore are paused. Choose Restore from Dropbox, or Back Up to Dropbox Now to deliberately replace its latest copy."),
           );
           return;
         }
@@ -8488,14 +8609,14 @@ const initializeApp = async () => {
       } catch (error) {
         console.error(error);
         setCloudStatus(
-          "Dropbox is connected, but NRV could not check for existing backups. Automatic sync is paused until you choose Restore from Dropbox or Back Up to Dropbox Now.",
+          appText("dropbox.checkExistingFailed", "Dropbox is connected, but NRV could not check for existing backups. Automatic sync is paused until you choose Restore from Dropbox or Back Up to Dropbox Now."),
         );
         return;
       }
-      setCloudStatus("Dropbox connected. Add contacts and they will be backed up.");
+      setCloudStatus(appText("dropbox.connectedAddContacts", "Dropbox connected. Add contacts and they will be backed up."));
       return;
     }
-    setCloudStatus("Dropbox connected. Checking for an existing backup…");
+    setCloudStatus(appText("dropbox.checkingExisting", "Dropbox connected. Checking for an existing backup…"));
     try {
       const remote = await getRemoteLatest();
       let overwrite = false;
@@ -8503,7 +8624,7 @@ const initializeApp = async () => {
         const when = new Date(remote.modified).toLocaleString();
         if (
           confirm(
-            `Dropbox already has a backup (${when}). Restore it onto this device? That replaces the ${contacts.length} contacts here.`,
+            appText("dropbox.restoreExistingConfirm", `Dropbox already has a backup (${when}). Restore it onto this device? That replaces the ${contacts.length} contacts here.`, { when, count: contacts.length }),
           )
         ) {
           await openCloudRestore();
@@ -8511,17 +8632,17 @@ const initializeApp = async () => {
         }
         if (
           !confirm(
-            "Back up this device to Dropbox instead? That replaces the latest Dropbox copy with this device's data. Older dated copies stay.",
+            appText("dropbox.backupInsteadConfirm", "Back up this device to Dropbox instead? That replaces the latest Dropbox copy with this device's data. Older dated copies stay."),
           )
         ) {
           setCloudStatus(
-            "Dropbox connected. Nothing was backed up. Use Restore from Dropbox or Back Up to Dropbox Now when you are ready.",
+            appText("dropbox.nothingBackedUp", "Dropbox connected. Nothing was backed up. Use Restore from Dropbox or Back Up to Dropbox Now when you are ready."),
           );
           return;
         }
         overwrite = true;
       }
-      setCloudStatus("Dropbox connected. Making your first backup…");
+      setCloudStatus(appText("dropbox.firstBackup", "Dropbox connected. Making your first backup…"));
       await runCloudBackup({
         forceSnapshot: true,
         overwrite,
@@ -8530,11 +8651,11 @@ const initializeApp = async () => {
       localStorage.removeItem(CLOUD_RECONNECT_DECISION_KEY);
       cloudPaused = false;
       await refreshCloudUi();
-      setCloudStatus("Dropbox connected and your first backup is saved.");
+      setCloudStatus(appText("dropbox.firstBackupSaved", "Dropbox connected and your first backup is saved."));
     } catch (error) {
       console.error(error);
       setCloudStatus(
-        "Dropbox connected, but the first backup did not finish. Tap Back Up to Dropbox Now.",
+        appText("dropbox.firstBackupFailed", "Dropbox connected, but the first backup did not finish. Tap Back Up to Dropbox Now."),
       );
     }
   };
@@ -8583,20 +8704,28 @@ const initializeApp = async () => {
       window.location.reload();
     } catch (error) {
       console.error("Unable to erase app data:", error);
+      const eraseErrors = {
+        "Database deletion failed.": appText("storage.eraseDatabaseFailed", "Database deletion failed."),
+        "The database is still open in another NRV window or browser tab.": appText("storage.eraseDatabaseOpen", "The database is still open in another NRV window or browser tab."),
+        "Some NRV storage choices could not be cleared.": appText("storage.eraseChoicesFailed", "Some NRV storage choices could not be cleared."),
+      };
+      const detail = Object.prototype.hasOwnProperty.call(eraseErrors, error.message)
+        ? eraseErrors[error.message]
+        : error.message || appText("storage.eraseRetry", "Close other NRV windows or tabs, reload, and try again.");
       alert(
-        `NRV could not verify a complete erase. No fresh start was confirmed. ${error.message || "Close other NRV windows or tabs, reload, and try again."}`,
+        appText("storage.eraseFailed", `NRV could not verify a complete erase. No fresh start was confirmed. ${detail}`, { detail }),
       );
     }
   };
   const confirmEraseAllData = () => {
     if (
       !confirm(
-        "Before erasing, create or verify a current backup and keep a separate recovery copy outside NRV's normal storage and Dropbox app folder. This removes contacts, settings, passphrase/security data, setup choices, and Dropbox connection state from this app copy. Downloaded backup files and Dropbox backups are not deleted. Continue?",
+        appText("storage.eraseConfirm", "Before erasing, create or verify a current backup and keep a separate recovery copy outside NRV's normal storage and Dropbox app folder. This removes contacts, settings, passphrase/security data, setup choices, and Dropbox connection state from this app copy. Downloaded backup files and Dropbox backups are not deleted. Continue?"),
       )
     ) {
       return;
     }
-    if (!confirm("Last check: erase this NRV working copy and start fresh?")) return;
+    if (!confirm(appText("settings.eraseFinalConfirm", "Last check: erase this NRV working copy and start fresh?"))) return;
     void eraseAllData();
   };
   document
@@ -8695,7 +8824,7 @@ const initializeApp = async () => {
     localStorage.setItem(LAST_BACKUP_PROMPT_KEY, today);
     if (
       !confirm(
-        `You haven't backed up in ${days} days. Back up now?`,
+        appText("backup.reminder", `You haven't backed up in ${days} days. Back up now?`, { days }),
       )
     ) {
       return;
@@ -8705,7 +8834,7 @@ const initializeApp = async () => {
         showSettingsView();
         cloudSection.open = true;
         setCloudStatus(
-          "Automatic Dropbox sync is paused until you choose to restore the existing backup or deliberately replace it.",
+          appText("dropbox.autoPausedDecision", "Automatic Dropbox sync is paused until you choose to restore the existing backup or deliberately replace it."),
         );
         cloudSection.scrollIntoView({ block: "start" });
         return;
@@ -8716,10 +8845,10 @@ const initializeApp = async () => {
           userInitiated: true,
         });
         await refreshCloudUi();
-        alert("Backed up to Dropbox.");
+        alert(appText("dropbox.backupSuccess", "Backed up to Dropbox."));
       } catch (error) {
         console.error(error);
-        alert("Could not back up to Dropbox. Check your connection and try again.");
+        alert(appText("dropbox.backupFailed", "Could not back up to Dropbox. Check your connection and try again."));
       }
       return;
     }
@@ -8739,7 +8868,8 @@ const initializeApp = async () => {
   }, 500);
 };
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await window.nrvI18nReady;
   const installBanner = document.getElementById("install-screen");
   const installBannerKey = "return_visits_onboarding_v2_dismissed";
   const setupPendingKey = "return_visits_setup_pending";
@@ -8913,7 +9043,7 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     bookmarkInstructions.replaceChildren();
     const intro = document.createElement("p");
-    intro.textContent = "In this browser:";
+    intro.textContent = appText("install.inBrowser", "In this browser:");
     const list = document.createElement("ol");
     steps.forEach((step) => {
       const item = document.createElement("li");
@@ -8955,9 +9085,10 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("setup-wizard-step-1").hidden = step !== 1;
     document.getElementById("setup-wizard-step-2").hidden = step !== 2;
     document.getElementById("setup-wizard-progress").textContent =
-      `Step ${step} of 2: ${
-        step === 1 ? "Welcome" : "Choose your setup"
-      }`;
+      appText("setup.progress", `Step ${step} of 2: ${step === 1 ? "Welcome" : "Choose your setup"}`, {
+        step,
+        title: step === 1 ? appText("setup.welcomeShort", "Welcome") : appText("setup.choose", "Choose your setup"),
+      });
     if (shouldFocus && !installBanner.hidden) {
       document
         .querySelector(`#setup-wizard-step-${step} h2`)
@@ -8983,7 +9114,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       console.error("Unable to save the setup status:", error);
       alert(
-        "We could not save your setup progress. Please check device storage and try again.",
+        appText("setup.saveProgressFailed", "We could not save your setup progress. Please check device storage and try again."),
       );
       installBanner.hidden = false;
       return false;
@@ -9013,7 +9144,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const skipSetup = () => {
     if (!markInstalledSetupComplete()) {
       alert(
-        "We could not save your setup progress on this device. Check device storage and try again.",
+        appText("setup.saveDeviceProgressFailed", "We could not save your setup progress on this device. Check device storage and try again."),
       );
       return;
     }
@@ -9031,8 +9162,8 @@ document.addEventListener("DOMContentLoaded", () => {
     appContainer.setAttribute("aria-hidden", "false");
     document.getElementById("setup-next-steps-notice").hidden = true;
     document.body.classList.remove("install-setup-in-progress");
-    document.title = "NRV - Contacts";
-    document.getElementById("app-title").textContent = "NRV - Contacts";
+    document.title = `NRV - ${appText("view.contacts", "Contacts")}`;
+    document.getElementById("app-title").textContent = document.title;
     goToView("contacts-view");
   };
   const continueWizard = () => {
@@ -9059,7 +9190,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const finishSetup = () => {
     if (!markInstalledSetupComplete()) {
       alert(
-        "We could not save your setup progress on this device. Check device storage and try again.",
+        appText("setup.saveDeviceProgressFailed", "We could not save your setup progress on this device. Check device storage and try again."),
       );
       return;
     }
@@ -9098,7 +9229,7 @@ const updateStorageProtectionStatus = async () => {
   if (!statusEl) return;
   if (!navigator.storage?.persist) {
     statusEl.textContent =
-      "Storage protection: not supported by this browser. Keep regular backups.";
+      appText("storage.protectionUnsupported", "Storage protection: not supported by this browser. Keep regular backups.");
     return;
   }
   try {
@@ -9106,16 +9237,17 @@ const updateStorageProtectionStatus = async () => {
       (await navigator.storage.persisted()) ||
       (await navigator.storage.persist());
     statusEl.textContent = granted
-      ? "Storage protection: on. Your browser will not clear your contacts to free space. Backups are still recommended."
-      : "Storage protection: not granted by this browser. Your contacts could be cleared if the device runs low on space, so keep regular backups.";
+      ? appText("storage.protectionOn", "Storage protection: on. Your browser will not clear your contacts to free space. Backups are still recommended.")
+      : appText("storage.protectionDenied", "Storage protection: not granted by this browser. Your contacts could be cleared if the device runs low on space, so keep regular backups.");
   } catch (error) {
     console.error("Unable to request persistent storage:", error);
     statusEl.textContent =
-      "Storage protection: could not be checked. Keep regular backups.";
+      appText("storage.protectionCheckFailed", "Storage protection: could not be checked. Keep regular backups.");
   }
 };
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await window.nrvI18nReady;
   initializeApp()
     .then(() => {
       if (
@@ -9132,13 +9264,13 @@ document.addEventListener("DOMContentLoaded", () => {
     .catch((error) => {
       console.error("Unable to start the app:", error);
       if (error instanceof NewerDataVersionError) {
-        alert(error.message);
+        alert(appText("storage.newerData", "This data was saved by a newer version of the app. Update the app (reload it) before opening this data. Nothing was changed."));
         appReadyForUpdates = true;
         if (appUpdateAvailable) appUpdatePromptHandler();
         return;
       }
       alert(
-        "NRV could not open and verify its storage. Private Safari use is unsupported: close the Private tab and reopen NRV in normal Safari, then install and open NRV from its Home Screen icon. Nothing has been deleted.",
+        appText("storage.startupFailed", "NRV could not open and verify its storage. Private Safari use is unsupported: close the Private tab and reopen NRV in normal Safari, then install and open NRV from its Home Screen icon. Nothing has been deleted."),
       );
     });
 });

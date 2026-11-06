@@ -74,7 +74,11 @@
     const code = params.get("code");
     const error = params.get("error");
     if (!code && !error) return;
-    window.history.replaceState({}, "", redirectUri());
+    const cleanedUrl = new URL(window.location.href);
+    ["code", "state", "error", "error_description", "error_uri"].forEach(
+      (key) => cleanedUrl.searchParams.delete(key),
+    );
+    window.history.replaceState(window.history.state, "", cleanedUrl.href);
     let pending = null;
     try {
       pending = JSON.parse(localStorage.getItem(PENDING_KEY) || "null");

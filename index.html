@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
-    <title>NRV-Welcome</title>
+    <title data-i18n="page.welcome">NRV-Welcome</title>
     <meta name="theme-color" content="#004080" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NRV" />
@@ -20,6 +20,7 @@
     />
     <link rel="stylesheet" href="styles.css" />
     <script>
+      document.documentElement.classList.add("i18n-loading");
       const standaloneLaunch =
         window.matchMedia("(display-mode: standalone)").matches ||
         navigator.standalone === true;
@@ -45,6 +46,13 @@
       hidden
     >
       <div class="install-screen-card">
+        <div class="language-choice">
+          <label for="launch-language" data-i18n="language.label">Language</label>
+          <select id="launch-language" data-language-selector>
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
         <h1 id="launch-choice-title" data-i18n="launch.title">How would you like to use NRV?</h1>
         <p data-i18n="launch.recommend">
           We recommend installing Nice Return Visits and opening it from its
@@ -84,6 +92,13 @@
       data-i18n-attr="aria-label:unlock.dialogLabel"
     >
       <div class="unlock-card">
+        <div class="language-choice">
+          <label for="unlock-language" data-i18n="language.label">Language</label>
+          <select id="unlock-language" data-language-selector>
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
         <section id="agreement-panel" aria-labelledby="agreement-title">
           <h1 id="agreement-title" data-i18n="agreement.title">Before you use Nice Return Visits</h1>
           <p data-i18n="agreement.intro">
@@ -127,7 +142,7 @@
           </button>
         </section>
         <div id="unlock-content" hidden>
-          <h1 id="unlock-title">Unlock Nice Return Visits</h1>
+          <h1 id="unlock-title" data-i18n="unlock.title">Unlock Nice Return Visits</h1>
           <p id="unlock-description"></p>
           <aside id="first-use-notice" class="first-use-notice">
             <strong data-i18n="unlock.firstUse.heading">First-time use</strong>
@@ -158,7 +173,7 @@
               />
             </div>
             <p id="unlock-error" role="alert"></p>
-            <button type="submit" id="unlock-submit">Unlock</button>
+            <button type="submit" id="unlock-submit" data-i18n="unlock.button">Unlock</button>
           </form>
           <div class="unlock-restore">
             <p data-i18n="unlock.restore.prompt">Moving to a new device? Restore an encrypted backup instead.</p>
@@ -187,53 +202,60 @@
       hidden
     >
       <div class="install-screen-card">
-        <h1 id="browser-install-title">Install Nice Return Visits</h1>
-        <p>
+        <div class="language-choice">
+          <label for="browser-install-language" data-i18n="language.label">Language</label>
+          <select id="browser-install-language" data-language-selector>
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
+        <h1 id="browser-install-title" data-i18n="install.title">Install Nice Return Visits</h1>
+        <p data-i18n="install.browserDoorway">
           NRV is designed to be used from its Home Screen icon. This browser
           page is only the doorway to installation; it cannot be used to work
           with NRV contacts.
         </p>
-        <p>
+        <p data-i18n="install.guidance">
           We’ll guide you through adding the NRV icon. After you open that
           icon, NRV will check for previous NRV information and continue setup
           or offer recovery choices.
         </p>
         <section id="browser-install-ios" hidden>
           <p>
-            <strong>Use normal Safari, not Private Browsing.</strong> NRV
+            <strong data-i18n="install.safariWarning">Use normal Safari, not Private Browsing.</strong> <span data-i18n="install.safariDetails">NRV
             cannot reliably identify Safari Private mode. If this page is in a
             Private tab, stop here, close that tab, and reopen NRV in a normal
             Safari tab. Private use is unsupported, and NRV cannot recover
-            information created or lost in a Private session.
+            information created or lost in a Private session.</span>
           </p>
           <label class="checkbox-row">
             <input type="checkbox" id="browser-normal-safari-check" />
-            I am using a normal Safari tab, not a Private tab.
+            <span data-i18n="install.safariConfirm">I am using a normal Safari tab, not a Private tab.</span>
           </label>
           <div id="browser-install-ios-steps" hidden>
-            <h2>Scroll down for instructions to install NRV to your Home Screen.</h2>
+            <h2 data-i18n="install.scrollInstructions">Scroll down for instructions to install NRV to your Home Screen.</h2>
             <ol>
-              <li>Tap the three horizontal dots in the bottom-right corner.</li>
-              <li>Tap <strong>View More</strong>.</li>
-              <li>Tap Safari’s Share button (the square with an arrow pointing up).</li>
-              <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
-              <li>Tap <strong>Add</strong>.</li>
-              <li>After adding, this screen may minimize.</li>
-              <li>Swipe up to bring this screen back.</li>
-              <li>Scroll down and tap <strong>I added NRV to my Home Screen</strong>.</li>
-              <li>Close this window, then tap the new NRV icon on your Home Screen.</li>
+              <li data-i18n="install.stepDots">Tap the three horizontal dots in the bottom-right corner.</li>
+              <li><span data-i18n="install.tap">Tap</span> <strong data-i18n="install.viewMore">View More</strong>.</li>
+              <li data-i18n="install.stepShare">Tap Safari’s Share button (the square with an arrow pointing up).</li>
+              <li><span data-i18n="install.scrollTap">Scroll down and tap</span> <strong data-i18n="install.addHome">Add to Home Screen</strong>.</li>
+              <li><span data-i18n="install.tap">Tap</span> <strong data-i18n="install.add">Add</strong>.</li>
+              <li data-i18n="install.stepMinimize">After adding, this screen may minimize.</li>
+              <li data-i18n="install.stepReturn">Swipe up to bring this screen back.</li>
+              <li><span data-i18n="install.scrollTap">Scroll down and tap</span> <strong data-i18n="install.added">I added NRV to my Home Screen</strong>.</li>
+              <li data-i18n="install.stepOpen">Close this window, then tap the new NRV icon on your Home Screen.</li>
             </ol>
-            <p>
+            <p data-i18n="install.returnToIcon">
               After Add to Home Screen, return to the icon—not to Contacts in
               Safari. Setup or restoration continues when NRV opens from the
               icon.
             </p>
-            <button type="button" id="browser-install-added">
+            <button type="button" id="browser-install-added" data-i18n="install.added">
               I added NRV to my Home Screen
             </button>
             <section id="browser-install-handoff" hidden>
-              <h2>Installation page complete</h2>
-              <p>
+              <h2 data-i18n="install.completeTitle">Installation page complete</h2>
+              <p data-i18n="install.complete">
                 This part of installation is complete. Close this Safari tab
                 or window. Find the NRV icon on your Home Screen and tap it to
                 continue installation and setup.
@@ -242,13 +264,13 @@
           </div>
         </section>
         <section id="browser-install-other" hidden>
-          <h2>Open NRV from its installed icon</h2>
-          <p>
+          <h2 data-i18n="install.openIconTitle">Open NRV from its installed icon</h2>
+          <p data-i18n="install.openIcon">
             Install NRV to your device’s Home Screen, then close this browser
             page and open NRV from the new icon. Do not use this browser page
             as a second working copy.
           </p>
-          <p><a href="./help.html#install-guide">View installation guidance</a></p>
+          <p><a href="./help.html#install-guide" data-i18n="install.viewGuide">View installation guidance</a></p>
         </section>
       </div>
     </section>
@@ -262,32 +284,33 @@
           alt=""
           aria-hidden="true"
         />
-        <button type="button" id="sync-status" hidden aria-label="Dropbox sync status"></button>
+        <button type="button" id="sync-status" hidden aria-label="Dropbox sync status" data-i18n-attr="aria-label:sync.status"></button>
         <div id="filters-bar">
           <input
             type="text"
             id="search-input"
             placeholder="Search contacts or notes..."
+            data-i18n-attr="placeholder:contacts.search"
           />
           <select id="filter-urgency">
-            <option value="">All Urgency</option>
-            <option value="Normal">Normal (0-7d)</option>
-            <option value="Urgent">Urgent (8-14d)</option>
-            <option value="Immediate">Immediate (&ge; 15d)</option>
+            <option value="" data-i18n="filter.allUrgency">All Urgency</option>
+            <option value="Normal" data-i18n="filter.normal">Normal (0-7d)</option>
+            <option value="Urgent" data-i18n="filter.urgent">Urgent (8-14d)</option>
+            <option value="Immediate" data-i18n="filter.immediate">Immediate (&ge; 15d)</option>
           </select>
           <select id="filter-city">
-            <option value="">All Cities</option>
+            <option value="" data-i18n="filter.allCities">All Cities</option>
           </select>
           <select id="filter-region">
-            <option value="">All Regions</option>
+            <option value="" data-i18n="filter.allRegions">All Regions</option>
           </select>
           <select id="filter-area">
-            <option value="">All Areas</option>
+            <option value="" data-i18n="filter.allAreas">All Areas</option>
           </select>
           <select id="sort-select">
-            <option value="chronological-desc">Newest First</option>
-            <option value="chronological-asc">Oldest First</option>
-            <option value="alphabetical">Alphabetical</option>
+            <option value="chronological-desc" data-i18n="sort.newest">Newest First</option>
+            <option value="chronological-asc" data-i18n="sort.oldest">Oldest First</option>
+            <option value="alphabetical" data-i18n="sort.alphabetical">Alphabetical</option>
           </select>
         </div>
       </header>
@@ -297,8 +320,8 @@
         <div id="contacts-view" class="view active">
           <aside id="copy-notice" class="copy-notice" role="status" hidden>
             <p id="copy-notice-text"></p>
-            <a id="copy-notice-link" href="./help.html#install-guide">See the steps</a>
-            <button type="button" id="btn-copy-notice-dismiss">Got it</button>
+            <a id="copy-notice-link" href="./help.html#install-guide" data-i18n="contacts.seeSteps">See the steps</a>
+            <button type="button" id="btn-copy-notice-dismiss" data-i18n="contacts.gotIt">Got it</button>
           </aside>
           <div class="contact-list-actions">
             <button
@@ -307,9 +330,10 @@
               class="icon-action icon-action-add contact-add-button"
               title="Add a Contact"
               aria-label="Add a Contact"
+              data-i18n-attr="title:contacts.add;aria-label:contacts.add"
             >
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-              <span>Add a Contact</span>
+              <span data-i18n="contacts.add">Add a Contact</span>
             </button>
             <button type="button" id="btn-time-toggle" class="time-toggle" hidden></button>
             <div class="contact-toolbar-actions">
@@ -319,6 +343,7 @@
                 class="icon-action"
                 title="Import contacts from file"
                 aria-label="Import contacts from file"
+                data-i18n-attr="title:contacts.import;aria-label:contacts.import"
               >
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 11l4 4 4-4M4 14v6h16v-6"/></svg>
               </button>
@@ -328,6 +353,7 @@
                 class="icon-action"
                 title="Export contacts from this view"
                 aria-label="Export contacts from this view"
+                data-i18n-attr="title:contacts.export;aria-label:contacts.export"
                 disabled
               >
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m-5 5 5-5 5 5M4 16v4h16v-4"/></svg>
@@ -346,20 +372,20 @@
 
         <dialog id="setup-next-steps-dialog">
           <form method="dialog">
-            <h2>You're ready to get started</h2>
-            <p>
+            <h2 data-i18n="setup.ready">You're ready to get started</h2>
+            <p data-i18n="setup.savedDefaults">
               Your Defaults are saved. You can add or change Your Details and
               Cities, Regions &amp; Areas in Settings whenever you like, or
               add your first contact now.
             </p>
             <div class="restore-dialog-actions setup-next-steps-actions">
-              <button type="button" id="btn-setup-add-first-contact">
+              <button type="button" id="btn-setup-add-first-contact" data-i18n="setup.addFirst">
                 Add my first contact
               </button>
-              <button type="button" id="btn-setup-add-more-details">
+              <button type="button" id="btn-setup-add-more-details" data-i18n="setup.addDetails">
                 Add more details or places
               </button>
-              <button type="submit" id="btn-setup-continue-later">
+              <button type="submit" id="btn-setup-continue-later" data-i18n="setup.continueContacts">
                 Continue to Contacts
               </button>
             </div>
@@ -369,7 +395,7 @@
         <!-- Map View -->
         <div id="map-view" class="view">
           <div id="map"></div>
-          <p id="map-location-status" role="status" aria-live="polite">
+          <p id="map-location-status" role="status" aria-live="polite" data-i18n="map.dragHint">
             Drag a pin to move it; changes save automatically.
           </p>
           <p id="map-user-location-status" role="status" aria-live="polite"></p>
@@ -378,8 +404,8 @@
         <!-- Time in Service View -->
         <div id="time-view" class="view">
           <div class="time-container">
-            <h2>Time in Service</h2>
-            <p class="time-today-label">Today</p>
+            <h2 data-i18n="time.title">Time in Service</h2>
+            <p class="time-today-label" data-i18n="time.today">Today</p>
             <p id="time-today" class="time-today" role="timer">0:00:00</p>
             <div id="time-month-summary" class="time-summary">
               <strong id="time-month-label"></strong>
@@ -391,24 +417,24 @@
               <span id="time-year-text"></span>
               <progress id="time-year-bar" max="100" value="0"></progress>
             </div>
-            <p class="time-note">
+            <p class="time-note" data-i18n="time.totalsNote">
               Today's time starts over at midnight. Month and service-year
               totals are calculated from your entries.
             </p>
-            <h3>Add or edit time</h3>
+            <h3 data-i18n="time.addEdit">Add or edit time</h3>
             <form id="time-entry-form">
-              <label for="time-entry-date">Date</label>
+              <label for="time-entry-date" data-i18n="time.date">Date</label>
               <input type="date" id="time-entry-date" required />
-              <label for="time-entry-hours">Hours</label>
+              <label for="time-entry-hours" data-i18n="time.hours">Hours</label>
               <input type="number" id="time-entry-hours" min="0" max="24" step="1" inputmode="numeric" />
-              <label for="time-entry-minutes">Minutes</label>
+              <label for="time-entry-minutes" data-i18n="time.minutes">Minutes</label>
               <input type="number" id="time-entry-minutes" min="0" max="59" step="1" inputmode="numeric" />
-              <label for="time-entry-note">Note (optional)</label>
+              <label for="time-entry-note" data-i18n="time.note">Note (optional)</label>
               <input type="text" id="time-entry-note" maxlength="100" />
-              <button type="submit" id="btn-time-entry-save">Add Time</button>
-              <button type="button" id="btn-time-entry-cancel" hidden>Cancel</button>
+              <button type="submit" id="btn-time-entry-save" data-i18n="time.add">Add Time</button>
+              <button type="button" id="btn-time-entry-cancel" hidden data-i18n="common.cancel">Cancel</button>
             </form>
-            <h3>Time entries</h3>
+            <h3 data-i18n="time.entries">Time entries</h3>
             <div id="time-entries"></div>
           </div>
         </div>
@@ -416,17 +442,24 @@
         <!-- Settings View -->
         <div id="settings-view" class="view">
           <div class="settings-container">
-            <h2>Settings</h2>
+            <h2 data-i18n="settings.title">Settings</h2>
+            <div class="language-choice">
+              <label for="settings-language" data-i18n="language.label">Language</label>
+              <select id="settings-language" data-language-selector>
+                <option value="en">English</option>
+                <option value="es">Español</option>
+              </select>
+            </div>
             <details class="settings-section" id="defaults-your-details-section">
-              <summary>Defaults &amp; Your Details</summary>
-              <h3>Defaults</h3>
+              <summary data-i18n="settings.defaultsDetails">Defaults &amp; Your Details</summary>
+              <h3 data-i18n="settings.defaults">Defaults</h3>
               <form id="settings-form">
-                <label>Default State / Province:</label>
-                <input type="text" id="setting-state" placeholder="State or province" />
+                <label data-i18n="settings.defaultState">Default State / Province:</label>
+                <input type="text" id="setting-state" placeholder="State or province" data-i18n-attr="placeholder:location.statePlaceholder" />
 
-                <label>Default City:</label>
+                <label data-i18n="settings.defaultCity">Default City:</label>
                 <input type="text" id="setting-default-city" />
-                <small>
+                <small data-i18n="settings.mapDefault">
                   When the Map has no visible contact pins, it centers near this
                   city. Its name and state are looked up with OpenStreetMap
                   Nominatim while the Map is open.
@@ -442,64 +475,65 @@
                     border-radius: 4px;
                     cursor: pointer;
                   "
+                  data-i18n="settings.save"
                 >
                   💾 Save Settings
                 </button>
               </form>
-              <h3 id="your-details-heading">Your Details</h3>
+              <h3 id="your-details-heading" data-i18n="settings.yourDetails">Your Details</h3>
               <form id="me-form">
-                <label for="me-name">Name:</label>
+                <label for="me-name" data-i18n="settings.name">Name:</label>
                 <input type="text" id="me-name" autocomplete="name" enterkeyhint="next" />
-                <label for="me-country">Country:</label>
+                <label for="me-country" data-i18n="contacts.country">Country:</label>
                 <select id="me-country"></select>
                 <div id="new-me-country-container" hidden>
-                  <label for="input-new-me-country">New country name:</label>
-                  <input type="text" id="input-new-me-country" placeholder="Enter country name..." />
+                  <label for="input-new-me-country" data-i18n="location.newCountry">New country name:</label>
+                  <input type="text" id="input-new-me-country" placeholder="Enter country name..." data-i18n-attr="placeholder:location.enterCountry" />
                   <div class="new-contact-area-actions">
-                    <button type="button" id="btn-save-new-me-country">Add Country</button>
-                    <button type="button" id="btn-cancel-new-me-country">Cancel</button>
+                    <button type="button" id="btn-save-new-me-country" data-i18n="location.addCountryButton">Add Country</button>
+                    <button type="button" id="btn-cancel-new-me-country" data-i18n="common.cancel">Cancel</button>
                   </div>
                 </div>
-                <label for="me-state">State / Province:</label>
-                <input type="text" id="me-state" placeholder="State or province" disabled />
-                <label for="me-city">City:</label>
-                <input type="text" id="me-city" list="me-city-options" placeholder="Choose or enter a city" autocomplete="off" disabled />
+                <label for="me-state" data-i18n="contacts.state">State / Province:</label>
+                <input type="text" id="me-state" placeholder="State or province" data-i18n-attr="placeholder:location.statePlaceholder" disabled />
+                <label for="me-city" data-i18n="location.cityLabel">City:</label>
+                <input type="text" id="me-city" list="me-city-options" placeholder="Choose or enter a city" data-i18n-attr="placeholder:location.cityPlaceholder" autocomplete="off" disabled />
                 <datalist id="me-city-options"></datalist>
-                <label for="me-region">Region:</label>
+                <label for="me-region" data-i18n="location.regionLabel">Region:</label>
                 <select id="me-region" disabled>
-                  <option value="">Choose a region (optional)</option>
+                  <option value="" data-i18n="location.chooseRegion">Choose a region (optional)</option>
                 </select>
                 <div id="new-me-region-container" hidden>
-                  <label for="input-new-me-region">New region name:</label>
-                  <input type="text" id="input-new-me-region" placeholder="Enter new region name..." />
+                  <label for="input-new-me-region" data-i18n="location.newRegion">New region name:</label>
+                  <input type="text" id="input-new-me-region" placeholder="Enter new region name..." data-i18n-attr="placeholder:location.enterRegion" />
                   <div class="new-contact-area-actions">
-                    <button type="button" id="btn-save-new-me-region">Add Region</button>
-                    <button type="button" id="btn-cancel-new-me-region">Cancel</button>
+                    <button type="button" id="btn-save-new-me-region" data-i18n="location.addRegionButton">Add Region</button>
+                    <button type="button" id="btn-cancel-new-me-region" data-i18n="common.cancel">Cancel</button>
                   </div>
                 </div>
-                <label for="me-area">Area:</label>
+                <label for="me-area" data-i18n="location.areaLabel">Area:</label>
                 <select id="me-area" disabled>
-                  <option value="">Choose an area (optional)</option>
+                  <option value="" data-i18n="location.chooseArea">Choose an area (optional)</option>
                 </select>
                 <div id="new-me-area-container" hidden>
-                  <label for="input-new-me-area">New area name:</label>
-                  <input type="text" id="input-new-me-area" placeholder="Enter new area name..." />
+                  <label for="input-new-me-area" data-i18n="location.newArea">New area name:</label>
+                  <input type="text" id="input-new-me-area" placeholder="Enter new area name..." data-i18n-attr="placeholder:location.enterArea" />
                   <div class="new-contact-area-actions">
-                    <button type="button" id="btn-save-new-me-area">Add Area</button>
-                    <button type="button" id="btn-cancel-new-me-area">Cancel</button>
+                    <button type="button" id="btn-save-new-me-area" data-i18n="location.addAreaButton">Add Area</button>
+                    <button type="button" id="btn-cancel-new-me-area" data-i18n="common.cancel">Cancel</button>
                   </div>
                 </div>
-                <label for="me-street">Street Address:</label>
+                <label for="me-street" data-i18n="contacts.address">Street Address:</label>
                 <input type="text" id="me-street" autocomplete="street-address" />
                 <div class="coordinate-row">
-                  <label>Latitude:
+                  <label><span data-i18n="map.latitude">Latitude:</span>
                     <input type="text" id="me-lat" inputmode="decimal" />
                   </label>
-                  <label>Longitude:
+                  <label><span data-i18n="map.longitude">Longitude:</span>
                     <input type="text" id="me-lng" inputmode="decimal" />
                   </label>
                 </div>
-                <small>
+                <small data-i18n="settings.yourDetailsNote">
                   If you enter your name, it is added as “Shared by [your
                   name]” to a message when you choose Share on a contact. The
                   app prepares the message; you choose whether and to whom to
@@ -511,47 +545,43 @@
                   included in backups.
                 </small>
                 <div class="me-actions">
-                  <button type="button" id="btn-me-find" title="Find home pin from address" aria-label="Find home pin from address">📍 Find from address</button>
-                  <button type="button" id="btn-me-gps" title="Use device location" aria-label="Use device location">📍 Use device location</button>
+                  <button type="button" id="btn-me-find" title="Find home pin from address" aria-label="Find home pin from address" data-i18n="settings.findAddress" data-i18n-attr="title:settings.findAddressLabel;aria-label:settings.findAddressLabel">📍 Find from address</button>
+                  <button type="button" id="btn-me-gps" title="Use device location" aria-label="Use device location" data-i18n="settings.useLocation" data-i18n-attr="title:settings.useLocationLabel;aria-label:settings.useLocationLabel">📍 Use device location</button>
                 </div>
                 <div class="me-actions">
-                  <button type="submit" id="btn-me-save" title="Save your details" aria-label="Save your details">
+                  <button type="submit" id="btn-me-save" title="Save your details" aria-label="Save your details" data-i18n-attr="title:settings.saveDetails;aria-label:settings.saveDetails">
                     <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l4 4v14H5zM8 3v6h7V3M8 21v-7h8v7"/></svg>
                   </button>
-                  <button type="button" id="btn-me-clear" title="Clear your details" aria-label="Clear your details">🗑️</button>
+                  <button type="button" id="btn-me-clear" title="Clear your details" aria-label="Clear your details" data-i18n-attr="title:settings.clearDetails;aria-label:settings.clearDetails">🗑️</button>
                 </div>
                 <p id="me-status" role="status"></p>
               </form>
               <p id="setup-next-steps-notice" class="install-banner" role="status" hidden>
-                <strong>Setup is in progress.</strong> Add default and
-                personal details above and save them. Your Details are
-                optional and can be changed later in Settings. You can also set up
-                <button type="button" class="inline-icon-link" id="btn-setup-locations">Cities, Regions, and Areas</button>
-                now or as needed. When you're ready, continue to Contacts.
-                <button type="button" id="btn-setup-finish">I'm ready — go to Contacts</button>
+                <strong data-i18n="setup.inProgress">Setup is in progress.</strong>
+                <span data-i18n="setup.detailsInstructions">Add default and personal details above and save them. Your Details are optional and can be changed later in Settings. You can also set up</span>
+                <button type="button" class="inline-icon-link" id="btn-setup-locations" data-i18n="setup.locations">Cities, Regions, and Areas</button>
+                <span data-i18n="setup.continueInstructions">now or as needed. When you're ready, continue to Contacts.</span>
+                <button type="button" id="btn-setup-finish" data-i18n="setup.readyContacts">I'm ready — go to Contacts</button>
               </p>
             </details>
             <details class="settings-section" id="locations-section">
-              <summary>Cities, Regions &amp; Areas</summary>
-              <h3>Add New City to List</h3>
+              <summary data-i18n="location.manageTitle">Cities, Regions &amp; Areas</summary>
+              <h3 data-i18n="location.addCityTitle">Add New City to List</h3>
               <p class="location-hint">
-                <strong>How locations work:</strong> A <strong>city</strong> is
-                divided into <strong>regions</strong>, which are large parts of
-                the city (such as North, South, East, and West). A region is
-                divided into <strong>areas</strong>, which are smaller
-                neighborhoods within that region. Cities, regions, and areas
-                are added as you enter them for yourself or a contact; use
-                each field's <strong>+ Add New</strong> choice to add one.
+                <strong data-i18n="location.howTitle">How locations work:</strong>
+                <span data-i18n="location.howText">A city is divided into regions, which are large parts of the city (such as North, South, East, and West). A region is divided into areas, which are smaller neighborhoods within that region. Cities, regions, and areas are added as you enter them for yourself or a contact; use each field's + Add New choice to add one.</span>
               </p>
               <div style="display: flex; gap: 8px">
                 <input
                   type="text"
                   id="setting-new-city"
                   placeholder="New city name..."
+                  data-i18n-attr="placeholder:location.newCityPlaceholder"
                 />
                 <button
                   type="button"
                   id="btn-add-setting-city"
+                  data-i18n="location.addCityButton"
                   style="
                     background: #004080;
                     color: white;
@@ -565,19 +595,21 @@
                 </button>
               </div>
 
-              <h3 style="margin-top: 15px">Add New Region</h3>
+              <h3 style="margin-top: 15px" data-i18n="location.addRegionTitle">Add New Region</h3>
               <div style="display: flex; gap: 8px">
-                <select id="setting-region-city" aria-label="City for new region">
-                  <option value="">Choose city</option>
+                <select id="setting-region-city" aria-label="City for new region" data-i18n-attr="aria-label:location.cityForRegion">
+                  <option value="" data-i18n="location.chooseCity">Choose city</option>
                 </select>
                 <input
                   type="text"
                   id="setting-new-region"
                   placeholder="New region name..."
+                  data-i18n-attr="placeholder:location.newRegionPlaceholder"
                 />
                 <button
                   type="button"
                   id="btn-add-setting-region"
+                  data-i18n="location.addRegionButton"
                   style="
                     background: #004080;
                     color: white;
@@ -590,26 +622,22 @@
                   Add Region
                 </button>
               </div>
-              <p>
-                You can also add a region while adding a contact. Choose
-                <strong>+ Add New Region...</strong> in that contact's Region
-                list to add one for the selected City. A region name can be
-                used in more than one city; the city you choose makes it
-                unique.
-              </p>
-              <h3 style="margin-top: 15px">Add New Area</h3>
+              <p data-i18n="location.regionInstructions">You can also add a region while adding a contact. Choose + Add New Region... in that contact's Region list to add one for the selected City. A region name can be used in more than one city; the city you choose makes it unique.</p>
+              <h3 style="margin-top: 15px" data-i18n="location.addAreaTitle">Add New Area</h3>
               <div style="display: flex; gap: 8px">
-                <select id="setting-area-city" aria-label="City for new area">
-                  <option value="">Choose city</option>
+                <select id="setting-area-city" aria-label="City for new area" data-i18n-attr="aria-label:location.cityForArea">
+                  <option value="" data-i18n="location.chooseCity">Choose city</option>
                 </select>
                 <input
                   type="text"
                   id="setting-new-area"
                   placeholder="New area name..."
+                  data-i18n-attr="placeholder:location.newAreaPlaceholder"
                 />
                 <button
                   type="button"
                   id="btn-add-setting-area"
+                  data-i18n="location.addAreaButton"
                   style="
                     background: #004080;
                     color: white;
@@ -622,9 +650,9 @@
                   Add Area
                 </button>
               </div>
-              <h3 style="margin-top: 20px">Manage Cities, Regions, and Areas</h3>
+              <h3 style="margin-top: 20px" data-i18n="location.manageHeading">Manage Cities, Regions, and Areas</h3>
               <div id="region-area-list"></div>
-              <small>
+              <small data-i18n="location.manageNote">
                 Cities, regions and areas are each listed once. Edit renames a
                 region or area everywhere and lets you choose which cities it
                 is assigned to. Delete is blocked while any contact uses it;
@@ -635,61 +663,61 @@
               </small>
             </details>
             <details class="settings-section" id="time-tracking-section">
-              <summary>Time in Service</summary>
+              <summary data-i18n="time.title">Time in Service</summary>
               <label class="checkbox-row">
                 <input type="checkbox" id="setting-time-tracking" />
-                Track Time in Service
+                <span data-i18n="time.track">Track Time in Service</span>
               </label>
-              <small>
+              <small data-i18n="time.trackNote">
                 Adds a Time button to the bottom bar with a Start/Stop timer and
                 manual entry. Turning this off erases all recorded time.
               </small>
               <div id="time-tracking-options" hidden>
                 <label class="checkbox-row">
                   <input type="checkbox" id="setting-time-monthly" />
-                  Show hours to go each month (goal: 50 hours)
+                  <span data-i18n="time.monthly">Show hours to go each month (goal: 50 hours)</span>
                 </label>
                 <label class="checkbox-row">
                   <input type="checkbox" id="setting-time-yearly" />
-                  Show hours to go for the service year (goal: 600 hours)
+                  <span data-i18n="time.yearly">Show hours to go for the service year (goal: 600 hours)</span>
                 </label>
-                <small>The service year runs September 1 to August 31.</small>
+                <small data-i18n="time.yearNote">The service year runs September 1 to August 31.</small>
               </div>
             </details>
             <details class="settings-section" id="choices-section">
-              <summary>Data/Security</summary>
+              <summary data-i18n="settings.dataSecurity">Data/Security</summary>
               <details class="settings-section" id="passphrase-section">
-                <summary>Passphrase to Open App</summary>
-                <h3 id="passphrase-section-title">Passphrase</h3>
+                <summary data-i18n="security.passphraseOpen">Passphrase to Open App</summary>
+                <h3 id="passphrase-section-title" data-i18n="unlock.passphraseLabel">Passphrase</h3>
                 <p id="passphrase-section-description"></p>
-                <button type="button" id="btn-start-turn-on" hidden>
+                <button type="button" id="btn-start-turn-on" hidden data-i18n="security.turnOn">
                   Turn On Passphrase
                 </button>
                 <div id="passphrase-choices" hidden>
-                  <button type="button" id="btn-show-change">
+                  <button type="button" id="btn-show-change" data-i18n="security.change">
                     Change Passphrase
                   </button>
-                  <button type="button" id="btn-show-turn-off">
+                  <button type="button" id="btn-show-turn-off" data-i18n="security.turnOff">
                     Turn Off Passphrase
                   </button>
                 </div>
                 <form id="change-passphrase-form" hidden>
                   <div id="current-passphrase-fields">
-                    <label for="current-passphrase">Current passphrase</label>
+                    <label for="current-passphrase" data-i18n="security.current">Current passphrase</label>
                     <input
                       type="text" data-secret
                       id="current-passphrase"
                       required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
                     />
                   </div>
-                  <label for="new-passphrase">New passphrase</label>
+                  <label for="new-passphrase" data-i18n="security.new">New passphrase</label>
                   <input
                     type="text" data-secret
                     id="new-passphrase"
                     minlength="12"
                     required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
                   />
-                  <label for="confirm-new-passphrase">Confirm new passphrase</label>
+                  <label for="confirm-new-passphrase" data-i18n="security.confirmNew">Confirm new passphrase</label>
                   <input
                     type="text" data-secret
                     id="confirm-new-passphrase"
@@ -697,49 +725,48 @@
                     required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
                   />
                   <div class="restore-dialog-actions">
-                    <button type="submit" id="btn-change-passphrase">
+                    <button type="submit" id="btn-change-passphrase" data-i18n="security.change">
                       Change Passphrase
                     </button>
-                    <button type="button" id="btn-cancel-change-passphrase">
+                    <button type="button" id="btn-cancel-change-passphrase" data-i18n="common.cancel">
                       Cancel
                     </button>
                   </div>
                 </form>
 
                 <div id="turn-off-explain" hidden>
-                  <h3>Turn Off Passphrase?</h3>
-                  <p>If you turn the passphrase off:</p>
+                  <h3 data-i18n="security.turnOffQuestion">Turn Off Passphrase?</h3>
+                  <p data-i18n="security.turnOffIntro">If you turn the passphrase off:</p>
                   <ul>
                     <li>
-                      The contacts and settings on this device are decrypted and
-                      stored <strong>without encryption</strong>. Anyone who can
-                      open this browser or app on this device could read them.
+                      <span data-i18n="security.decryptPrefix">The contacts and settings on this device are decrypted and stored</span>
+                      <strong data-i18n="security.withoutEncryption">without encryption</strong>. <span data-i18n="security.decryptSuffix">Anyone who can open this browser or app on this device could read them.</span>
                     </li>
-                    <li>
+                    <li data-i18n="security.opensDirectly">
                       The app opens right away and no longer asks for a passphrase.
                     </li>
-                    <li>
+                    <li data-i18n="security.recoveryDisabled">
                       Your recovery code stops working, because there is no
                       passphrase left to recover.
                     </li>
-                    <li>
+                    <li data-i18n="security.futureBackups">
                       Backups you make from now on, including Dropbox backups, are
                       not encrypted. Backups you already made keep the passphrase
                       they were created with.
                     </li>
-                    <li>You can turn a passphrase on again at any time.</li>
+                    <li data-i18n="security.canReenable">You can turn a passphrase on again at any time.</li>
                   </ul>
                   <div class="restore-dialog-actions">
-                    <button type="button" id="btn-turn-off-continue">
+                    <button type="button" id="btn-turn-off-continue" data-i18n="common.continue">
                       Continue
                     </button>
-                    <button type="button" id="btn-turn-off-cancel">Cancel</button>
+                    <button type="button" id="btn-turn-off-cancel" data-i18n="common.cancel">Cancel</button>
                   </div>
                 </div>
 
                 <div id="turn-off-passphrase-section" hidden>
                   <form id="turn-off-passphrase-form">
-                    <label for="turn-off-current-passphrase">
+                    <label for="turn-off-current-passphrase" data-i18n="security.confirmCurrent">
                       Enter your current passphrase (or recovery code) to confirm
                     </label>
                     <input
@@ -748,10 +775,10 @@
                       required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
                     />
                     <div class="restore-dialog-actions">
-                      <button type="submit" id="btn-turn-off-passphrase">
+                      <button type="submit" id="btn-turn-off-passphrase" data-i18n="security.turnOff">
                         Turn Off Passphrase
                       </button>
-                      <button type="button" id="btn-turn-off-confirm-cancel">
+                      <button type="button" id="btn-turn-off-confirm-cancel" data-i18n="common.cancel">
                         Cancel
                       </button>
                     </div>
@@ -762,22 +789,22 @@
                 <p id="turn-off-passphrase-status" role="status" aria-live="polite"></p>
 
                 <div id="recovery-code-section">
-                  <h3>Recovery Code</h3>
+                  <h3 data-i18n="recovery.code">Recovery Code</h3>
                   <p id="recovery-code-state"></p>
-                  <p>
+                  <p data-i18n="recovery.explanation">
                     A recovery code is a long random code you keep somewhere safe,
                     away from this device. If you forget your passphrase, type the
                     code in place of the passphrase to open the app. Anyone with the
                     code can open your data, so treat it like the passphrase.
                   </p>
                   <form id="recovery-code-form">
-                    <label for="recovery-current-passphrase">Current passphrase</label>
+                    <label for="recovery-current-passphrase" data-i18n="security.current">Current passphrase</label>
                     <input
                       type="text" data-secret
                       id="recovery-current-passphrase"
                       required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
                     />
-                    <button type="submit" id="btn-make-recovery-code">
+                    <button type="submit" id="btn-make-recovery-code" data-i18n="recovery.makeNew">
                       Make a New Recovery Code
                     </button>
                     <p id="recovery-code-status" role="status" aria-live="polite"></p>
@@ -785,11 +812,11 @@
                 </div>
               </details>
             <details class="settings-section">
-              <summary>Backup or Restore</summary>
-              <p class="settings-group-note">
+              <summary data-i18n="backup.orRestore">Backup or Restore</summary>
+              <p class="settings-group-note" data-i18n="backup.protects">
                 Backups protect you from losing your contacts.
               </p>
-              <p>
+              <p data-i18n="backup.strategy">
                 One device: Local backup is normally sufficient. Multiple
                 devices: use Dropbox when you want NRV to coordinate them
                 automatically. Keep a separate recovery copy somewhere NRV
@@ -798,44 +825,44 @@
               <p id="backup-mode-status" role="status"></p>
               <button type="button" id="btn-backup-mode-switch"></button>
             <details class="settings-section">
-              <summary>Local Backup/Restore</summary>
+              <summary data-i18n="backup.local">Local Backup/Restore</summary>
               <p id="storage-protection-status" role="status"></p>
-              <button type="button" id="btn-export-backup">
+              <button type="button" id="btn-export-backup" data-i18n="backup.everything">
                 Back up everything
               </button>
-              <p>
+              <p data-i18n="backup.encryptionNote">
                 Encrypted if a passphrase is on. You can also export from the
                 Contacts page footer.
               </p>
-              <p>
+              <p data-i18n="backup.localSurvives">
                 A downloaded Local backup survives Erase All Data. For a
                 protected recovery copy, keep a separate copy outside NRV’s
                 working storage.
               </p>
-              <label for="backup-file-input">Restore from a backup file</label>
+              <label for="backup-file-input" data-i18n="setup.restoreFile">Restore from a backup file</label>
               <input
                 type="file"
                 id="backup-file-input"
                 accept="application/json,.json"
               />
-              <button type="button" id="btn-restore-backup">
+              <button type="button" id="btn-restore-backup" data-i18n="backup.restoreSelected">
                 Restore Selected Backup
               </button>
-              <button type="button" id="btn-clear-restore-file" hidden>
+              <button type="button" id="btn-clear-restore-file" hidden data-i18n="backup.clearFile">
                 Cancel / Clear Selected File
               </button>
             </details>
             <details class="settings-section" id="cloud-section" hidden>
-              <summary>Cloud Backup/Restore (Dropbox)</summary>
+              <summary data-i18n="dropbox.cloudSummary">Cloud Backup/Restore (Dropbox)</summary>
               <div id="cloud-off">
-                <p>
+                <p data-i18n="dropbox.explanation">
                   Cloud backup keeps a copy of your contacts outside this
                   device, in your own Dropbox, so you can recover them if your
                   device is lost, broken or replaced. It is off unless you turn
                   it on. Dropbox is entirely optional: the app works fully
                   without it, and all your data can stay only on this device.
                 </p>
-                <p>
+                <p data-i18n="dropbox.recoveryCopy">
                   Dropbox is the active backup and synchronization location.
                   To preserve a protected recovery copy, use Dropbox’s own
                   tools to copy or move a backup outside NRV’s Return Visits
@@ -843,69 +870,67 @@
                   download it later to restore it as a Local backup.
                 </p>
                 <p>
-                  <strong>You need a Dropbox account.</strong> The app can send
+                  <strong data-i18n="dropbox.accountRequired">You need a Dropbox account.</strong> <span data-i18n="dropbox.signupExplanation">The app can send
                   you to Dropbox to sign up, but it cannot create the account
-                  for you. The free Basic plan is enough.
+                  for you. The free Basic plan is enough.</span>
                 </p>
-                <button type="button" id="btn-cloud-begin">
+                <button type="button" id="btn-cloud-begin" data-i18n="dropbox.setup">
                   Set Up Cloud Backup
                 </button>
                 <div id="cloud-question" hidden>
-                  <p><strong>Do you already have a Dropbox account?</strong></p>
-                  <button type="button" id="btn-cloud-have">
+                  <p><strong data-i18n="dropbox.haveAccount">Do you already have a Dropbox account?</strong></p>
+                  <button type="button" id="btn-cloud-have" data-i18n="dropbox.yesAccount">
                     Yes, I have one
                   </button>
-                  <button type="button" id="btn-cloud-need">
+                  <button type="button" id="btn-cloud-need" data-i18n="dropbox.needAccount">
                     No, help me get one
                   </button>
                 </div>
                 <div id="cloud-signup" hidden>
-                  <p><strong>Create a free Dropbox account</strong></p>
+                  <p><strong data-i18n="dropbox.createAccount">Create a free Dropbox account</strong></p>
                   <ol>
                     <li>
-                      Open
+                      <span data-i18n="dropbox.signupOpen">Open</span>
                       <a
                         href="https://www.dropbox.com/basic"
                         target="_blank"
                         rel="noopener"
                         >dropbox.com/basic</a
                       >
-                      (it opens in a new tab or window).
+                      <span data-i18n="dropbox.signupNewTab">(it opens in a new tab or window).</span>
                     </li>
-                    <li>
+                    <li data-i18n="dropbox.signupRegister">
                       Sign up with your email address (or your Google or Apple
                       account) and choose a password.
                     </li>
                     <li>
-                      Choose the free <strong>Basic</strong> plan. If Dropbox
-                      offers a paid trial, skip it. No payment is needed.
+                      <span data-i18n="dropbox.signupChoose">Choose the free</span> <strong>Basic</strong>
+                      <span data-i18n="dropbox.signupPlan">plan. If Dropbox offers a paid trial, skip it. No payment is needed.</span>
                     </li>
-                    <li>
+                    <li data-i18n="dropbox.signupVerify">
                       Check your email and confirm your address if Dropbox asks.
                     </li>
-                    <li>Come back to this app and tap the button below.</li>
+                    <li data-i18n="dropbox.signupReturn">Come back to this app and tap the button below.</li>
                   </ol>
-                  <button type="button" id="btn-cloud-signup-done">
+                  <button type="button" id="btn-cloud-signup-done" data-i18n="dropbox.accountContinue">
                     I Have My Account, Continue
                   </button>
                 </div>
                 <div id="cloud-connect" hidden>
-                  <p><strong>Connect your Dropbox</strong></p>
+                  <p><strong data-i18n="dropbox.connectYour">Connect your Dropbox</strong></p>
                   <ol>
-                    <li>Tap <strong>Connect to Dropbox</strong> below.</li>
-                    <li>Sign in to Dropbox when it asks.</li>
+                    <li><span data-i18n="dropbox.connectTap">Tap</span> <strong data-i18n="dropbox.connect">Connect to Dropbox</strong> <span data-i18n="dropbox.connectBelow">below.</span></li>
+                    <li data-i18n="dropbox.connectSignIn">Sign in to Dropbox when it asks.</li>
                     <li>
-                      Tap <strong>Allow</strong>. The app can only use its own
-                      folder, called <strong>Return Visits</strong>, and cannot
-                      see anything else in your Dropbox.
+                      <span data-i18n="dropbox.connectTap">Tap</span> <strong data-i18n="dropbox.allow">Allow</strong><span data-i18n="dropbox.folderBefore">. The app can only use its own folder, called</span> <strong>Return Visits</strong><span data-i18n="dropbox.folderAfter">, and cannot see anything else in your Dropbox.</span>
                     </li>
-                    <li>Dropbox sends you back here.</li>
+                    <li data-i18n="dropbox.connectReturn">Dropbox sends you back here.</li>
                   </ol>
-                  <button type="button" id="btn-cloud-connect">
+                  <button type="button" id="btn-cloud-connect" data-i18n="dropbox.connect">
                     Connect to Dropbox
                   </button>
                 </div>
-                <button type="button" id="btn-cloud-cancel-setup" hidden>
+                <button type="button" id="btn-cloud-cancel-setup" hidden data-i18n="dropbox.cancelWizard">
                   Cancel Setup
                 </button>
               </div>
@@ -913,35 +938,25 @@
               <div id="cloud-on" hidden>
                 <p id="cloud-account-status" role="status"></p>
                 <p id="cloud-last-backup" role="status"></p>
-                <button type="button" id="btn-cloud-backup-now">
+                <button type="button" id="btn-cloud-backup-now" data-i18n="dropbox.backupNow">
                   Back Up to Dropbox Now
                 </button>
-                <button type="button" id="btn-cloud-restore">
+                <button type="button" id="btn-cloud-restore" data-i18n="backup.restoreDropbox">
                   Restore from Dropbox
                 </button>
-                <button type="button" id="btn-cloud-check">
+                <button type="button" id="btn-cloud-check" data-i18n="dropbox.checkNewer">
                   Check for a Newer Backup
                 </button>
-                <button type="button" id="btn-cloud-disconnect">
+                <button type="button" id="btn-cloud-disconnect" data-i18n="dropbox.disconnect">
                   Disconnect Dropbox
                 </button>
-                <p>
+                <p data-i18n="dropbox.backupSchedule">
                   The app backs up when you open it if your last backup is more
                   than a day old, and shortly after you make changes. Dropbox
                   keeps your latest copy plus up to 10 dated copies.
                 </p>
-                <p>
-                  Using more than one device? Each device combines its changes
-                  with Dropbox automatically: when you open the app, every
-                  couple of minutes while it is open, and as soon as the
-                  connection returns after being offline. Visits and contacts
-                  added on different devices are all kept. If you have no
-                  signal, your changes stay saved on the device and upload as
-                  soon as it can reach Dropbox. The cloud icon at the top shows
-                  the state (tap it to sync now). You can also tap
-                  <strong>Check for a Newer Backup</strong>.
-                </p>
-                <p>
+                <p data-i18n="dropbox.multiDevice">Using more than one device? Each device combines its changes with Dropbox automatically: when you open the app, every couple of minutes while it is open, and as soon as the connection returns after being offline. Visits and contacts added on different devices are all kept. If you have no signal, your changes stay saved on the device and upload as soon as it can reach Dropbox. The cloud icon at the top shows the state (tap it to sync now). You can also tap Check for a Newer Backup.</p>
+                <p data-i18n="dropbox.concurrentChanges">
                   If two devices change the very same contact at the same time,
                   the most recent change to that contact is used, but visits
                   from both devices are kept.
@@ -950,8 +965,8 @@
             </details>
             </details>
             <details class="settings-section">
-              <summary>Erase All Data / Start Fresh</summary>
-              <p>
+              <summary data-i18n="settings.eraseTitle">Erase All Data / Start Fresh</summary>
+              <p data-i18n="settings.eraseWarning">
                 Before erasing, create or verify a current backup and preserve
                 a separate recovery copy outside NRV’s normal storage or
                 Dropbox app folder. Erasing removes this copy’s contacts,
@@ -960,41 +975,41 @@
                 are not deleted. Removing the Home Screen icon alone does not
                 necessarily erase NRV data.
               </p>
-              <button type="button" id="btn-erase-all-data">
+              <button type="button" id="btn-erase-all-data" data-i18n="settings.eraseButton">
                 Erase All Data on This Device
               </button>
             </details>
             </details>
             <details class="settings-section">
-              <summary>Help</summary>
-              <p class="settings-group-note">User guides and privacy information.</p>
+              <summary data-i18n="settings.help">Help</summary>
+              <p class="settings-group-note" data-i18n="settings.helpNote">User guides and privacy information.</p>
               <details class="settings-section">
-                <summary>User Guide &amp; Privacy Notice</summary>
+                <summary data-i18n="settings.guidePrivacy">User Guide &amp; Privacy Notice</summary>
               <p>
-                <a class="user-guide-link" href="./help.html">User Guide</a>
+                <a class="user-guide-link" href="./help.html" data-i18n="settings.guide">User Guide</a>
               </p>
               <p>
-                <a class="user-guide-link" href="./privacy.html">
+                <a class="user-guide-link" href="./privacy.html" data-i18n="settings.privacy">
                   Privacy &amp; Data Notice
                 </a>
               </p>
               <p>
-                <a class="user-guide-link" href="./terms.html">
+                <a class="user-guide-link" href="./terms.html" data-i18n="settings.terms">
                   Terms of Use
                 </a>
               </p>
               </details>
             </details>
             <details class="settings-section" id="app-updates-section">
-              <summary>App Updates</summary>
-              <p>
+              <summary data-i18n="settings.updates">App Updates</summary>
+              <p data-i18n="update.checkNote">
                 The app checks for updates when it opens. Finish any open
                 edits before refreshing.
               </p>
-              <p id="app-update-notice" role="status" aria-live="polite" hidden>
+              <p id="app-update-notice" role="status" aria-live="polite" hidden data-i18n="update.readyNotice">
                 An app update is ready. Choose Update Now to install it.
               </p>
-              <button type="button" id="btn-check-updates">
+              <button type="button" id="btn-check-updates" data-i18n="update.checkRefresh">
                 Check for Updates &amp; Refresh
               </button>
               <p id="app-update-status" role="status" aria-live="polite"></p>
@@ -1014,53 +1029,62 @@
       hidden
     >
       <div class="install-screen-card">
-        <h1 id="install-screen-title">NRV-Install</h1>
+        <div class="language-choice">
+          <label for="setup-language" data-i18n="language.label">Language</label>
+          <select id="setup-language" data-language-selector>
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
+        <h1 id="install-screen-title" data-i18n="page.install">NRV-Install</h1>
         <p id="setup-wizard-progress" role="status" aria-live="polite"></p>
         <section id="setup-existing-data" class="setup-wizard-step" hidden>
-          <h2 tabindex="-1">Existing NRV data has been detected</h2>
-          <p>
+          <h2 tabindex="-1" data-i18n="setup.existingTitle">Existing NRV data has been detected</h2>
+          <p data-i18n="setup.existingDescription">
             Do you want to install NRV using this existing data? Choosing No
             takes you through the controlled erase process before setup
             restarts.
           </p>
           <div class="install-screen-actions">
-            <button type="button" id="btn-install-open-existing">
+            <button type="button" id="btn-install-open-existing" data-i18n="setup.useExisting">
               Yes — use existing data
             </button>
             <button
               type="button"
               id="btn-install-start-new"
               class="install-screen-secondary"
+              data-i18n="setup.eraseRestart"
             >
               No — erase and start fresh
             </button>
           </div>
         </section>
         <section id="setup-wizard-step-1" class="setup-wizard-step">
-          <h2 tabindex="-1">Welcome to Nice Return Visits</h2>
-          <p>
+          <h2 tabindex="-1" data-i18n="setup.welcome">Welcome to Nice Return Visits</h2>
+          <p data-i18n="setup.locationIntro">
             Before adding contacts, you can set default location details and
             optional information about yourself. These choices help prepare
             contact forms and can be changed later in Settings.
           </p>
-          <p>
+          <p data-i18n="setup.localData">
             Your setup and contacts stay on this device unless you choose an
             optional backup feature.
           </p>
-          <p>
+          <p data-i18n="setup.backupWarning">
             Removing the Home Screen icon does not necessarily remove NRV’s
             working data. Before resetting or reinstalling, make a current
             backup and keep a separate recovery copy outside NRV’s normal
             backup or synchronization locations.
           </p>
           <div class="install-screen-actions">
-            <button type="button" id="btn-setup-wizard-next">
+            <button type="button" id="btn-setup-wizard-next" data-i18n="common.continue">
               Continue
             </button>
             <button
               type="button"
               id="btn-install-restore"
               class="install-screen-secondary"
+              data-i18n="setup.restoreFile"
             >
               Restore from a backup file
             </button>
@@ -1077,28 +1101,29 @@
           class="setup-wizard-step"
           hidden
         >
-          <h2 tabindex="-1">Choose your setup</h2>
-          <p>
+          <h2 tabindex="-1" data-i18n="setup.choose">Choose your setup</h2>
+          <p data-i18n="setup.locationDetails">
             Set your default country, state or province, and city. Your name
             and home details are optional. You can add Cities, Regions, and
             Areas now or later as you go.
           </p>
-          <p>
+          <p data-i18n="setup.securityDetails">
             Passphrase protection is optional. Set it now or later under
             Settings → Data/Security. One-device use normally needs only Local
             backup; use Dropbox for automatic coordination across devices.
           </p>
           <div class="install-screen-actions">
-            <button type="button" id="btn-dismiss-install-banner">
+            <button type="button" id="btn-dismiss-install-banner" data-i18n="setup.defaultsDetails">
               Set up Defaults &amp; Your Details
             </button>
-            <button type="button" id="btn-setup-passphrase" class="install-screen-secondary">
+            <button type="button" id="btn-setup-passphrase" class="install-screen-secondary" data-i18n="setup.passphrase">
               Set up a passphrase (optional)
             </button>
             <button
               type="button"
               id="btn-setup-wizard-skip"
               class="install-screen-secondary"
+              data-i18n="setup.skip"
             >
               Skip setup and start using Contacts
             </button>
@@ -1119,34 +1144,34 @@
 
     <dialog id="map-print-dialog">
       <form id="map-print-form">
-        <h2>Print Map List</h2>
+        <h2 data-i18n="dialog.printMap">Print Map List</h2>
         <fieldset>
-          <legend>Include</legend>
+          <legend data-i18n="print.include">Include</legend>
           <label class="checkbox-row">
             <input type="radio" name="map-print-detail" value="pins" checked />
-            Numbered pins and addresses only
+            <span data-i18n="print.pinsOnly">Numbered pins and addresses only</span>
           </label>
           <label class="checkbox-row">
             <input type="radio" name="map-print-detail" value="details" />
-            Pins with contact details
+            <span data-i18n="print.pinsDetails">Pins with contact details</span>
           </label>
         </fieldset>
         <div class="restore-dialog-actions">
-          <button type="submit">Print</button>
-          <button type="button" id="cancel-map-print">Cancel</button>
+          <button type="submit" data-i18n="common.print">Print</button>
+          <button type="button" id="cancel-map-print" data-i18n="common.cancel">Cancel</button>
         </div>
       </form>
     </dialog>
 
     <dialog id="export-selection-dialog">
       <form id="export-selection-form">
-        <h2>Export Contacts</h2>
-        <p>
+        <h2 data-i18n="export.contacts">Export Contacts</h2>
+        <p data-i18n="export.numberExplanation">
           Contact numbers match the current list and map pins. Filtering or
           sorting can change them.
         </p>
         <fieldset>
-          <legend>Choose contacts</legend>
+          <legend data-i18n="export.chooseContacts">Choose contacts</legend>
           <label class="checkbox-row">
             <input
               type="radio"
@@ -1155,7 +1180,7 @@
               value="all"
               checked
             />
-            <span id="export-selection-all-label">All contacts shown</span>
+            <span id="export-selection-all-label" data-i18n="export.allShown">All contacts shown</span>
           </label>
           <label class="checkbox-row">
             <input
@@ -1164,93 +1189,94 @@
               id="export-selection-some"
               value="some"
             />
-            One or more
+            <span data-i18n="export.some">One or more</span>
           </label>
-          <label for="export-selection-numbers">Numbers or ranges</label>
+          <label for="export-selection-numbers" data-i18n="export.numbers">Numbers or ranges</label>
           <input
             type="text"
             id="export-selection-numbers"
             placeholder="For example: 3, 4-7, 9"
+            data-i18n-attr="placeholder:export.numbersExample"
             inputmode="text"
             autocomplete="off"
             disabled
           />
         </fieldset>
         <p id="export-selection-status" role="status" aria-live="polite"></p>
-        <p>
+        <p data-i18n="export.largeSelection">
           Large selections may exceed SMS, email, or WhatsApp limits. Exporting
           a file is better for large lists.
         </p>
         <div class="restore-dialog-actions export-selection-actions">
-          <button type="button" id="export-selection-file">Export File</button>
-          <a id="export-selection-sms" class="dialog-action-button">Text / SMS</a>
+          <button type="button" id="export-selection-file" data-i18n="export.file">Export File</button>
+          <a id="export-selection-sms" class="dialog-action-button" data-i18n="share.sms">Text / SMS</a>
           <a
             id="export-selection-whatsapp"
             class="dialog-action-button"
             target="_blank"
             rel="noopener noreferrer"
           >WhatsApp</a>
-          <a id="export-selection-email" class="dialog-action-button">Email</a>
-          <button type="button" id="cancel-export-selection">Cancel</button>
+          <a id="export-selection-email" class="dialog-action-button" data-i18n="share.email">Email</a>
+          <button type="button" id="cancel-export-selection" data-i18n="common.cancel">Cancel</button>
         </div>
       </form>
     </dialog>
 
     <dialog id="export-encrypt-dialog">
       <form id="export-encrypt-form">
-        <h2>Export</h2>
+        <h2 data-i18n="export.title">Export</h2>
         <label class="checkbox-row">
           <input type="checkbox" id="export-encrypt-check" checked />
-          Encrypt with my passphrase
+          <span data-i18n="export.encrypt">Encrypt with my passphrase</span>
         </label>
-        <p id="export-encrypt-warning" hidden>
+        <p id="export-encrypt-warning" hidden data-i18n="export.unencryptedWarning">
           Warning: this file will be readable by anyone who has it.
         </p>
         <div class="restore-dialog-actions">
-          <button type="submit">Export</button>
-          <button type="button" id="cancel-export-encrypt">Cancel</button>
+          <button type="submit" data-i18n="export.title">Export</button>
+          <button type="button" id="cancel-export-encrypt" data-i18n="common.cancel">Cancel</button>
         </div>
       </form>
     </dialog>
 
     <dialog id="restore-passphrase-dialog">
       <form id="restore-passphrase-form">
-        <h2>Unlock Backup</h2>
-        <p>Enter the passphrase used when this backup was created.</p>
-        <label for="restore-passphrase">Backup passphrase</label>
+        <h2 data-i18n="backup.unlock">Unlock Backup</h2>
+        <p data-i18n="backup.enterPassphrase">Enter the passphrase used when this backup was created.</p>
+        <label for="restore-passphrase" data-i18n="backup.passphrase">Backup passphrase</label>
         <input
           type="text" data-secret
           id="restore-passphrase"
           required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
         />
         <div class="restore-dialog-actions">
-          <button type="submit">Decrypt Backup</button>
-          <button type="button" id="cancel-restore-passphrase">Cancel</button>
+          <button type="submit" data-i18n="backup.decrypt">Decrypt Backup</button>
+          <button type="button" id="cancel-restore-passphrase" data-i18n="common.cancel">Cancel</button>
         </div>
       </form>
     </dialog>
 
     <dialog id="cloud-restore-dialog">
       <form id="cloud-restore-form">
-        <h2>Restore from Dropbox</h2>
-        <p>
+        <h2 data-i18n="backup.restoreDropbox">Restore from Dropbox</h2>
+        <p data-i18n="backup.restoreWarning">
           Choose which copy to restore. This replaces all contacts on this
           device.
         </p>
-        <label for="cloud-restore-select">Backup</label>
+        <label for="cloud-restore-select" data-i18n="backup.title">Backup</label>
         <select id="cloud-restore-select" required></select>
         <div class="restore-dialog-actions">
-          <button type="submit">Restore</button>
-          <button type="button" id="cancel-cloud-restore">Cancel</button>
+          <button type="submit" data-i18n="backup.restore">Restore</button>
+          <button type="button" id="cancel-cloud-restore" data-i18n="common.cancel">Cancel</button>
         </div>
       </form>
     </dialog>
 
     <dialog id="contact-transfer-dialog">
       <form id="contact-transfer-form">
-        <h2 id="contact-transfer-title">Protect Contact File</h2>
+        <h2 id="contact-transfer-title" data-i18n="export.protectFile">Protect Contact File</h2>
         <p id="contact-transfer-description"></p>
-        <label for="contact-transfer-passphrase">Passphrase</label>
+        <label for="contact-transfer-passphrase" data-i18n="unlock.passphraseLabel">Passphrase</label>
         <input
           type="text" data-secret
           id="contact-transfer-passphrase"
@@ -1258,7 +1284,7 @@
           required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
         />
         <div id="contact-transfer-confirm-container">
-          <label for="contact-transfer-confirm">Confirm passphrase</label>
+          <label for="contact-transfer-confirm" data-i18n="unlock.confirmLabel">Confirm passphrase</label>
           <input
             type="text" data-secret
             id="contact-transfer-confirm"
@@ -1266,47 +1292,47 @@
           />
         </div>
         <div class="restore-dialog-actions">
-          <button type="submit" id="contact-transfer-submit">
+          <button type="submit" id="contact-transfer-submit" data-i18n="export.contact">
             Export Contact
           </button>
-          <button type="button" id="cancel-contact-transfer">Cancel</button>
+          <button type="button" id="cancel-contact-transfer" data-i18n="common.cancel">Cancel</button>
         </div>
       </form>
     </dialog>
 
     <dialog id="contact-share-dialog">
       <form method="dialog">
-        <h2 id="contact-share-title">Share Contact</h2>
-        <p>
+        <h2 id="contact-share-title" data-i18n="share.contact">Share Contact</h2>
+        <p data-i18n="share.chooseDescription">
           Choose how to share this contact's details and which visit notes, if
           any, to include.
         </p>
         <fieldset id="share-notes-options">
-          <legend>Visit notes to include</legend>
+          <legend data-i18n="visits.notesInclude">Visit notes to include</legend>
           <label>
             <input type="radio" name="share-notes" value="none" checked />
-            No notes
+            <span data-i18n="visits.noNotes">No notes</span>
           </label>
           <label id="share-notes-latest-label">
             <input type="radio" name="share-notes" value="latest" />
-            Most recent note only
+            <span data-i18n="visits.latestOnly">Most recent note only</span>
           </label>
           <label id="share-notes-all-label">
             <input type="radio" name="share-notes" value="all" />
-            All notes
+            <span data-i18n="visits.allNotes">All notes</span>
           </label>
         </fieldset>
         <p id="share-notes-count" role="status"></p>
         <div class="restore-dialog-actions">
-          <a id="share-contact-sms" class="dialog-action-button">Text / SMS</a>
+          <a id="share-contact-sms" class="dialog-action-button" data-i18n="share.sms">Text / SMS</a>
           <a
             id="share-contact-whatsapp"
             class="dialog-action-button"
             target="_blank"
             rel="noopener noreferrer"
           >WhatsApp</a>
-          <a id="share-contact-email" class="dialog-action-button">Email</a>
-          <button type="submit">Cancel</button>
+          <a id="share-contact-email" class="dialog-action-button" data-i18n="share.email">Email</a>
+          <button type="submit" data-i18n="common.cancel">Cancel</button>
         </div>
       </form>
     </dialog>
@@ -1315,12 +1341,12 @@
     <div id="contact-modal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 id="modal-title">Add Contact</h2>
+          <h2 id="modal-title" data-i18n="contacts.addTitle">Add Contact</h2>
           <small id="contact-record-id" hidden></small>
-          <button type="button" id="btn-add-another-contact" title="Add a new contact" aria-label="Add a new contact">
+          <button type="button" id="btn-add-another-contact" title="Add a new contact" aria-label="Add a new contact" data-i18n-attr="title:contacts.addNew;aria-label:contacts.addNew">
             <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
           </button>
-          <span id="close-modal" role="button" aria-label="Close">&times;</span>
+          <span id="close-modal" role="button" aria-label="Close" data-i18n-attr="aria-label:common.close">&times;</span>
         </div>
 
         <form id="contact-form" class="modal-form-container">
@@ -1328,14 +1354,14 @@
 
           <div class="modal-body">
             <details class="settings-section" id="contact-info-section" open>
-            <summary>Contact Info</summary>
-            <label>First Name:</label>
+            <summary data-i18n="contacts.info">Contact Info</summary>
+            <label data-i18n="contacts.firstName">First Name:</label>
             <input type="text" id="contact-firstname" required />
 
-            <label>Last Name:</label>
+            <label data-i18n="contacts.lastName">Last Name:</label>
             <input type="text" id="contact-lastname" />
 
-            <label for="contact-email">Email (optional):</label>
+            <label for="contact-email" data-i18n="contacts.email">Email (optional):</label>
             <input
               type="text"
               id="contact-email"
@@ -1346,7 +1372,7 @@
               placeholder="name@someemail"
             />
 
-            <label for="contact-phone">Phone (optional):</label>
+            <label for="contact-phone" data-i18n="contacts.phone">Phone (optional):</label>
             <input
               type="tel"
               id="contact-phone"
@@ -1355,42 +1381,43 @@
               placeholder="(555) 123-4567"
             />
 
-            <label for="contact-country">Country:</label>
+            <label for="contact-country" data-i18n="contacts.country">Country:</label>
             <select id="contact-country"></select>
             <div id="new-contact-country-container" hidden>
-              <label for="input-new-contact-country">New country name:</label>
-              <input type="text" id="input-new-contact-country" placeholder="Enter country name..." />
+              <label for="input-new-contact-country" data-i18n="location.newCountry">New country name:</label>
+              <input type="text" id="input-new-contact-country" placeholder="Enter country name..." data-i18n-attr="placeholder:location.enterCountry" />
               <div class="new-contact-area-actions">
-                <button type="button" id="btn-save-new-contact-country">Add Country</button>
-                <button type="button" id="btn-cancel-new-contact-country">Cancel</button>
+                <button type="button" id="btn-save-new-contact-country" data-i18n="location.addCountryButton">Add Country</button>
+                <button type="button" id="btn-cancel-new-contact-country" data-i18n="common.cancel">Cancel</button>
               </div>
             </div>
 
-            <label for="contact-state">State / Province:</label>
-            <input type="text" id="contact-state" placeholder="State or province" disabled />
+            <label for="contact-state" data-i18n="contacts.state">State / Province:</label>
+            <input type="text" id="contact-state" placeholder="State or province" data-i18n-attr="placeholder:location.statePlaceholder" disabled />
 
-            <label for="contact-city-select">City (optional):</label>
+            <label for="contact-city-select" data-i18n="contacts.city">City (optional):</label>
             <input
               type="text"
               id="contact-city-select"
               list="contact-city-options"
               placeholder="Choose or enter a city"
+              data-i18n-attr="placeholder:location.cityPlaceholder"
               autocomplete="off"
               disabled
             />
             <datalist id="contact-city-options"></datalist>
-            <small>
+            <small data-i18n="location.contactCityNote">
               Select a saved city, choose + Add New City..., or type a new
               city. New city names are saved as filter choices.
             </small>
 
-            <label>Region (optional):</label>
+            <label data-i18n="contacts.region">Region (optional):</label>
             <select id="contact-region-select" disabled>
-              <option value="">Choose a region (optional)</option>
+              <option value="" data-i18n="location.chooseRegion">Choose a region (optional)</option>
             </select>
             <div id="new-contact-region-container" hidden>
-              <label for="input-new-contact-region">New region name:</label>
-              <small class="location-hint">
+              <label for="input-new-contact-region" data-i18n="location.newRegion">New region name:</label>
+              <small class="location-hint" data-i18n="location.regionHint">
                 A region is a large part of a city, such as North or
                 Downtown. Areas (neighborhoods) go inside a region.
               </small>
@@ -1398,24 +1425,25 @@
                 type="text"
                 id="input-new-contact-region"
                 placeholder="Enter new region name..."
+                data-i18n-attr="placeholder:location.enterRegion"
               />
               <div class="new-contact-area-actions">
-                <button type="button" id="btn-save-new-contact-region">
+                <button type="button" id="btn-save-new-contact-region" data-i18n="location.addRegionButton">
                   Add Region
                 </button>
-                <button type="button" id="btn-cancel-new-contact-region">
+                <button type="button" id="btn-cancel-new-contact-region" data-i18n="common.cancel">
                   Cancel
                 </button>
               </div>
             </div>
 
-            <label>Area (optional):</label>
+            <label data-i18n="contacts.area">Area (optional):</label>
             <select id="contact-area-select" disabled>
-              <option value="">Choose an area (optional)</option>
+              <option value="" data-i18n="location.chooseArea">Choose an area (optional)</option>
             </select>
             <div id="new-contact-area-container" hidden>
-              <label for="input-new-contact-area">New area name:</label>
-              <small class="location-hint">
+              <label for="input-new-contact-area" data-i18n="location.newArea">New area name:</label>
+              <small class="location-hint" data-i18n="location.areaHint">
                 An area is a neighborhood or small section within the selected
                 region.
               </small>
@@ -1423,50 +1451,51 @@
                 type="text"
                 id="input-new-contact-area"
                 placeholder="Enter new area name..."
+                data-i18n-attr="placeholder:location.enterArea"
               />
               <div class="new-contact-area-actions">
-                <button type="button" id="btn-save-new-contact-area">
+                <button type="button" id="btn-save-new-contact-area" data-i18n="location.addAreaButton">
                   Add Area
                 </button>
-                <button type="button" id="btn-cancel-new-contact-area">
+                <button type="button" id="btn-cancel-new-contact-area" data-i18n="common.cancel">
                   Cancel
                 </button>
               </div>
             </div>
 
-            <label for="contact-address">Street Address:</label>
+            <label for="contact-address" data-i18n="contacts.address">Street Address:</label>
             <input type="text" id="contact-address" autocapitalize="words" />
-            <small id="pin-address-hint">
+            <small id="pin-address-hint" data-i18n="map.addressHint">
               Entering or saving an address does not create a map pin by itself.
               Choose the lookup button below; partial street names can return
               several matches, and a city-only lookup places an approximate pin.
             </small>
 
             <div id="pin-summary" hidden>
-              <span>📍 Map pin set</span>
-              <button type="button" id="btn-adjust-pin">Adjust pin</button>
+              <span data-i18n="map.pinSet">📍 Map pin set</span>
+              <button type="button" id="btn-adjust-pin" data-i18n="map.adjustPin">Adjust pin</button>
             </div>
 
             <div id="pin-tools">
             <div class="gps-row">
-              <label>Latitude: <input type="text" id="contact-lat" /></label>
-              <label>Longitude: <input type="text" id="contact-lng" /></label>
+              <label><span data-i18n="map.latitude">Latitude:</span> <input type="text" id="contact-lat" /></label>
+              <label><span data-i18n="map.longitude">Longitude:</span> <input type="text" id="contact-lng" /></label>
             </div>
-            <small>
+            <small data-i18n="map.coordinatesHint">
               Map coordinates are optional. Choose how to place the pin below,
               then tap the map, drag the pin, or enter coordinates to adjust it.
             </small>
 
-            <label style="margin-top: 10px">Choose how to set the pin:</label>
+            <label style="margin-top: 10px" data-i18n="map.choosePin">Choose how to set the pin:</label>
             <div class="location-source-actions">
-              <button type="button" id="btn-find-address">
+              <button type="button" id="btn-find-address" data-i18n="map.findAddress">
                 📍 Find Address or City Pin
               </button>
-              <button type="button" id="btn-gps">
+              <button type="button" id="btn-gps" data-i18n="map.useDevice">
                 📍 Use Device Location
               </button>
             </div>
-            <small>
+            <small data-i18n="map.lookupPrivacy">
               Address and cross-street lookups send the entered location text
               to OpenStreetMap Nominatim when you choose a lookup button. When
               the Map is open, it looks up the City, State / Province, and
@@ -1482,23 +1511,24 @@
               hidden
             ></div>
             <div id="cross-street-search" hidden>
-              <label for="contact-cross-street">
+              <label for="contact-cross-street" data-i18n="map.crossStreetLabel">
                 Address not found? Enter a nearby cross-street or intersection:
               </label>
               <input
                 type="text"
                 id="contact-cross-street"
                 placeholder="e.g., Stonewood Rd & Newcastle Rd"
+                data-i18n-attr="placeholder:map.crossStreetPlaceholder"
                 autocomplete="off"
               />
-              <button type="button" id="btn-find-cross-street">
+              <button type="button" id="btn-find-cross-street" data-i18n="map.searchCrossStreet">
                 Search Near Cross-Street
               </button>
             </div>
             <p id="location-status" role="status" aria-live="polite"></p>
 
             <!-- Interactive Map Pin Picker inside Modal -->
-            <label style="margin-top: 10px">Adjust the pin on the map:</label>
+            <label style="margin-top: 10px" data-i18n="map.adjustOnMap">Adjust the pin on the map:</label>
             <div
               id="modal-picker-map"
               style="
@@ -1509,15 +1539,15 @@
                 margin-bottom: 10px;
               "
             ></div>
-            <button type="button" id="btn-confirm-pin" hidden>
+            <button type="button" id="btn-confirm-pin" hidden data-i18n="map.confirmPin">
               ✓ Confirm pin is correct
             </button>
             </div>
             </details>
 
             <details class="settings-section" id="contact-visits-section">
-            <summary>Visits</summary>
-            <label>Visit Logs (Click Edit to modify date/time/note):</label>
+            <summary data-i18n="visits.title">Visits</summary>
+            <label data-i18n="visits.logLabel">Visit Logs (Click Edit to modify date/time/note):</label>
             <div
               id="modal-notes-history-container"
               style="
@@ -1531,7 +1561,7 @@
               "
             ></div>
 
-            <label>Add New Visit Log:</label>
+            <label data-i18n="visits.addLog">Add New Visit Log:</label>
             <div class="new-log-timestamp-row">
               <input
                 type="datetime-local"
@@ -1543,6 +1573,7 @@
               id="contact-notes"
               rows="2"
               placeholder="Note text for new visit..."
+              data-i18n-attr="placeholder:visits.notePlaceholder"
             ></textarea>
             </details>
 
@@ -1556,6 +1587,7 @@
                 id="btn-share-contact"
                 title="Share this saved contact"
                 aria-label="Share this saved contact"
+                data-i18n-attr="title:contacts.shareSaved;aria-label:contacts.shareSaved"
                 disabled
               >
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.6M8.2 13.2l7.6 4.6"/></svg>
@@ -1565,6 +1597,7 @@
                 id="btn-export-contact"
                 title="Export this saved contact"
                 aria-label="Export this saved contact"
+                data-i18n-attr="title:contacts.exportSaved;aria-label:contacts.exportSaved"
                 disabled
               >
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M8 7l4-4 4 4M4 14v6h16v-6"/></svg>
@@ -1574,6 +1607,7 @@
                 id="btn-print-contact"
                 title="Print this saved contact"
                 aria-label="Print this saved contact"
+                data-i18n-attr="title:contacts.printSaved;aria-label:contacts.printSaved"
                 disabled
               >
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/></svg>
@@ -1585,12 +1619,13 @@
               rel="noopener noreferrer"
               title="Directions to this contact"
               aria-label="Directions to this contact"
+              data-i18n-attr="title:contacts.directions;aria-label:contacts.directions"
               hidden
             >
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="6" cy="19" r="2" fill="currentColor"/><path d="M6 16V9a4 4 0 0 1 4-4h8m-4-4 4 4-4 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
             </a>
             </div>
-            <button type="submit" id="btn-save-contact" title="Save Contact" aria-label="Save Contact">
+            <button type="submit" id="btn-save-contact" title="Save Contact" aria-label="Save Contact" data-i18n-attr="title:contacts.save;aria-label:contacts.save">
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l4 4v14H5zM8 3v6h7V3M8 21v-7h8v7"/></svg>
             </button>
           </div>
@@ -1600,42 +1635,42 @@
 
     <dialog id="contact-print-dialog">
       <form id="contact-print-form">
-        <h2>Print Contact</h2>
+        <h2 data-i18n="print.contact">Print Contact</h2>
         <p id="contact-print-description"></p>
         <fieldset>
-          <legend>Visit notes to include</legend>
+          <legend data-i18n="visits.notesInclude">Visit notes to include</legend>
           <label>
             <input type="radio" name="print-notes" value="latest" checked />
-            Most recent note only (recommended)
+            <span data-i18n="print.latestRecommended">Most recent note only (recommended)</span>
           </label>
           <label>
             <input type="radio" name="print-notes" value="all" />
-            All notes
+            <span data-i18n="visits.allNotes">All notes</span>
           </label>
         </fieldset>
         <div class="restore-dialog-actions">
-          <button type="submit">Continue to Print</button>
-          <button type="button" id="cancel-contact-print">Cancel</button>
+          <button type="submit" data-i18n="print.continue">Continue to Print</button>
+          <button type="button" id="cancel-contact-print" data-i18n="common.cancel">Cancel</button>
         </div>
       </form>
     </dialog>
 
     <dialog id="app-update-dialog" aria-labelledby="app-update-title">
-      <h2 id="app-update-title">App update available</h2>
-      <p>
+      <h2 id="app-update-title" data-i18n="update.available">App update available</h2>
+      <p data-i18n="update.availableDescription">
         A newer version is ready. Update now to refresh the app. Your saved
         contacts stay on this device; after refreshing, unlock with your
                 passphrase if you have turned one on.
       </p>
       <div class="restore-dialog-actions">
-        <button type="button" id="btn-apply-app-update">Update now</button>
-        <button type="button" id="btn-later-app-update">Later</button>
+        <button type="button" id="btn-apply-app-update" data-i18n="update.now">Update now</button>
+        <button type="button" id="btn-later-app-update" data-i18n="common.later">Later</button>
       </div>
     </dialog>
 
     <dialog id="recovery-code-dialog" aria-labelledby="recovery-code-title">
-      <h2 id="recovery-code-title">Your recovery code</h2>
-      <p>
+      <h2 id="recovery-code-title" data-i18n="recovery.title">Your recovery code</h2>
+      <p data-i18n="recovery.warning">
         Write this code down or save it somewhere safe, away from this device.
         If you forget your passphrase, type this code in its place to open the
         app. It is shown only once. Anyone with the code can open your data.
@@ -1643,44 +1678,52 @@
       <p id="recovery-code-value" class="recovery-code-value"></p>
       <p id="recovery-code-copy-status" role="status" aria-live="polite"></p>
       <div class="restore-dialog-actions">
-        <button type="button" id="btn-copy-recovery-code">Copy</button>
-        <button type="button" id="btn-recovery-code-done">
+        <button type="button" id="btn-copy-recovery-code" data-i18n="common.copy">Copy</button>
+        <button type="button" id="btn-recovery-code-done" data-i18n="recovery.saved">
           I have saved it
         </button>
       </div>
     </dialog>
 
     <dialog id="app-updated-dialog" aria-labelledby="app-updated-title">
-      <h2 id="app-updated-title">You are up to date!</h2>
-      <p>Nice Return Visits was updated and is now the latest version.</p>
+      <h2 id="app-updated-title" data-i18n="update.doneTitle">You are up to date!</h2>
+      <p data-i18n="update.done">Nice Return Visits was updated and is now the latest version.</p>
       <div class="restore-dialog-actions">
-        <button type="button" id="btn-ok-updated">OK</button>
+        <button type="button" id="btn-ok-updated" data-i18n="common.ok">OK</button>
       </div>
     </dialog>
 
     <dialog id="app-no-update-dialog" aria-labelledby="app-no-update-title">
-      <h2 id="app-no-update-title">No update available</h2>
-      <p>You already have the latest version of Nice Return Visits.</p>
+      <h2 id="app-no-update-title" data-i18n="update.noneTitle">No update available</h2>
+      <p data-i18n="update.none">You already have the latest version of Nice Return Visits.</p>
       <div class="restore-dialog-actions">
-        <button type="button" id="btn-ok-no-update">OK</button>
+        <button type="button" id="btn-ok-no-update" data-i18n="common.ok">OK</button>
       </div>
     </dialog>
 
     <section id="print-container" hidden aria-hidden="true"></section>
 
+    <script src="i18n.js"></script>
+    <script>
+      if (window.NRVI18n) {
+        window.nrvI18nReady = NRVI18n.init().catch((error) => {
+          console.error("Language setup failed; using built-in English:", error);
+          alert("Could not load the selected language. NRV will use English. / No se pudo cargar el idioma seleccionado. NRV usará inglés.");
+        }).finally(() => {
+          document.documentElement.classList.remove("i18n-loading");
+        });
+      } else {
+        console.error("Language setup failed: i18n.js could not be loaded.");
+        alert("Could not load language support. NRV will use English. / No se pudo cargar la función de idiomas. NRV usará inglés.");
+        document.documentElement.classList.remove("i18n-loading");
+        window.nrvI18nReady = Promise.resolve();
+      }
+    </script>
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="dropbox.js"></script>
     <script src="merge.js"></script>
-    <script src="i18n.js"></script>
     <script src="app.js"></script>
-    <script>
-      if (window.NRVI18n) {
-        NRVI18n.init().catch((error) =>
-          console.error("Language setup failed; using built-in English:", error),
-        );
-      }
-    </script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {

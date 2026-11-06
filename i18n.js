@@ -8,7 +8,10 @@
   const DEFAULT_LANGUAGE = "en";
   const STORAGE_KEY = "nrv_language";
   // To add a language: add one entry here and one locales/<code>.json file.
-  const LANGUAGES = [{ code: "en", name: "English", file: "locales/en.json" }];
+  const LANGUAGES = [
+    { code: "en", name: "English", file: "locales/en.json" },
+    { code: "es", name: "Español", file: "locales/es.json" },
+  ];
 
   const catalogs = {};
   let current = DEFAULT_LANGUAGE;
@@ -19,9 +22,15 @@
     try {
       const stored = root.localStorage.getItem(STORAGE_KEY);
       return isSupported(stored) ? stored : DEFAULT_LANGUAGE;
-    } catch {
+    } catch (error) {
+      console.error("Unable to read the selected language:", error);
       return DEFAULT_LANGUAGE;
     }
+  }
+
+  function explicitLanguage() {
+    const code = new URLSearchParams(root.location ? root.location.search : "").get("lang");
+    return isSupported(code) ? code : null;
   }
 
   async function loadCatalog(code) {
@@ -87,32 +96,62 @@
 
   // The stored language is only changed after its catalog loads successfully.
   async function setLanguage(code) {
-    if (!isSupported(code)) code = DEFAULT_LANGUAGE;
+    if (!isSupported(code)) throw new Error(`Unsupported language: ${code}`);
     await loadCatalog(DEFAULT_LANGUAGE);
     await loadCatalog(code);
+    root.localStorage.setItem(STORAGE_KEY, code);
     current = code;
-    try {
-      root.localStorage.setItem(STORAGE_KEY, code);
-    } catch (error) {
-      console.error("Unable to save the selected language:", error);
-    }
     apply();
     return code;
   }
 
   async function init() {
-    const code = readStoredLanguage();
-    await loadCatalog(DEFAULT_LANGUAGE);
-    if (code !== DEFAULT_LANGUAGE) {
+    const explicit = explicitLanguage();
+    const code = explicit || readStoredLanguage();
+    if (explicit) {
       try {
-        await loadCatalog(code);
-        current = code;
+        root.localStorage.setItem(STORAGE_KEY, code);
       } catch (error) {
-        console.error("Falling back to English:", error);
+        console.error("Unable to save the selected language:", error);
+        root.alert("Could not save the selected language. Check browser storage. / No se pudo guardar el idioma seleccionado. Revisa el almacenamiento del navegador.");
       }
     }
-    apply();
+    try {
+      await loadCatalog(DEFAULT_LANGUAGE);
+      await loadCatalog(code);
+      current = code;
+    } finally {
+      apply();
+      bindLanguageSelectors();
+    }
     return current;
+  }
+
+  function bindLanguageSelectors() {
+    root.document.querySelectorAll("[data-language-selector]").forEach((select) => {
+      select.value = current;
+      select.addEventListener("change", async () => {
+        const code = select.value;
+        if (code === current) return;
+        if (!root.confirm(t("language.reloadConfirm", null, "Changing the language reloads NRV. Save or finish any unsaved changes first. Continue?"))) {
+          select.value = current;
+          return;
+        }
+        try {
+          await setLanguage(code);
+          const url = new URL(root.location.href);
+          if (url.searchParams.has("lang")) {
+            url.searchParams.set("lang", code);
+            root.history.replaceState(root.history.state, "", url.href);
+          }
+          root.location.reload();
+        } catch (error) {
+          console.error("Unable to change the selected language:", error);
+          select.value = current;
+          root.alert(t("language.saveError", null, "The language choice could not be saved or loaded. Check your connection and browser storage settings and try again."));
+        }
+      });
+    });
   }
 
   return {

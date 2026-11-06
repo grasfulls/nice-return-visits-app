@@ -1,6 +1,7 @@
 // Run with: node tests/i18n-check.js
 const fs = require("fs");
 const path = require("path");
+const vm = require("vm");
 const i18n = require("../i18n.js");
 
 const root = path.join(__dirname, "..");
@@ -16,8 +17,24 @@ const catalogs = {};
 for (const lang of i18n.LANGUAGES) {
   const file = path.join(root, lang.file);
   try {
-    catalogs[lang.code] = JSON.parse(fs.readFileSync(file, "utf8"));
+    const raw = fs.readFileSync(file, "utf8");
+    catalogs[lang.code] = JSON.parse(raw);
     check(true, `${lang.file} is valid JSON`);
+    const source = raw.trim();
+    const property = /\s*("(?:\\.|[^"\\])*")\s*:\s*"(?:\\.|[^"\\])*"\s*(,|})/gy;
+    const keys = [];
+    let position = 1;
+    while (position < source.length && source[position] !== "}") {
+      property.lastIndex = position;
+      const match = property.exec(source);
+      if (!match) throw new Error("Expected a flat catalog of string values");
+      keys.push(JSON.parse(match[1]));
+      position = property.lastIndex;
+      if (match[2] === "}") break;
+    }
+    const duplicates = keys.filter((key, index) => keys.indexOf(key) !== index);
+    check(keys.length === Object.keys(catalogs[lang.code]).length && duplicates.length === 0,
+      `${lang.file}: no duplicate keys${duplicates.length ? ` (${duplicates.join(", ")})` : ""}`);
   } catch (error) {
     check(false, `${lang.file} is valid JSON (${error.message})`);
   }
@@ -36,13 +53,15 @@ for (const [code, catalog] of Object.entries(catalogs)) {
   const extra = [...bases].filter((k) => !enBases.has(k));
   check(missing.length === 0, `${code}: no keys missing from English${missing.length ? ` (${missing.join(", ")})` : ""}`);
   check(extra.length === 0, `${code}: no keys absent from English${extra.length ? ` (${extra.join(", ")})` : ""}`);
+  check(keys.length === Object.keys(en).length && keys.every((key) => key in en), `${code}: exact keys match English`);
+  check(Object.values(catalog).every((v) => typeof v === "string" && v.length > 0), `${code}: values are non-empty strings`);
   const mismatched = keys.filter((k) => k in en && placeholders(catalog[k]) !== placeholders(en[k]));
   check(mismatched.length === 0, `${code}: placeholders match English${mismatched.length ? ` (${mismatched.join(", ")})` : ""}`);
 }
 
 // The English text left in index.html must stay identical to en.json (it is the no-JS fallback).
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const norm = (s) => s.replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+const norm = (s) => s.replace(/&amp;/g, "&").replace(/&ge;/g, "≥").replace(/\s+/g, " ").trim();
 const usedKeys = new Set();
 const textMismatch = [];
 for (const m of html.matchAll(/<(\w+)[^>]*?data-i18n="([^"]+)"[^>]*>([\s\S]*?)<\/\1>/g)) {
@@ -61,6 +80,120 @@ const unknown = [...usedKeys].filter((k) => !(k in en));
 check(unknown.length === 0, `index.html uses only keys defined in en.json${unknown.length ? ` (${unknown.join(", ")})` : ""}`);
 check(textMismatch.length === 0, `index.html English text equals en.json${textMismatch.length ? ` (${textMismatch.join(", ")})` : ""}`);
 check(usedKeys.size > 0, `index.html uses ${usedKeys.size} i18n keys`);
+
+const runtimeKeys = new Set();
+for (const filename of ["app.js", "dropbox.js", "i18n.js"]) {
+  const source = fs.readFileSync(path.join(root, filename), "utf8");
+  for (const match of source.matchAll(/\b(?:appText|NRVI18n\.t|t)\(\s*["']([^"']+)["']/g)) {
+    runtimeKeys.add(match[1]);
+  }
+}
+const undefinedRuntimeKeys = [...runtimeKeys].filter((key) =>
+  !(key in en) && !(`${key}_one` in en && `${key}_other` in en));
+check(undefinedRuntimeKeys.length === 0,
+  `runtime literal translation keys exist${undefinedRuntimeKeys.length ? ` (${undefinedRuntimeKeys.join(", ")})` : ""}`);
+
+// Exercise the real plural catalogs used by dynamically rendered contact cards.
+i18n._setCatalog("en", catalogs.en);
+i18n._setCatalog("es", catalogs.es);
+i18n._setCurrent("en");
+check(i18n.t("contacts.visitCount", { count: 1 }) === "1 visit note" &&
+  i18n.t("contacts.visitCount", { count: 2 }) === "2 visit notes",
+  "English visit counts use the correct plural forms");
+i18n._setCurrent("es");
+check(i18n.t("contacts.visitCount", { count: 1 }) === "1 nota de visita" &&
+  i18n.t("contacts.visitCount", { count: 2 }) === "2 notas de visita" &&
+  i18n.t("contacts.dayCount", { count: 1 }) === "1 día" &&
+  i18n.t("contacts.dayCount", { count: 2 }) === "2 días",
+  "Spanish contact counts use the correct plural forms");
+check(i18n.t("location.areaAdded", { name: "Centro", city: "Lima" }) ===
+  "Se agregó el área «Centro» a Lima." &&
+  i18n.t("map.centeredNear", { location: "Lima, Lima" }) ===
+  "No hay marcadores de contactos para mostrar. El mapa está centrado cerca de Lima, Lima." &&
+  i18n.t("print.mapLocationCount", { count: 2, date: "11/5" }) ===
+  "2 ubicaciones en el mapa • 11/5" &&
+  i18n.t("location.deleteBlocked", { type: "región", count: 1 }) ===
+  "No se puede eliminar la ubicación de tipo región mientras tenga 1 contacto asignado. Primero reasigna ese contacto.",
+  "Spanish dynamic messages interpolate location values without changing them");
+i18n._setCurrent("en");
+check(i18n.t("location.areaAdded", { name: "Centro", city: "Lima" }) ===
+  'Area "Centro" added to Lima.' &&
+  i18n.t("map.centeredNear", { location: "Lima, Lima" }) ===
+  "No contact pins to show. The map is centered near Lima, Lima." &&
+  i18n.t("print.mapLocationCount", { count: 1, date: "11/5" }) ===
+  "1 map location • 11/5" &&
+  i18n.t("location.deleteBlocked", { type: "region", count: 2 }) ===
+  "Cannot delete this region while it has 2 assigned contacts. Reassign those contacts first.",
+  "English dynamic messages retain existing wording and location values");
+
+const appSource = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const mapControlsHandler = appSource.match(/const localizeMapControls = [\s\S]*?\r?\n};/);
+check(Boolean(mapControlsHandler), "Leaflet control localization is available for tests");
+if (mapControlsHandler) {
+  const context = { appText: (key, fallback, vars) => i18n.t(key, vars, fallback) };
+  vm.runInNewContext(mapControlsHandler[0] + "\nthis.localizeMapControls = localizeMapControls;", context);
+  for (const [language, labels] of Object.entries({
+    en: ["Zoom in", "Zoom out", "Close popup"],
+    es: ["Acercar", "Alejar", "Cerrar ventana emergente"],
+  })) {
+    i18n._setCurrent(language);
+    const buttons = Array.from({ length: 3 }, () => ({
+      title: "",
+      attributes: {},
+      setAttribute(name, value) { this.attributes[name] = value; },
+    }));
+    let popupOpen;
+    const map = {
+      zoomControl: { getContainer: () => ({
+        querySelector: (selector) => buttons[selector === ".leaflet-control-zoom-in" ? 0 : 1],
+      }) },
+      on: (event, handler) => { if (event === "popupopen") popupOpen = handler; },
+    };
+    context.localizeMapControls(map);
+    popupOpen({ popup: { getElement: () => ({ querySelector: () => buttons[2] }) } });
+    check(buttons[0].title === labels[0] && buttons[0].attributes["aria-label"] === labels[0] &&
+      buttons[1].title === labels[1] && buttons[1].attributes["aria-label"] === labels[1] &&
+      buttons[2].attributes["aria-label"] === labels[2],
+    `${language}: Leaflet zoom controls and popup close button are localized`);
+  }
+  check(appSource.includes("localizeMapControls(map);") &&
+    appSource.includes("localizeMapControls(pickerMap);"),
+  "Leaflet controls are localized on both maps");
+}
+const storageHandler = appSource.match(/const showStorageError = [\s\S]*?\r?\n};\r?\n\r?\nconst LAST_BACKUP_KEY/);
+check(Boolean(storageHandler), "storage error handler is available for translation tests");
+if (storageHandler) {
+  const actions = [
+    "save country", "save city", "save settings", "save region", "save area",
+    "save your details", "clear your details", "save location changes",
+    "delete the contact", "save time in service", "save contacts",
+    "save your home pin", "export encrypted backup", "export contacts",
+  ];
+  let message = "";
+  const context = {
+    appText: (key, fallback, vars) => i18n.t(key, vars, fallback),
+    console: { error() {} },
+    alert: (text) => { message = text; },
+  };
+  vm.runInNewContext(storageHandler[0].replace(/\r?\n\r?\nconst LAST_BACKUP_KEY$/, "") +
+    "\nthis.showStorageError = showStorageError;", context);
+  i18n._setCurrent("en");
+  check(actions.every((action) => {
+    context.showStorageError(action, new Error("test"));
+    return message === `Could not ${action}. Your changes may not have been saved. Please try again.`;
+  }), "storage errors preserve English wording for every known action");
+  i18n._setCurrent("es");
+  check(actions.every((action) => {
+    context.showStorageError(action, new Error("test"));
+    return message.startsWith("No se pudo ") && !message.includes(action);
+  }), "storage errors translate every known action into Spanish");
+  check(i18n.t("contacts.importFailed", { detail: i18n.t("contacts.invalidFile") }) ===
+    "No se pudo importar. El contenido del archivo de contacto no es válido. Tus contactos actuales no se modificaron." &&
+    i18n.t("dropbox.latestCopy", { when: "2026-11-05" }) ===
+    "Copia más reciente (2026-11-05)" &&
+    i18n.t("map.myHome") === "Mi casa",
+  "Spanish import, Dropbox and map messages interpolate without changing values");
+}
 
 // Runtime behavior
 i18n._setCatalog("en", { greet: "Hello {name}", item_one: "{count} item", item_other: "{count} items", only_en: "English only" });
