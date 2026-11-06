@@ -1865,20 +1865,15 @@ body.install-setup-in-progress #bottom-nav {
     min-height: 48px;
 }
 
-.nav-map-pin {
-    display: grid;
-    box-sizing: border-box;
-    width: 34px;
-    height: 34px;
-    margin: auto;
-    place-items: center;
-    border: 2px solid #ffffff;
-    border-radius: 50%;
-    background: #2b6cb0;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-    color: #ffffff;
-    font: 700 11px/1 sans-serif;
-    text-shadow: 0 0 3px #000, 0 0 3px #000;
+.nav-map-icon {
+    display: inline-block;
+    color: #004080;
+    vertical-align: middle;
+}
+
+.nav-map-icon .icon {
+    width: 30px;
+    height: 30px;
 }
 
 .nav-btn-icon {

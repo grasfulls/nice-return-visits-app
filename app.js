@@ -1007,6 +1007,7 @@ const ICON_PATHS = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   home: '<path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/>',
   print: '<path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/>',
+  map: '<path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/>',
   export: '<path d="M12 15V3M8 7l4-4 4 4M4 14v6h16v-6"/>',
   import: '<path d="M12 3v12M8 11l4 4 4-4M4 14v6h16v-6"/>',
   share:
@@ -4292,7 +4293,7 @@ const initializeApp = async () => {
   let currentViewId = "contacts-view";
   const navButtonsConfig = [
     { id: "contacts-view", icon: "👥" },
-    { id: "map-view", icon: "📍", pinLabel: "Map" },
+    { id: "map-view", icon: "map" },
     { id: "time-view", icon: "⏱️" },
     { id: "settings-view", icon: "⚙️" },
   ];
@@ -4457,11 +4458,9 @@ const initializeApp = async () => {
         const icon = document.createElement("span");
         icon.className = "nav-btn-icon";
         icon.setAttribute("aria-hidden", "true");
-        if (btnConfig.pinLabel) {
-          const pin = document.createElement("span");
-          pin.className = "nav-map-pin";
-          pin.textContent = appText("view.map", btnConfig.pinLabel);
-          icon.appendChild(pin);
+        if (btnConfig.id === "map-view") {
+          icon.classList.add("nav-map-icon");
+          icon.innerHTML = iconSvg(btnConfig.icon);
         } else {
           const glyph = document.createElement("span");
           glyph.className = "nav-glyph";
@@ -4477,6 +4476,7 @@ const initializeApp = async () => {
           "settings-view": appText("settings.title", "Settings"),
         };
         btn.setAttribute("aria-label", navLabels[btnConfig.id]);
+        if (btnConfig.id === "map-view") btn.title = navLabels[btnConfig.id];
         if (btnConfig.id === "time-view" && timeTracking.runningSince) {
           btn.title = "Time — timer running";
           btn.setAttribute("aria-label", appText("time.timerRunning", "Time, timer running"));
