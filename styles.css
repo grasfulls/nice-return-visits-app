@@ -543,6 +543,47 @@ header {
     text-shadow: 0 1px 3px rgb(0 24 56 / 90%);
 }
 
+html[lang="en"] .header-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    min-height: 27px;
+    margin: -6px 44px 0 48px;
+    padding-bottom: 6px;
+    text-align: left;
+}
+
+.header-brand {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 auto;
+    text-shadow: 0 1px 3px rgb(0 24 56 / 90%);
+}
+
+.header-brand-name {
+    font-size: clamp(0.7rem, 3.5vw, 1rem);
+    font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+.header-brand-tagline {
+    font-size: 0.625rem;
+    line-height: 1.1;
+}
+
+html[lang="en"] #app-title {
+    min-width: 0;
+    max-width: 40%;
+    font-size: 0.85rem;
+    text-align: right;
+}
+
+html[lang="es"] .header-brand {
+    display: none;
+}
+
 .app-header-logo {
     position: absolute;
     z-index: 0;
