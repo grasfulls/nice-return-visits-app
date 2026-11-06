@@ -1840,10 +1840,6 @@ input:not(:placeholder-shown) + .new-contact-area-actions button:first-child {
 }
 
 /* Bottom Navigation Bar */
-body.install-setup-in-progress #bottom-nav {
-    display: none;
-}
-
 #bottom-nav {
     position: fixed;
     bottom: 0;

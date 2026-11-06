@@ -9446,25 +9446,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     section.open = true;
     section.scrollIntoView({ block: "start" });
   };
-  const finishSetup = async () => {
-    if (document.getElementById("settings-view").classList.contains("active") &&
-        !(await confirmLeaveSettings())) return;
-    if (!markInstalledSetupComplete()) {
-      alert(
-        appText("setup.saveDeviceProgressFailed", "We could not save your setup progress on this device. Check device storage and try again."),
-      );
-      return;
-    }
-    try {
-      localStorage.setItem(installBannerKey, "true");
-      localStorage.removeItem(setupPendingKey);
-    } catch (error) {
-      console.error("Unable to save the setup status:", error);
-    }
-    document.getElementById("setup-next-steps-notice").hidden = true;
-    document.body.classList.remove("install-setup-in-progress");
-    goToView("contacts-view");
-  };
   document
     .getElementById("btn-setup-wizard-next")
     .addEventListener("click", continueWizard);
@@ -9481,8 +9462,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     .getElementById("btn-setup-locations")
     .addEventListener("click", () => openSettingsSection("locations-section"));
   document
-    .getElementById("btn-setup-finish")
-    .addEventListener("click", finishSetup);
+    .getElementById("btn-setup-contacts")
+    .addEventListener("click", () => goToView("contacts-view"));
 });
 
 const updateStorageProtectionStatus = async () => {
