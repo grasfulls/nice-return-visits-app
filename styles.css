@@ -10,17 +10,6 @@ body {
     color: #333;
 }
 
-.language-choice {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-}
-
-.language-choice select {
-    min-height: 44px;
-}
-
 .location-hint {
     display: block;
     margin: 6px 0 10px;

@@ -12,19 +12,11 @@ const catalogs = Object.fromEntries(["en", "es"].map((code) => [
   JSON.parse(fs.readFileSync(path.join(root, "locales", `${code}.json`), "utf8")),
 ]));
 
-function makeApp(search, saved) {
-  const values = new Map(saved === undefined ? [] : [["nrv_language", saved]]);
-  const selectors = Array.from({ length: 2 }, () => ({
-    value: "",
-    addEventListener(type, handler) { this[type] = handler; },
-  }));
+function makeApp(search, saved, values = new Map(saved === undefined ? [] : [["nrv_language", saved]])) {
   const alerts = [];
-  let reloads = 0;
-  let confirmed = true;
   const location = {
     href: `https://example.test/nrv/${search}`,
     search,
-    reload() { reloads += 1; },
   };
   const window = {
     location,
@@ -38,7 +30,7 @@ function makeApp(search, saved) {
     }),
     document: {
       documentElement: {},
-      querySelectorAll: (selector) => selector === "[data-language-selector]" ? selectors : [],
+      querySelectorAll: () => [],
     },
     history: {
       state: { existing: true },
@@ -48,15 +40,10 @@ function makeApp(search, saved) {
         location.search = new URL(href).search;
       },
     },
-    confirm: () => confirmed,
     alert: (message) => alerts.push(message),
   };
   vm.runInNewContext(source, { window, URLSearchParams, URL, Intl, console });
-  return {
-    window, values, selectors, alerts,
-    get reloads() { return reloads; },
-    decline() { confirmed = false; },
-  };
+  return { window, values, alerts };
 }
 
 async function main() {
@@ -74,9 +61,23 @@ async function main() {
     assert.strictEqual(await app.window.NRVI18n.init(), test.expected, test.name);
     assert.strictEqual(app.values.get("nrv_language"), test.stored, test.name);
     assert.strictEqual(app.window.document.documentElement.lang, test.expected, test.name);
-    assert(app.selectors.every((selector) => selector.value === test.expected), test.name);
     console.log(`PASS  ${test.name}`);
   }
+
+  for (const language of ["en", "es"]) {
+    const launch = makeApp(`?lang=${language}`, language === "en" ? "es" : "en");
+    await launch.window.NRVI18n.init();
+    const reopen = makeApp("", undefined, launch.values);
+    assert.strictEqual(await reopen.window.NRVI18n.init(), language);
+    assert.strictEqual(reopen.window.document.documentElement.lang, language);
+    console.log(`PASS  ${language} launch persists when reopened without a language parameter`);
+  }
+
+  const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  assert(!html.includes("data-language-selector"));
+  assert(!/id="(?:launch|unlock|browser-install|settings|setup)-language"/.test(html));
+  assert(!source.includes("data-language-selector"));
+  console.log("PASS  no in-app language selectors remain");
 
   const oauth = makeApp("?lang=es&code=abc&state=xyz&other=keep", "en");
   const pending = oauth.window.NRVI18n.init();
@@ -87,53 +88,29 @@ async function main() {
   assert.strictEqual(new URL(oauth.window.location.href).searchParams.get("other"), "keep");
   console.log("PASS  language is captured before Dropbox can change the URL");
 
-  const change = makeApp("?lang=es&other=keep&state=xyz", "es");
-  await change.window.NRVI18n.init();
-  change.selectors[0].value = "en";
-  await change.selectors[0].change();
-  const url = new URL(change.window.location.href);
-  assert.strictEqual(change.values.get("nrv_language"), "en");
-  assert.strictEqual(url.searchParams.get("lang"), "en");
-  assert.strictEqual(url.searchParams.get("other"), "keep");
-  assert.strictEqual(url.searchParams.get("state"), "xyz");
-  assert.strictEqual(change.reloads, 1);
-  console.log("PASS  selector saves, preserves unrelated parameters, and reloads");
+  for (const [language, country] of [["en", "Spain"], ["es", "United States"]]) {
+    const intact = makeApp(`?lang=${language}`, undefined);
+    const stored = new Map([
+      ["return_visits_contacts", JSON.stringify([{ firstName: "Ana", country, notesHistory: [{ text: "Visit" }] }])],
+      ["return_visits_settings", JSON.stringify({ country, cities: ["Lima"] })],
+      ["return_visits_agreement_version", "2026-10-30"],
+      ["return_visits_dropbox", '{"refreshToken":"synthetic"}'],
+    ]);
+    for (const [key, value] of stored) intact.values.set(key, value);
+    assert.strictEqual(await intact.window.NRVI18n.init(), language);
+    for (const [key, value] of stored) assert.strictEqual(intact.values.get(key), value, key);
+    const reopen = makeApp("", undefined, intact.values);
+    assert.strictEqual(await reopen.window.NRVI18n.init(), language);
+    for (const [key, value] of stored) assert.strictEqual(intact.values.get(key), value, key);
+  }
+  console.log("PASS  launch and reopen preserve stored data and do not derive language from country");
 
-  const intact = makeApp("?lang=es", "en");
-  const stored = new Map([
-    ["return_visits_contacts", '[{"firstName":"Ana","country":"United States","notesHistory":[{"text":"Visit"}]}]'],
-    ["return_visits_settings", '{"country":"United States","cities":["Lima"]}'],
-    ["return_visits_agreement_version", "2026-10-30"],
-    ["return_visits_dropbox", '{"refreshToken":"synthetic"}'],
-  ]);
-  for (const [key, value] of stored) intact.values.set(key, value);
-  await intact.window.NRVI18n.init();
-  intact.selectors[0].value = "en";
-  await intact.selectors[0].change();
-  for (const [key, value] of stored) assert.strictEqual(intact.values.get(key), value, key);
-  assert.strictEqual(intact.reloads, 1);
-  console.log("PASS  initialization and language switch preserve unrelated stored values");
-
-  const cancel = makeApp("?lang=es", "es");
-  await cancel.window.NRVI18n.init();
-  cancel.decline();
-  cancel.selectors[0].value = "en";
-  await cancel.selectors[0].change();
-  assert.strictEqual(cancel.values.get("nrv_language"), "es");
-  assert.strictEqual(cancel.selectors[0].value, "es");
-  assert.strictEqual(cancel.reloads, 0);
-  console.log("PASS  cancelling a language change preserves the current choice");
-
-  const failure = makeApp("", "en");
-  await failure.window.NRVI18n.init();
+  const failure = makeApp("?lang=es", "en");
   failure.window.localStorage.setItem = () => { throw new Error("storage unavailable"); };
-  failure.selectors[0].value = "es";
-  await failure.selectors[0].change();
-  assert.strictEqual(failure.window.NRVI18n.getLanguage(), "en");
-  assert.strictEqual(failure.selectors[0].value, "en");
-  assert.strictEqual(failure.reloads, 0);
+  assert.strictEqual(await failure.window.NRVI18n.init(), "es");
+  assert.strictEqual(failure.values.get("nrv_language"), "en");
   assert.strictEqual(failure.alerts.length, 1);
-  console.log("PASS  storage failure is reported without reloading");
+  console.log("PASS  storage failure is reported while the selected language is used");
 
   const unavailable = makeApp("?lang=es", "en");
   unavailable.window.fetch = async (file) => {
@@ -143,8 +120,7 @@ async function main() {
   await assert.rejects(unavailable.window.NRVI18n.init(), /catalog unavailable/);
   assert.strictEqual(unavailable.values.get("nrv_language"), "es");
   assert.strictEqual(unavailable.window.document.documentElement.lang, "en");
-  assert.strictEqual(typeof unavailable.selectors[0].change, "function");
-  console.log("PASS  explicit choice persists and selectors remain available if a catalog fails");
+  console.log("PASS  explicit choice persists if a catalog fails");
 
   for (const oauthError of [false, true]) {
     const url = new URL(oauthError

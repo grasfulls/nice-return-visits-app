@@ -94,17 +94,6 @@
     }
   }
 
-  // The stored language is only changed after its catalog loads successfully.
-  async function setLanguage(code) {
-    if (!isSupported(code)) throw new Error(`Unsupported language: ${code}`);
-    await loadCatalog(DEFAULT_LANGUAGE);
-    await loadCatalog(code);
-    root.localStorage.setItem(STORAGE_KEY, code);
-    current = code;
-    apply();
-    return code;
-  }
-
   async function init() {
     const explicit = explicitLanguage();
     const code = explicit || readStoredLanguage();
@@ -122,36 +111,8 @@
       current = code;
     } finally {
       apply();
-      bindLanguageSelectors();
     }
     return current;
-  }
-
-  function bindLanguageSelectors() {
-    root.document.querySelectorAll("[data-language-selector]").forEach((select) => {
-      select.value = current;
-      select.addEventListener("change", async () => {
-        const code = select.value;
-        if (code === current) return;
-        if (!root.confirm(t("language.reloadConfirm", null, "Changing the language reloads NRV. Save or finish any unsaved changes first. Continue?"))) {
-          select.value = current;
-          return;
-        }
-        try {
-          await setLanguage(code);
-          const url = new URL(root.location.href);
-          if (url.searchParams.has("lang")) {
-            url.searchParams.set("lang", code);
-            root.history.replaceState(root.history.state, "", url.href);
-          }
-          root.location.reload();
-        } catch (error) {
-          console.error("Unable to change the selected language:", error);
-          select.value = current;
-          root.alert(t("language.saveError", null, "The language choice could not be saved or loaded. Check your connection and browser storage settings and try again."));
-        }
-      });
-    });
   }
 
   return {
@@ -161,7 +122,6 @@
     t,
     apply,
     init,
-    setLanguage,
     getLanguage: () => current,
     // Test hook: supplies a catalog without fetching.
     _setCatalog: (code, catalog) => {
