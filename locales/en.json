@@ -318,6 +318,8 @@
   "launch.browserButton": "Use NRV in this browser",
   "launch.storageNote": "Browser storage belongs to this browser on this device. Another browser, device, or installed icon may have a separate copy of your contacts.",
   "launch.whyLink": "Why we recommend using the app icon",
+  "launch.websiteLink": "← Back to NRV website",
+  "launch.websiteUrl": "https://nicereturnvisits.org/index.html",
   "agreement.title": "Before you use Nice Return Visits",
   "agreement.intro": "Please read and agree to both notices before using the app on this browser or installed-app copy.",
   "agreement.notice.heading": "Where your information goes",

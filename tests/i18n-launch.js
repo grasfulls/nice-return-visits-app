@@ -79,6 +79,29 @@ async function main() {
   assert(!source.includes("data-language-selector"));
   console.log("PASS  no in-app language selectors remain");
 
+  const websiteLink = html.match(/<a\s+href="([^"]+)"\s+data-i18n="([^"]+)"\s+data-i18n-attr="([^"]+)"[^>]*>\s*([^<]+?)\s*<\/a>/g)
+    .find((link) => link.includes('data-i18n="launch.websiteLink"'));
+  assert(websiteLink, "setup screen has a translated website link");
+  const linkParts = websiteLink.match(/href="([^"]+)"\s+data-i18n="([^"]+)"\s+data-i18n-attr="([^"]+)"[^>]*>\s*([^<]+?)\s*<\/a>/);
+  for (const [language, text, url] of [
+    ["en", "← Back to NRV website", "https://nicereturnvisits.org/index.html"],
+    ["es", "← Volver al sitio web de NRV", "https://nicereturnvisits.org/es/index.html"],
+  ]) {
+    const app = makeApp(`?lang=${language}`, undefined);
+    const link = {
+      dataset: { i18n: linkParts[2], i18nAttr: linkParts[3] },
+      textContent: linkParts[4],
+      href: linkParts[1],
+      setAttribute(name, value) { this[name] = value; },
+    };
+    app.window.document.querySelectorAll = (selector) =>
+      selector === "[data-i18n]" || selector === "[data-i18n-attr]" ? [link] : [];
+    await app.window.NRVI18n.init();
+    assert.strictEqual(link.textContent, text);
+    assert.strictEqual(link.href, url);
+    console.log(`PASS  ${language} setup link uses the correct text and website route`);
+  }
+
   const oauth = makeApp("?lang=es&code=abc&state=xyz&other=keep", "en");
   const pending = oauth.window.NRVI18n.init();
   oauth.window.location.search = "?code=abc&state=xyz";
