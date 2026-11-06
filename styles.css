@@ -87,6 +87,15 @@ html.show-launch-choice #launch-choice-screen[hidden] {
     line-height: 1.45;
 }
 
+.brand-tagline {
+    color: #004080;
+    font-weight: 600;
+}
+
+html[lang="es"] .brand-tagline {
+    display: none;
+}
+
 #browser-install-screen .install-screen-card p {
     margin: 0.75em 0;
 }
