@@ -426,10 +426,10 @@
               <summary data-i18n="settings.defaultsDetails">Defaults &amp; Your Details</summary>
               <h3 data-i18n="settings.defaults">Defaults</h3>
               <form id="settings-form">
-                <label data-i18n="settings.defaultState">Default State / Province:</label>
+                <label id="setting-state-label" data-i18n="settings.defaultState">Default State / Province:</label>
                 <input type="text" id="setting-state" placeholder="State or province" data-i18n-attr="placeholder:location.statePlaceholder" />
 
-                <label data-i18n="settings.defaultCity">Default City:</label>
+                <label id="setting-city-label" data-i18n="settings.defaultCity">Default City:</label>
                 <input type="text" id="setting-default-city" />
                 <small data-i18n="settings.mapDefault">
                   When the Map has no visible contact pins, it centers near this
@@ -466,29 +466,29 @@
                     <button type="button" id="btn-cancel-new-me-country" data-i18n="common.cancel">Cancel</button>
                   </div>
                 </div>
-                <label for="me-state" data-i18n="contacts.state">State / Province:</label>
+                <label id="me-state-label" for="me-state" data-i18n="contacts.state">State / Province:</label>
                 <input type="text" id="me-state" placeholder="State or province" data-i18n-attr="placeholder:location.statePlaceholder" disabled />
-                <label for="me-city" data-i18n="location.cityLabel">City:</label>
+                <label id="me-city-label" for="me-city" data-i18n="location.cityLabel">City:</label>
                 <input type="text" id="me-city" list="me-city-options" placeholder="Choose or enter a city" data-i18n-attr="placeholder:location.cityPlaceholder" autocomplete="off" disabled />
                 <datalist id="me-city-options"></datalist>
-                <label for="me-region" data-i18n="location.regionLabel">Region:</label>
+                <label id="me-region-label" for="me-region" data-i18n="location.regionLabel">Region:</label>
                 <select id="me-region" disabled>
                   <option value="" data-i18n="location.chooseRegion">Choose a region (optional)</option>
                 </select>
                 <div id="new-me-region-container" hidden>
-                  <label for="input-new-me-region" data-i18n="location.newRegion">New region name:</label>
+                  <label id="me-new-region-label" for="input-new-me-region" data-i18n="location.newRegion">New region name:</label>
                   <input type="text" id="input-new-me-region" placeholder="Enter new region name..." data-i18n-attr="placeholder:location.enterRegion" />
                   <div class="new-contact-area-actions">
                     <button type="button" id="btn-save-new-me-region" data-i18n="location.addRegionButton">Add Region</button>
                     <button type="button" id="btn-cancel-new-me-region" data-i18n="common.cancel">Cancel</button>
                   </div>
                 </div>
-                <label for="me-area" data-i18n="location.areaLabel">Area:</label>
+                <label id="me-area-label" for="me-area" data-i18n="location.areaLabel">Area:</label>
                 <select id="me-area" disabled>
                   <option value="" data-i18n="location.chooseArea">Choose an area (optional)</option>
                 </select>
                 <div id="new-me-area-container" hidden>
-                  <label for="input-new-me-area" data-i18n="location.newArea">New area name:</label>
+                  <label id="me-new-area-label" for="input-new-me-area" data-i18n="location.newArea">New area name:</label>
                   <input type="text" id="input-new-me-area" placeholder="Enter new area name..." data-i18n-attr="placeholder:location.enterArea" />
                   <div class="new-contact-area-actions">
                     <button type="button" id="btn-save-new-me-area" data-i18n="location.addAreaButton">Add Area</button>
@@ -497,6 +497,8 @@
                 </div>
                 <label for="me-street" data-i18n="contacts.address">Street Address:</label>
                 <input type="text" id="me-street" autocomplete="street-address" />
+                <label for="me-postal-code" data-i18n="contacts.postalCode">Postal code (optional):</label>
+                <input type="text" id="me-postal-code" autocomplete="postal-code" />
                 <div class="coordinate-row">
                   <label><span data-i18n="map.latitude">Latitude:</span>
                     <input type="text" id="me-lat" inputmode="decimal" />
@@ -1357,10 +1359,10 @@
               </div>
             </div>
 
-            <label for="contact-state" data-i18n="contacts.state">State / Province:</label>
+            <label id="contact-state-label" for="contact-state" data-i18n="contacts.state">State / Province:</label>
             <input type="text" id="contact-state" placeholder="State or province" data-i18n-attr="placeholder:location.statePlaceholder" disabled />
 
-            <label for="contact-city-select" data-i18n="contacts.city">City (optional):</label>
+            <label id="contact-city-label" for="contact-city-select" data-i18n="contacts.city">City (optional):</label>
             <input
               type="text"
               id="contact-city-select"
@@ -1376,13 +1378,13 @@
               city. New city names are saved as filter choices.
             </small>
 
-            <label data-i18n="contacts.region">Region (optional):</label>
+            <label id="contact-region-label" data-i18n="contacts.region">Region (optional):</label>
             <select id="contact-region-select" disabled>
               <option value="" data-i18n="location.chooseRegion">Choose a region (optional)</option>
             </select>
             <div id="new-contact-region-container" hidden>
-              <label for="input-new-contact-region" data-i18n="location.newRegion">New region name:</label>
-              <small class="location-hint" data-i18n="location.regionHint">
+              <label id="contact-new-region-label" for="input-new-contact-region" data-i18n="location.newRegion">New region name:</label>
+              <small id="contact-region-hint" class="location-hint" data-i18n="location.regionHint">
                 A region is a large part of a city, such as North or
                 Downtown. Areas (neighborhoods) go inside a region.
               </small>
@@ -1402,13 +1404,13 @@
               </div>
             </div>
 
-            <label data-i18n="contacts.area">Area (optional):</label>
+            <label id="contact-area-label" data-i18n="contacts.area">Area (optional):</label>
             <select id="contact-area-select" disabled>
               <option value="" data-i18n="location.chooseArea">Choose an area (optional)</option>
             </select>
             <div id="new-contact-area-container" hidden>
-              <label for="input-new-contact-area" data-i18n="location.newArea">New area name:</label>
-              <small class="location-hint" data-i18n="location.areaHint">
+              <label id="contact-new-area-label" for="input-new-contact-area" data-i18n="location.newArea">New area name:</label>
+              <small id="contact-area-hint" class="location-hint" data-i18n="location.areaHint">
                 An area is a neighborhood or small section within the selected
                 region.
               </small>
@@ -1430,6 +1432,8 @@
 
             <label for="contact-address" data-i18n="contacts.address">Street Address:</label>
             <input type="text" id="contact-address" autocapitalize="words" />
+            <label for="contact-postal-code" data-i18n="contacts.postalCode">Postal code (optional):</label>
+            <input type="text" id="contact-postal-code" autocomplete="postal-code" />
             <small id="pin-address-hint" data-i18n="map.addressHint">
               Entering or saving an address does not create a map pin by itself.
               Choose the lookup button below; partial street names can return
