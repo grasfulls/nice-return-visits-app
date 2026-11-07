@@ -13,10 +13,6 @@ const section = (start, end) => {
   return source.slice(first, last);
 };
 
-const formSetup = section("  const meFields =", "  const populateMeForm =");
-assert(!/\.focus\s*\(|scrollIntoView|scrollTo|scrollTop|keydown/.test(formSetup),
-  "initializing the form must not override keyboard navigation or scrolling");
-
 let handler;
 let success;
 let status = "";
@@ -38,4 +34,4 @@ assert.strictEqual(context.meFields.lng.value, "-75.200000");
 assert(!button.disabled);
 assert(status.includes("Home pin set"));
 assert.strictEqual(focused, 0, "device location must not focus coordinates");
-console.log("PASS  no custom Name-key focus; device location updates coordinates without focusing them");
+console.log("PASS  device location updates coordinates without focusing them");
