@@ -178,7 +178,7 @@ for (const [language, country, label] of [
 context.appText = (key, fallback) => catalogs.en[key] || fallback;
 helpers.updateAddressLabels("contact", "Peru");
 assert.strictEqual(elements.get("contact-state-label").textContent, "Department / Region:");
-assert.strictEqual(elements.get("contact-city-label").textContent, "Locality / City (optional):");
+assert.strictEqual(elements.get("contact-city-label").textContent, "Locality / City (required):");
 assert.strictEqual(elements.get("contact-region-label").textContent, "Province (optional):");
 assert.strictEqual(elements.get("contact-area-label").textContent, "District (optional):");
 assert.strictEqual(
@@ -189,7 +189,7 @@ assert.strictEqual(elements.get("contact-region-select").options[1].textContent,
 context.appText = (key, fallback) => catalogs.es[key] || fallback;
 helpers.updateAddressLabels("contact", "United States");
 assert.strictEqual(elements.get("contact-state-label").textContent, "Estado / provincia:");
-assert.strictEqual(elements.get("contact-city-label").textContent, "Ciudad (opcional):");
+assert.strictEqual(elements.get("contact-city-label").textContent, "Ciudad (obligatoria):");
 console.log("PASS  address terminology follows country and interface language without changing stored values");
 
 assert(source.includes('citySelect.disabled = !hasCountry;'));

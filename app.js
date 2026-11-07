@@ -2129,19 +2129,22 @@ const initializeApp = async () => {
   const populateDropdowns = () => {
     sortLocations();
     const citySelect = document.getElementById("contact-city-select");
-    const cityOptions = document.getElementById("contact-city-options");
     const meCityInput = document.getElementById("me-city");
     const currentCityVal = citySelect.value;
-    cityOptions.innerHTML = "";
-    const addCityOpt = document.createElement("option");
-    addCityOpt.value = "+ Add New City...";
-    cityOptions.appendChild(addCityOpt);
+    citySelect.innerHTML = '<option value="">Choose city</option>';
+    citySelect.firstElementChild.textContent = appText("location.chooseCity", "Choose city");
     settings.cities.forEach((city) => {
       const opt = document.createElement("option");
       opt.value = city;
-      cityOptions.appendChild(opt);
+      opt.textContent = city;
+      citySelect.appendChild(opt);
     });
+    const addCityOpt = document.createElement("option");
+    addCityOpt.value = "__ADD_NEW__";
+    addCityOpt.textContent = appText("location.addCityOption", "+ Add City");
+    citySelect.appendChild(addCityOpt);
     citySelect.value = currentCityVal;
+    if (citySelect.selectedIndex < 0) citySelect.value = "";
     const meCityOptions = document.getElementById("me-city-options");
     const currentMeCity = meCityInput.value;
     meCityOptions.innerHTML = "";
@@ -2560,64 +2563,92 @@ const initializeApp = async () => {
   document.getElementById("me-state").addEventListener("input", () => {
     updateMeLocationFields();
   });
-  citySelect.addEventListener("input", () => {
-    dropdownHelpers.populateContactRegionArea("", "");
-  });
   document.getElementById("me-city").addEventListener("input", () => {
     dropdownHelpers.populateMeRegionArea("", "");
   });
   let pendingContactCitySave = Promise.resolve(true);
   let lastCommittedContactCity = "";
+  const newContactCityContainer = document.getElementById("new-contact-city-container");
+  const newContactCityInput = document.getElementById("input-new-contact-city");
+  const newContactCityButton = document.getElementById("btn-save-new-contact-city");
+  let previousContactCityRegion = "";
+  let previousContactCityArea = "";
   const newContactRegionContainer = document.getElementById(
     "new-contact-region-container",
   );
-  const commitContactCity = async () => {
-    const enteredCity = toTitleCase(citySelect.value.trim());
-    if (!enteredCity || enteredCity === "+ Add New City...") {
-      citySelect.value = "";
-      lastCommittedContactCity = "";
-      dropdownHelpers.populateContactRegionArea("", "");
-      return true;
+  const saveNewContactCity = async () => {
+    const enteredCity = toTitleCase(newContactCityInput.value.trim());
+    if (!enteredCity) {
+      alert(appText("location.enterCityError", "Enter a city name."));
+      newContactCityInput.focus();
+      return false;
     }
-
     const existingCity = settings.cities.find(
       (city) => city.toLowerCase() === enteredCity.toLowerCase(),
     );
-    if (existingCity) {
-      citySelect.value = existingCity;
-      if (existingCity !== lastCommittedContactCity) {
-        dropdownHelpers.populateContactRegionArea("", "");
+    const city = existingCity || enteredCity;
+    const session = contactEditorSession;
+    newContactCityButton.disabled = true;
+    newContactCityInput.disabled = true;
+    if (!existingCity) {
+      addCity(city);
+      try {
+        await saveSettings();
+      } catch (error) {
+        rollbackNewCity(city);
+        showStorageError("save city", error);
+        newContactCityButton.disabled = false;
+        newContactCityInput.disabled = false;
+        return false;
       }
-      lastCommittedContactCity = existingCity;
-      return true;
-    }
-
-    addCity(enteredCity);
-    try {
-      await saveSettings();
-    } catch (error) {
-      rollbackNewCity(enteredCity);
-      citySelect.value = lastCommittedContactCity;
-      dropdownHelpers.populateContactRegionArea("", "");
-      showStorageError("save city", error);
-      return false;
     }
     populateDropdowns();
-    citySelect.value = enteredCity;
-    lastCommittedContactCity = enteredCity;
-    dropdownHelpers.populateContactRegionArea("", "");
+    newContactCityButton.disabled = false;
+    newContactCityInput.disabled = false;
+    if (session === contactEditorSession && citySelect.value === "__ADD_NEW__") {
+      const sameCity = city === lastCommittedContactCity;
+      citySelect.value = city;
+      lastCommittedContactCity = city;
+      newContactCityContainer.hidden = true;
+      newContactCityInput.value = "";
+      dropdownHelpers.populateContactRegionArea(
+        sameCity ? previousContactCityRegion : "",
+        sameCity ? previousContactCityArea : "",
+      );
+    }
     return true;
   };
+  newContactCityButton.addEventListener("click", () => {
+    pendingContactCitySave = saveNewContactCity();
+  });
+  newContactCityInput.addEventListener("input", () => {
+    pendingContactCitySave = Promise.resolve(true);
+  });
+  document.getElementById("btn-cancel-new-contact-city").addEventListener("click", () => {
+    citySelect.value = lastCommittedContactCity;
+    pendingContactCitySave = Promise.resolve(true);
+    newContactCityContainer.hidden = true;
+    newContactCityInput.value = "";
+    dropdownHelpers.populateContactRegionArea(previousContactCityRegion, previousContactCityArea);
+    citySelect.focus();
+  });
   citySelect.addEventListener("change", () => {
     newContactRegionContainer.hidden = true;
     document.getElementById("new-contact-area-container").hidden = true;
-    if (citySelect.value.trim() === "+ Add New City...") {
-      citySelect.value = "";
+    if (citySelect.value === "__ADD_NEW__") {
+      previousContactCityRegion = contactRegionSelect.value;
+      previousContactCityArea = contactAreaSelect.value;
+      newContactCityContainer.hidden = false;
+      newContactCityInput.value = "";
       dropdownHelpers.populateContactRegionArea("", "");
-      citySelect.focus();
+      newContactCityInput.focus();
       return;
     }
-    pendingContactCitySave = commitContactCity();
+    newContactCityContainer.hidden = true;
+    newContactCityInput.value = "";
+    pendingContactCitySave = Promise.resolve(true);
+    lastCommittedContactCity = citySelect.value;
+    dropdownHelpers.populateContactRegionArea("", "");
   });
   contactRegionSelect.addEventListener("change", () => {
     if (contactRegionSelect.value === "__ADD_NEW__") {
@@ -2661,7 +2692,7 @@ const initializeApp = async () => {
       input.focus();
       return;
     }
-    if (!city || city === "+ Add New City...") {
+    if (!city || city === "__ADD_NEW__") {
       alert(appText("location.chooseCityRegion", "Choose a city before adding a region."));
       return;
     }
@@ -5194,6 +5225,7 @@ const initializeApp = async () => {
         document.getElementById("contact-lng").value =
           movedTo.lng.toFixed(6);
         updatePrintContactAvailability();
+        setLocationStatus(appText("map.pinMoved", "Pin moved. The coordinates have been updated."));
       });
     }
     pickerMap.setView(location, zoom);
@@ -5210,7 +5242,6 @@ const initializeApp = async () => {
       Boolean(document.getElementById("contact-lng").value.trim());
     const open = pinPanelOpen || !hasPin;
     document.getElementById("pin-tools").hidden = !open;
-    document.getElementById("pin-address-hint").hidden = !open;
     document.getElementById("pin-summary").hidden = open;
     document.getElementById("btn-confirm-pin").hidden = !hasPin;
   };
@@ -5348,14 +5379,13 @@ const initializeApp = async () => {
     contactStateInput.value = state;
     if (
       (!street && !area && !region && !city && !state && !postalCode) ||
-      city === "+ Add New City..."
+      city === "__ADD_NEW__"
     ) {
       setLocationStatus(
         appText("map.enterAddressOrCity", "Enter a street address or choose a city before looking up its location."),
       );
       return;
     }
-    clearAddressMatches();
     clearAddressMatches();
     const locationParts = { area, region, city, state, postalCode, country };
     const query = getFormattedContactAddress({
@@ -5388,7 +5418,7 @@ const initializeApp = async () => {
         if (cityResults.length > 0) {
           setPickerLocation(cityResults[0].lat, cityResults[0].lon, 13);
           setLocationStatus(
-            appText("map.approximatePlaced", `An approximate pin was placed near ${cityState}. Move it to the contact's exact location before saving.`, { location: cityState }),
+            appText("map.approximatePlaced", `The pin is centered approximately near ${cityState}. Move it to the contact's exact location before saving.`, { location: cityState }),
           );
           return;
         }
@@ -5967,9 +5997,10 @@ const initializeApp = async () => {
             attribution: "&copy; OpenStreetMap",
           }).addTo(pickerMap);
 
-          pickerMap.on("click", (e) =>
-            setPickerLocation(e.latlng.lat, e.latlng.lng),
-          );
+          pickerMap.on("click", (e) => {
+            setPickerLocation(e.latlng.lat, e.latlng.lng);
+            setLocationStatus(appText("map.pinMoved", "Pin moved. The coordinates have been updated."));
+          });
         } else {
           pickerMap.invalidateSize();
           pickerMap.setView(
@@ -6007,6 +6038,8 @@ const initializeApp = async () => {
     contactForm.reset();
     lastCommittedContactCity = "";
     pendingContactCitySave = Promise.resolve(true);
+    newContactCityContainer.hidden = true;
+    newContactCityInput.value = "";
     setLocationStatus("");
     clearAddressMatches();
     crossStreetSearch.hidden = true;
@@ -6038,7 +6071,10 @@ const initializeApp = async () => {
     await openModalWithCoords(null, null);
   });
 
-  btnFindAddress.addEventListener("click", findAddressOnMap);
+  btnFindAddress.addEventListener("click", () => {
+    setPinPanel(true);
+    findAddressOnMap();
+  });
 
   document.getElementById("btn-confirm-pin").addEventListener("click", () => {
     clearAddressMatches();
@@ -6155,10 +6191,13 @@ const initializeApp = async () => {
   // Save Contact Handler
   contactForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    contactEditorSession += 1;
-    document.getElementById("btn-gps").disabled = false;
+    const session = contactEditorSession;
     if (!(await pendingContactCitySave)) return;
-    if (!(await commitContactCity())) return;
+    if (session !== contactEditorSession) return;
+    if (citySelect.value === "__ADD_NEW__") {
+      pendingContactCitySave = saveNewContactCity();
+      if (!(await pendingContactCitySave) || session !== contactEditorSession) return;
+    }
     const id = document.getElementById("contact-id").value;
     const firstName = document.getElementById("contact-firstname").value.trim();
     const lastName = document.getElementById("contact-lastname").value.trim();
@@ -6192,8 +6231,9 @@ const initializeApp = async () => {
       phoneInput.focus();
       return;
     }
-    if (city === "+ Add New City...") {
-      alert(appText("contacts.cityInvalid", "Enter a city name, choose a saved city, or leave City blank."));
+    if (!city || !settings.cities.includes(city)) {
+      alert(appText("contacts.cityRequired", "Choose or add a city before saving this contact."));
+      citySelect.focus();
       return;
     }
     if (
@@ -6224,6 +6264,8 @@ const initializeApp = async () => {
       return;
     }
 
+    contactEditorSession += 1;
+    document.getElementById("btn-gps").disabled = false;
     const newNoteText = document.getElementById("contact-notes").value.trim();
     const newNoteTimestampVal =
       document.getElementById("new-log-timestamp").value;
@@ -7215,6 +7257,8 @@ const initializeApp = async () => {
     if (!contact) return;
     contactEditorSession += 1;
     document.getElementById("btn-gps").disabled = false;
+    newContactCityContainer.hidden = true;
+    newContactCityInput.value = "";
     clearAddressMatches();
     crossStreetSearch.hidden = true;
     document.getElementById("contact-cross-street").value = "";
@@ -7230,7 +7274,7 @@ const initializeApp = async () => {
     recordIdLabel.textContent = appText("contacts.permanentId", `Permanent contact ID: ${contact.id}`, { id: contact.id });
     recordIdLabel.hidden = false;
     document.getElementById("contact-firstname").value = contact.firstName;
-    document.getElementById("contact-lastname").value = contact.lastName;
+    document.getElementById("contact-lastname").value = contact.lastName || "";
     document.getElementById("contact-email").value = contact.email || "";
     phoneInput.value = contact.phone || "";
     document.getElementById("contact-address").value = normalizeStreetName(

@@ -98,11 +98,11 @@ If you leave without a note or date change, no visit is added. The pencil opens
 **Contact Info** instead, and the visit history stays hidden until you tap **Visits**.
 The card shows the newest visit and its note; earlier visits stay in the contact's visit log.
 
-Add contacts with a required first name and optional last name, address, city,
+Add contacts with a required first name and city, and optional last name, address,
 region, area, map coordinates, email, and phone. Email and phone are optional;
 email accepts addresses such as `name@someemail`, and U.S. phone numbers are
-formatted as `(555) 123-4567`. City, Region, and Area are each single optional
-values, so a contact can be saved with partial details and completed later. A
+formatted as `(555) 123-4567`. Select a saved city or choose **+ Add City**
+to add one in the contact editor. Region and Area are optional. A
 street address and newly entered location names are automatically capitalized
 when you leave the field or save. Recognized U.S. state names are saved as
 their standard two-letter abbreviations; two-letter state codes are uppercased.
@@ -174,8 +174,8 @@ there are no logs:
 
 ## Location and privacy
 
-Map coordinates are optional. In the contact form, choose **Find Address or
-City Pin** to look up the entered address, city, and state, or **Use Device
+Map coordinates are optional. In the contact form, choose **Use Address
+Entered** to look up the entered address, city, and state, or **Use Device
 Location** to request the device's current location. A partial street name can
 return several possible matches; choose from the street-name choices, which
 omit house numbers and ZIP codes, to fill in the street and place the pin.
@@ -185,9 +185,8 @@ Road as Rd, Court as Ct, and Lane as Ln). If the full address is not found,
 the app also searches by the street name without the leading house number. A
 city-only lookup places an approximate pin near the city. Typing or saving
 address details does not automatically create a pin. Once a pin is set,
-choose **Confirm pin is correct** to hide the lookup buttons, coordinates, and
-map; they return with **Adjust pin** or when the address, city, or state
-changes.
+choose **Confirm pin is correct** to hide the coordinates and map; they return
+with **Adjust pin**, a location button, or when the address, city, or state changes.
 Device location requires browser permission and
 its accuracy can vary. Refine a pin in the contact form by tapping the map,
 dragging the pin, or editing the coordinates. Pins can also be dragged in Map

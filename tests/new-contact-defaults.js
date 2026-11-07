@@ -14,8 +14,12 @@ const positions = fieldIds.map((id) => contactSection.indexOf(`id="${id}"`));
 assert(positions.every((position) => position >= 0));
 assert.deepStrictEqual(positions, [...positions].sort((a, b) => a - b));
 assert(!contactSection.includes("contact-postal-code"));
-assert(contactSection.indexOf('id="btn-gps"') > positions[2]);
-assert(contactSection.indexOf('id="btn-gps"') < positions[3]);
+assert(contactSection.indexOf('id="btn-find-address"') > contactSection.indexOf('id="contact-phone"'));
+assert(contactSection.indexOf('id="btn-gps"') > contactSection.indexOf('id="btn-find-address"'));
+assert(contactSection.indexOf('id="btn-gps"') < contactSection.indexOf('id="location-status"'));
+assert(/<select id="contact-city-select" required/.test(contactSection));
+assert(/<input type="text" id="contact-lastname"\s*\/>/.test(contactSection));
+assert(contactSection.includes('id="contact-cross-street"'));
 assert.strictEqual((contactSection.match(/id="btn-gps"/g) || []).length, 1);
 
 const nodes = new Map();
@@ -36,6 +40,8 @@ const context = {
   contactSecondaryActions: {},
   printContactButton: {}, shareContactButton: {}, exportContactButton: {},
   crossStreetSearch: {},
+  newContactCityContainer: {},
+  newContactCityInput: {},
   dropdownHelpers: { populateContactRegionArea(region, area) {
     node("contact-region-select").value = region;
     node("contact-area-select").value = area;
@@ -49,7 +55,7 @@ const context = {
   Promise,
 };
 const start = source.indexOf('  btnOpenModal.addEventListener("click", async () => {');
-const end = source.indexOf('  btnFindAddress.addEventListener("click", findAddressOnMap);', start);
+const end = source.indexOf('  btnFindAddress.addEventListener("click", () => {', start);
 assert(start >= 0 && end > start);
 vm.runInNewContext(`let contactEditorSession = 0, lastCommittedContactCity = "", pendingContactCitySave;\n${source.slice(start, end)}\nthis.committedCity = () => lastCommittedContactCity;`, context);
 
@@ -68,6 +74,7 @@ async function main() {
   await listeners.open();
   assert.deepStrictEqual([context.citySelect.value, context.contactStateInput.value, context.contactCountrySelect.value], ["Toronto", "Ontario", "Canada"]);
   assert(source.includes('contact.state || "",'));
+  assert(source.includes('getElementById("contact-lastname").value = contact.lastName || "";'));
   assert(!source.includes('getElementById("contact-postal-code")'));
   assert(source.includes('const postalCode = getSavedContactFromEditor()?.postalCode || "";'));
   assert(source.includes('contact.postalCode = postalCode;'));

@@ -1342,29 +1342,26 @@
             <label for="contact-firstname" data-i18n="contacts.firstName">First Name:</label>
             <input type="text" id="contact-firstname" required />
 
-            <label for="contact-lastname" data-i18n="contacts.lastName">Last Name:</label>
+            <label for="contact-lastname" data-i18n="contacts.lastName">Last Name (optional):</label>
             <input type="text" id="contact-lastname" />
 
             <label for="contact-address" data-i18n="contacts.address">Street Address:</label>
             <input type="text" id="contact-address" autocapitalize="words" />
-            <button type="button" id="btn-gps" data-i18n="map.useDevice">📍 Use Device Location</button>
-            <small data-i18n="map.contactGpsHint">Sets the map pin to your device’s current location without changing the address fields.</small>
-
-            <label id="contact-city-label" for="contact-city-select" data-i18n="contacts.city">City (optional):</label>
-            <input
-              type="text"
-              id="contact-city-select"
-              list="contact-city-options"
-              placeholder="Choose or enter a city"
-              data-i18n-attr="placeholder:location.cityPlaceholder"
-              autocomplete="off"
-              disabled
-            />
-            <datalist id="contact-city-options"></datalist>
+            <label id="contact-city-label" for="contact-city-select" data-i18n="contacts.city">City (required):</label>
+            <select id="contact-city-select" required disabled>
+              <option value="" data-i18n="location.chooseCity">Choose city</option>
+            </select>
             <small data-i18n="location.contactCityNote">
-              Select a saved city, choose + Add New City..., or type a new
-              city. New city names are saved as filter choices.
+              Select a saved city or choose + Add City to add one here.
             </small>
+            <div id="new-contact-city-container" hidden>
+              <label for="input-new-contact-city" data-i18n="location.newCity">New city name:</label>
+              <input type="text" id="input-new-contact-city" autocomplete="off" />
+              <div class="new-contact-area-actions">
+                <button type="button" id="btn-save-new-contact-city" data-i18n="location.addCityButton">Add City</button>
+                <button type="button" id="btn-cancel-new-contact-city" data-i18n="common.cancel">Cancel</button>
+              </div>
+            </div>
 
             <label id="contact-state-label" for="contact-state" data-i18n="contacts.state">State / Province:</label>
             <input type="text" id="contact-state" placeholder="State or province" data-i18n-attr="placeholder:location.statePlaceholder" disabled />
@@ -1452,11 +1449,15 @@
               placeholder="(555) 123-4567"
             />
 
+            <div class="location-source-actions">
+              <button type="button" id="btn-find-address" data-i18n="map.findAddress">Use Address Entered</button>
+              <button type="button" id="btn-gps" data-i18n="map.useDevice">📍 Use Device Location</button>
+            </div>
             <p id="location-status" role="status" aria-live="polite"></p>
             <small id="pin-address-hint" data-i18n="map.addressHint">
-              Entering or saving an address does not create a map pin by itself.
-              Choose the lookup button below; partial street names can return
-              several matches, and a city-only lookup places an approximate pin.
+              Entering or saving an address does not create a pin. Use the address
+              or device location above. A city-only result is approximate. Move the
+              pin on the map below or on the main Map; its coordinates will update.
             </small>
 
             <div id="pin-summary" hidden>
@@ -1470,16 +1471,9 @@
               <label><span data-i18n="map.longitude">Longitude:</span> <input type="text" id="contact-lng" /></label>
             </div>
             <small data-i18n="map.coordinatesHint">
-              Map coordinates are optional. Choose how to place the pin below,
-              then tap the map, drag the pin, or enter coordinates to adjust it.
+              Map coordinates are optional. Tap the map, drag the pin, or enter
+              coordinates to adjust it. Device location does not change the address.
             </small>
-
-            <label style="margin-top: 10px" data-i18n="map.choosePin">Choose how to set the pin:</label>
-            <div class="location-source-actions">
-              <button type="button" id="btn-find-address" data-i18n="map.findAddress">
-                📍 Find Address or City Pin
-              </button>
-            </div>
             <small data-i18n="map.lookupPrivacy">
               Address and cross-street lookups send the entered location text
               to OpenStreetMap Nominatim when you choose a lookup button. When
