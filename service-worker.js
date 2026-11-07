@@ -1,4 +1,4 @@
-const CACHE_NAME = "return-visits-shell-v183";
+const CACHE_NAME = "return-visits-shell-v184";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -8,6 +8,7 @@ const APP_SHELL = [
   "./docs/NRV-Privacy-Notice.pdf",
   "./styles.css",
   "./app.js",
+  "./focus-diagnostic.js",
   "./dropbox.js",
   "./merge.js",
   "./i18n.js",
