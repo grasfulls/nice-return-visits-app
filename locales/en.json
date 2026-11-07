@@ -337,7 +337,7 @@
   "launch.recommend": "We recommend installing Nice Return Visits and opening it from its app icon. That makes it easier to return to the same working copy.",
   "launch.installButton": "Set up the app icon (recommended)",
   "launch.browserButton": "Use NRV in this browser",
-  "launch.storageNote": "Browser storage belongs to this browser on this device. Another browser, device, or installed icon may have a separate copy of your contacts.",
+  "launch.storageNote": "Browser storage belongs to this browser on this device. Another browser, device, or installed icon may have a separate copy of your contacts. Dropbox backup may also be used to protect and transfer your NRV data.",
   "launch.whyLink": "Why we recommend using the app icon",
   "launch.websiteLink": "← Back to NRV website",
   "launch.websiteUrl": "https://nicereturnvisits.org/index.html",
