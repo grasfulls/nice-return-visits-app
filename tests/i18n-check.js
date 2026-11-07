@@ -61,7 +61,9 @@ for (const [code, catalog] of Object.entries(catalogs)) {
 
 // The English text left in index.html must stay identical to en.json (it is the no-JS fallback).
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const norm = (s) => s.replace(/&amp;/g, "&").replace(/&ge;/g, "≥").replace(/\s+/g, " ").trim();
+const norm = (s) => s.replace(/&(?:amp|lt|gt|quot|#39|ge);/g, (entity) => ({
+  "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'", "&ge;": "≥",
+})[entity]).replace(/\s+/g, " ").trim();
 const usedKeys = new Set();
 const textMismatch = [];
 for (const m of html.matchAll(/<(\w+)[^>]*?data-i18n="([^"]+)"[^>]*>([\s\S]*?)<\/\1>/g)) {

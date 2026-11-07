@@ -477,6 +477,7 @@
   "update.readyNotice": "Hay una actualización disponible. Elige Actualizar ahora para instalarla.",
   "update.checkRefresh": "Buscar actualizaciones y recargar",
   "update.currentVersion": "Versión actual de NRV: {version}",
+  "update.whatsNew": "Novedades",
   "update.offline": "Conéctate a internet antes de buscar actualizaciones de la aplicación.",
   "update.versionMismatch": "La versión publicada de NRV, {deployed}, es anterior a esta versión, {current}. Vuelve a intentarlo más tarde.",
   "update.versionNotReady": "NRV {version} está disponible, pero la actualización aún no está lista. Vuelve a intentarlo más tarde.",
@@ -818,5 +819,9 @@
   "contacts.decryptFailed": "No se pudo descifrar el archivo. Comprueba que sea válido y que la frase de contraseña sea correcta.",
   "map.zoomIn": "Acercar",
   "map.zoomOut": "Alejar",
-  "map.closePopup": "Cerrar ventana emergente"
+  "map.closePopup": "Cerrar ventana emergente",
+  "release.current.title": "Versión en desarrollo",
+  "release.current.change1": "Elija una ciudad guardada o agregue una al editar un contacto.",
+  "release.current.change2": "Coloque y ajuste marcadores de contactos y busque una calle transversal cuando sea necesario.",
+  "release.current.change3": "Consulte su versión actual de NRV y busque actualizaciones en Configuración."
 }

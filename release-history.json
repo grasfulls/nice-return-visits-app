@@ -1,0 +1,21 @@
+[
+  {
+    "version": "0.9.0",
+    "en": {
+      "title": "Development release",
+      "changes": [
+        "Choose a saved city or add one while editing a contact.",
+        "Place and adjust contact map pins, with cross-street search when needed.",
+        "See your current NRV version and check for updates in Settings."
+      ]
+    },
+    "es": {
+      "title": "Versión en desarrollo",
+      "changes": [
+        "Elija una ciudad guardada o agregue una al editar un contacto.",
+        "Coloque y ajuste marcadores de contactos y busque una calle transversal cuando sea necesario.",
+        "Consulte su versión actual de NRV y busque actualizaciones en Configuración."
+      ]
+    }
+  }
+]

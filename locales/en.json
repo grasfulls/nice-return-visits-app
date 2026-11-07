@@ -477,6 +477,7 @@
   "update.readyNotice": "An app update is ready. Choose Update Now to install it.",
   "update.checkRefresh": "Check for Updates & Refresh",
   "update.currentVersion": "Current NRV version: {version}",
+  "update.whatsNew": "What's new",
   "update.offline": "Connect to the internet before checking for app updates.",
   "update.versionMismatch": "The deployed NRV version {deployed} is older than this version {current}. Please try again later.",
   "update.versionNotReady": "NRV {version} is available, but its update is not ready yet. Please try again later.",
@@ -818,5 +819,9 @@
   "contacts.decryptFailed": "The file could not be decrypted. Check that the file is valid and the passphrase is correct.",
   "map.zoomIn": "Zoom in",
   "map.zoomOut": "Zoom out",
-  "map.closePopup": "Close popup"
+  "map.closePopup": "Close popup",
+  "release.current.title": "Development release",
+  "release.current.change1": "Choose a saved city or add one while editing a contact.",
+  "release.current.change2": "Place and adjust contact map pins, with cross-street search when needed.",
+  "release.current.change3": "See your current NRV version and check for updates in Settings."
 }

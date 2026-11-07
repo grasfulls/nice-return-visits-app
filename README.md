@@ -365,15 +365,29 @@ fundamental changes. Versions beginning with `0` are development releases;
 
 For each release:
 
-1. Update `APP_VERSION` in `app.js`.
-2. Run `node scripts/version.js --write` to generate `version.json`, then
-   `node scripts/version.js --check` to verify it matches the canonical value.
-3. Increment `CACHE_NAME` in `service-worker.js` so existing installations
+1. Review changes since the previous release. VCPA recommends whether the
+   next version should be PATCH, MINOR, or MAJOR.
+2. **Do not assign or change the version until Gary approves the proposed
+   version number.**
+3. After approval, update `APP_VERSION` in `app.js`. Run
+   `node scripts/version.js --write` to generate `version.json`, then
+   `node scripts/version.js --check` to verify it.
+4. Add a newest-first entry to `release-history.json` with the approved version
+   and concise, verified English and Spanish user-facing notes. It is the
+   single source for the app's current-release notes and the website's history.
+5. With the website repository available, run
+   `node scripts/release-history.js --write --site <website-directory>`, then
+   `node scripts/release-history.js --check --site <website-directory>`.
+   This generates the current notes in the app and the history on both website
+   pages. Do not edit the generated content independently. Without the website
+   directory, the same commands update or check the app only; finish the website
+   generation before releasing.
+6. Increment `CACHE_NAME` in `service-worker.js` so existing installations
    discover and cache the changed app shell.
-4. Run all `tests/*.js` scripts with Node.js, including the version and
-   service-worker tests.
-5. Deploy the app, service worker, generated metadata, and other changed
-   release files together. Do not edit the generated metadata independently.
+7. Run all `tests/*.js` scripts with Node.js, including the release-history,
+   version, update, localization, and service-worker tests.
+8. Deploy the app, service worker, generated metadata, and website changes
+   together. Verify the app and website show consistent notes.
 
 The update check reads deployment metadata from the network and compares each
 version component numerically. A failed check or an older deployed version is
