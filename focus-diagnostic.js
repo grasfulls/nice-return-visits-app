@@ -21,11 +21,15 @@
     color: "#000", padding: "16px", border: "2px solid #004080", overflow: "auto",
   });
   const explanation = document.createElement("p");
-  explanation.textContent = "Diagnostic measurements only; no field values. Select and copy the text below.";
+  explanation.textContent = "No field values. Take screenshots from the top of the results; scroll down for more.";
   const output = document.createElement("textarea");
   output.readOnly = true;
   output.setAttribute("aria-label", "Focus diagnostic results");
-  Object.assign(output.style, { width: "100%", height: "65%", boxSizing: "border-box" });
+  Object.assign(output.style, {
+    width: "100%", height: "75%", boxSizing: "border-box",
+    font: "12px monospace", whiteSpace: "pre", overflow: "auto",
+  });
+  output.wrap = "off";
   const close = document.createElement("button");
   close.type = "button";
   close.textContent = "Close";
@@ -64,11 +68,18 @@
     } else {
       record("show");
       recording = false;
-      output.value = JSON.stringify(entries, null, 2);
+      output.value = [
+        "seconds event field active main page viewportTop viewportHeight inputTop inputBottom",
+        ...entries.map((item) => [
+          (item.ms / 1000).toFixed(2), item.event, item.field || "-", item.active || "-",
+          item.main, item.page, item.viewportTop, item.viewportHeight,
+          item.inputTop, item.inputBottom,
+        ].join(" ")),
+      ].join("\n");
       panel.hidden = false;
       button.textContent = "Start focus diagnostic";
-      output.focus({ preventScroll: true });
-      output.select();
+      output.scrollTop = 0;
+      output.scrollLeft = 0;
     }
   });
   ["focusin", "focusout", "input", "change"].forEach((type) => {
