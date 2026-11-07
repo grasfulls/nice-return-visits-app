@@ -149,7 +149,7 @@ The app helps a person keep track of people they want to revisit: who the person
 | **Print Contact** | Choose most recent note only (default) or all notes; **Continue to Print** or **Cancel**. |
 | **App update available** | **Update now** refreshes after safety checks; **Later** dismisses current prompt. |
 | **Your recovery code** | One-time recovery-code display; **Copy**; copy status; **I have saved it**. |
-| **You are up to date!** | Shown after successful update refresh; **OK** closes. |
+| **App refreshed** | Shown after an update refresh; **OK** closes. |
 | **No update available** | Shown after explicit check finds no update; **OK** closes. |
 | Browser/device confirmation and alert prompts | Used for contact/log/time/location deletion, overwrite/restore, unsaved edits, turning off passphrase/time tracking, Dropbox conflict/connection choices, print confirmation, and errors/success. Exact wording is action-dependent; treat the choice as consequential and explain what data may be replaced or erased. |
 | Important map/location states | Loading, lookup results, ambiguous address matches, approximate city pin, no result, failed network lookup, invalid coordinates, denied GPS, no mappable contacts, no matching contacts, pin save/rollback. Status is shown beside the map/picker; actions may retry or allow manual placement. |
@@ -284,7 +284,7 @@ The app helps a person keep track of people they want to revisit: who the person
 1. NRV registers its service worker and checks for updates on open when online.
 2. If prompted, finish/save contact edits and Settings edits before refreshing. Choose Update now, or Later.
 3. You can also open Settings → App Updates and choose Check for Updates & Refresh. If no update exists, **No update available** appears.
-4. After a successful refresh, **You are up to date!** appears. A data schema newer than the running app produces a warning; update/reload before opening that data.
+4. After a refresh, **App refreshed** appears. A data schema newer than the running app produces a warning; update/reload before opening that data.
 
 ### K. Offline, errors, and recovery
 

@@ -350,6 +350,38 @@ asks "Discard unsaved changes?" (OK discards, Cancel stays so you can finish). T
 while keeping the contacts and settings stored in that app copy on the device.
 After the reload, unlock with the same passphrase if one is turned on.
 
+### App version and releases
+
+The canonical public app version is `APP_VERSION` in `app.js`; Settings →
+App Updates displays the version of the running code. `version.json` is
+generated deployment metadata, not a second version to edit by hand. The
+service-worker cache counter and the data schema version are separate from
+the public app version.
+
+NRV uses `MAJOR.MINOR.PATCH`: increment PATCH for backward-compatible fixes,
+MINOR for backward-compatible features, and MAJOR for incompatible or
+fundamental changes. Versions beginning with `0` are development releases;
+`1.0.0` is reserved for the first completed public release.
+
+For each release:
+
+1. Update `APP_VERSION` in `app.js`.
+2. Run `node scripts/version.js --write` to generate `version.json`, then
+   `node scripts/version.js --check` to verify it matches the canonical value.
+3. Increment `CACHE_NAME` in `service-worker.js` so existing installations
+   discover and cache the changed app shell.
+4. Run all `tests/*.js` scripts with Node.js, including the version and
+   service-worker tests.
+5. Deploy the app, service worker, generated metadata, and other changed
+   release files together. Do not edit the generated metadata independently.
+
+The update check reads deployment metadata from the network and compares each
+version component numerically. A failed check or an older deployed version is
+reported rather than treated as current. Service-worker updates remain
+separate and can also occur without a public version change. During a
+non-atomic deployment, network-first loading can temporarily mix files from
+different releases; a version check does not verify each asset.
+
 The plain-language user guide is available from **Settings → Help → User Guide & Privacy Notice** or directly at
 **https://grasfulls.github.io/nice-return-visits-app/help.html**. It is an
 accessible, responsive HTML page that can be read in a standard web browser.

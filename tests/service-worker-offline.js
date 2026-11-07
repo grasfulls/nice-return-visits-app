@@ -62,6 +62,16 @@ async function main() {
     assert((await offline(file)).body.length > 0);
     console.log(`PASS  ${file} is available offline`);
   }
+  for (const file of ["./version.json", "./version.json?check=unique"]) {
+    let intercepted = false;
+    handlers.fetch({
+      request: { url: normalize(file), method: "GET", mode: "cors" },
+      respondWith() { intercepted = true; },
+    });
+    assert(!intercepted, "deployment version must not use a cached fallback");
+  }
+  assert(!entries.has(normalize("./version.json")));
+  console.log("PASS  deployment version bypasses service-worker caching");
 }
 
 main().catch((error) => { console.error(error); process.exitCode = 1; });

@@ -993,6 +993,7 @@
             </details>
             <details class="settings-section" id="app-updates-section">
               <summary data-i18n="settings.updates">App Updates</summary>
+              <p id="app-current-version"></p>
               <p data-i18n="update.checkNote">
                 The app checks for updates when it opens. Finish any open
                 edits before refreshing.
@@ -1635,7 +1636,7 @@
     <dialog id="app-update-dialog" aria-labelledby="app-update-title">
       <h2 id="app-update-title" data-i18n="update.available">App update available</h2>
       <p data-i18n="update.availableDescription">
-        A newer version is ready. Update now to refresh the app. Your saved
+        An app update is ready. Update now to refresh the app. Your saved
         contacts stay on this device; after refreshing, unlock with your
                 passphrase if you have turned one on.
       </p>
@@ -1663,8 +1664,8 @@
     </dialog>
 
     <dialog id="app-updated-dialog" aria-labelledby="app-updated-title">
-      <h2 id="app-updated-title" data-i18n="update.doneTitle">You are up to date!</h2>
-      <p data-i18n="update.done">Nice Return Visits was updated and is now the latest version.</p>
+      <h2 id="app-updated-title" data-i18n="update.doneTitle">App refreshed</h2>
+      <p data-i18n="update.done">Nice Return Visits has refreshed. Your saved contacts remain on this device.</p>
       <div class="restore-dialog-actions">
         <button type="button" id="btn-ok-updated" data-i18n="common.ok">OK</button>
       </div>

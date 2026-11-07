@@ -13,8 +13,41 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
+const APP_VERSION = "0.9.0";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
+const parseAppVersion = (version) => {
+  if (typeof version !== "string" || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?![\s\S])/.test(version)) {
+    throw new Error("Invalid app version; expected MAJOR.MINOR.PATCH.");
+  }
+  return version.split(".");
+};
+const compareAppVersions = (left, right) => {
+  const leftParts = parseAppVersion(left);
+  const rightParts = parseAppVersion(right);
+  for (let index = 0; index < leftParts.length; index += 1) {
+    const a = leftParts[index];
+    const b = rightParts[index];
+    if (a.length !== b.length) return a.length > b.length ? 1 : -1;
+    if (a !== b) return a > b ? 1 : -1;
+  }
+  return 0;
+};
+const fetchDeployedAppVersion = async () => {
+  const url = new URL("version.json", document.baseURI);
+  const nonce = new Uint32Array(4);
+  crypto.getRandomValues(nonce);
+  url.searchParams.set("check", Array.from(nonce, (value) => value.toString(16)).join("-"));
+  const response = await fetch(url.href, { cache: "no-store" });
+  if (!response.ok) throw new Error(`Version check failed with status ${response.status}.`);
+  const metadata = await response.json();
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata) ||
+      Object.keys(metadata).length !== 1) {
+    throw new Error("Invalid deployment version metadata.");
+  }
+  parseAppVersion(metadata.version);
+  return metadata.version;
+};
 const guardDetailsFocusScroll = (form, scroller, viewport, clock) => {
   let pending = null;
   const visibleBounds = () => {
@@ -5826,10 +5859,10 @@ const initializeApp = async () => {
     const contactEditorOpen = getComputedStyle(modal).display !== "none";
     const pending = findPendingSettingsEdit();
     if (contactEditorOpen) {
-      return "Save or exit the open contact before refreshing the app. Your saved contacts will remain on this device.";
+      return appText("update.finishContact", "Save or exit the open contact before refreshing the app. Your saved contacts will remain on this device.");
     }
     if (pending) {
-      return `Before refreshing, finish or clear "${pending.field}" in Settings → ${pending.section}. It has changes that are not saved.`;
+      return appText("update.finishSettings", `Before refreshing, finish or clear "${pending.field}" in Settings → ${pending.section}. It has changes that are not saved.`, { field: pending.field, section: pending.section });
     }
     return "";
   };
@@ -5840,8 +5873,7 @@ const initializeApp = async () => {
     document.getElementById("btn-check-updates").textContent = appText("update.nowTitle", "Update Now");
     if (getAppRefreshBlockMessage()) {
       if (currentViewId === "settings-view") {
-        appUpdateStatus.textContent =
-          "An app update is ready. Save or finish your edits before refreshing.";
+        appUpdateStatus.textContent = appText("update.finishEdits", "An app update is ready. Save or finish your edits before refreshing.");
       }
       return;
     }
@@ -5864,6 +5896,11 @@ const initializeApp = async () => {
     }, 750);
   };
   appUpdatePromptHandler = showAppUpdatePrompt;
+  document.getElementById("app-current-version").textContent = appText(
+    "update.currentVersion",
+    `Current NRV version: ${APP_VERSION}`,
+    { version: APP_VERSION },
+  );
 
   document
     .getElementById("btn-ok-no-update")
@@ -5877,8 +5914,7 @@ const initializeApp = async () => {
       const button = event.currentTarget;
       const status = appUpdateStatus;
       if (!navigator.onLine) {
-        status.textContent =
-          "Connect to the internet before checking for app updates.";
+        status.textContent = appText("update.offline", "Connect to the internet before checking for app updates.");
         return;
       }
       const blockMessage = getAppRefreshBlockMessage();
@@ -5888,8 +5924,7 @@ const initializeApp = async () => {
         return;
       }
       if (!("serviceWorker" in navigator)) {
-        status.textContent =
-          "This browser does not support app updates. Open the website in a supported browser while online.";
+        status.textContent = appText("update.unsupported", "This browser does not support app updates. Open the website in a supported browser while online.");
         return;
       }
 
@@ -5901,8 +5936,28 @@ const initializeApp = async () => {
           throw new Error("The app's update service is not registered.");
         }
         await registration.update();
+        const deployedVersion = await fetchDeployedAppVersion();
+        const versionComparison = compareAppVersions(deployedVersion, APP_VERSION);
+        if (versionComparison < 0) {
+          status.textContent = appText(
+            "update.versionMismatch",
+            `The deployed NRV version ${deployedVersion} is older than this version ${APP_VERSION}. Please try again later.`,
+            { deployed: deployedVersion, current: APP_VERSION },
+          );
+          button.disabled = false;
+          return;
+        }
         const incoming = registration.installing || registration.waiting;
         if (!incoming && !appUpdateAvailable) {
+          if (versionComparison > 0) {
+            status.textContent = appText(
+              "update.versionNotReady",
+              `NRV ${deployedVersion} is available, but its update is not ready yet. Please try again later.`,
+              { version: deployedVersion },
+            );
+            button.disabled = false;
+            return;
+          }
           status.textContent = appText("update.latest", "You have the latest version.");
           button.disabled = false;
           document.getElementById("app-no-update-dialog").showModal();
@@ -5919,8 +5974,14 @@ const initializeApp = async () => {
             });
           });
         }
-        status.textContent =
-          "Update check complete. Refreshing the app now; saved contacts are kept on this device.";
+        const refreshBlock = getAppRefreshBlockMessage();
+        if (refreshBlock) {
+          status.textContent = refreshBlock;
+          button.disabled = false;
+          revealAppRefreshBlock();
+          return;
+        }
+        status.textContent = appText("update.refreshing", "Update check complete. Refreshing the app now; saved contacts are kept on this device.");
         try {
           localStorage.removeItem(APP_UPDATE_PENDING_KEY);
         } catch (error) {
@@ -5930,7 +5991,7 @@ const initializeApp = async () => {
       } catch (error) {
         console.error("Unable to check for app updates:", error);
         status.textContent =
-          appText("update.checkFailed", "Could not check for updates. Confirm you are online and try again.");
+          appText("update.versionCheckFailed", "Could not verify the deployed NRV version or check for updates. Check your connection and try again.");
         button.disabled = false;
       }
     });

@@ -1,4 +1,4 @@
-const CACHE_NAME = "return-visits-shell-v188";
+const CACHE_NAME = "return-visits-shell-v189";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -50,9 +50,11 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const requestUrl = new URL(event.request.url);
+  const versionUrl = new URL("version.json", self.registration.scope);
   if (
     event.request.method !== "GET" ||
     requestUrl.origin !== self.location.origin ||
+    requestUrl.pathname === versionUrl.pathname ||
     !requestUrl.pathname.startsWith(new URL(self.registration.scope).pathname)
   ) {
     return;
