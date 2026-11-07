@@ -15,6 +15,47 @@ const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 const MIN_PASSPHRASE_LENGTH = 12;
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
+const guardDetailsFocusScroll = (form, scroller, viewport, clock) => {
+  let pending = null;
+  const visibleBounds = () => {
+    const bounds = scroller.getBoundingClientRect();
+    return {
+      top: Math.max(bounds.top, viewport.offsetTop),
+      bottom: Math.min(bounds.bottom, viewport.offsetTop + viewport.height),
+    };
+  };
+  form.addEventListener("focusin", (event) => {
+    const field = event.target;
+    if (!field.matches("input, select, textarea")) {
+      pending = null;
+      return;
+    }
+    const bounds = visibleBounds();
+    const rect = field.getBoundingClientRect();
+    pending = rect.top >= bounds.top && rect.bottom <= bounds.bottom
+      ? { field, scrollTop: scroller.scrollTop, time: clock.now() }
+      : null;
+  });
+  form.addEventListener("focusout", () => { pending = null; });
+  ["touchstart", "pointerdown", "wheel"].forEach((event) => {
+    scroller.addEventListener(event, () => { pending = null; }, { passive: true });
+  });
+  scroller.addEventListener("scroll", () => {
+    if (!pending) return;
+    const { field, scrollTop, time } = pending;
+    if (clock.now() - time > 800 || document.activeElement !== field) {
+      pending = null;
+      return;
+    }
+    const bounds = visibleBounds();
+    const rect = field.getBoundingClientRect();
+    if (Math.abs(scroller.scrollTop - scrollTop) > 100 &&
+        (rect.bottom < bounds.top || rect.top > bounds.bottom)) {
+      pending = null;
+      scroller.scrollTop = scrollTop;
+    }
+  }, { passive: true });
+};
 const localizeMapControls = (leafletMap) => {
   const zoomControls = leafletMap.zoomControl.getContainer();
   [
@@ -2849,6 +2890,16 @@ const initializeApp = async () => {
   };
   const meStatus = document.getElementById("me-status");
   let lastCommittedMeCity = "";
+  if (window.visualViewport &&
+      (/iPad/i.test(navigator.userAgent) ||
+       (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1))) {
+    guardDetailsFocusScroll(
+      document.getElementById("me-form"),
+      document.querySelector("main"),
+      window.visualViewport,
+      performance,
+    );
+  }
   meFields.name.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" || event.isComposing) return;
     event.preventDefault();
