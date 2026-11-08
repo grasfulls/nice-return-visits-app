@@ -1702,7 +1702,7 @@ const dismissUnlockScreen = (screen) => {
 };
 
 // Update this version when the Terms of Use or Privacy & Data Notice changes.
-const USER_AGREEMENT_VERSION = "2026-10-30";
+const USER_AGREEMENT_VERSION = "2026-11-05";
 const requireUserAgreement = () => {
   const screen = document.getElementById("unlock-screen");
   const agreementPanel = document.getElementById("agreement-panel");
