@@ -396,13 +396,13 @@ different releases; a version check does not verify each asset.
 The plain-language user guide is available from **Settings → Help → User Guide & Privacy Notice** or directly at
 [NRV Help](https://nicereturnvisits.org/app/help.html). It is an
 accessible, responsive HTML page that can be read in a standard web browser.
-The illustrated Setup and User Guide PDF,
-[docs/NRV-Setup-User-Guide.pdf](./docs/NRV-Setup-User-Guide.pdf), is linked from
-the page (it is not cached for offline use because of its size).
+The illustrated Setup and User Guide PDF is linked from the page at
+[nicereturnvisits.org](https://nicereturnvisits.org/assets/docs/NRV-Setup-User-Guide.pdf)
+(it is not cached for offline use because of its size).
 
 The **Privacy & Data Notice** is available from Settings or directly at
 [Privacy & Data Notice](https://nicereturnvisits.org/app/privacy.html). The page also
-provides a downloadable PDF copy ([docs/NRV-Privacy-Notice.pdf](./docs/NRV-Privacy-Notice.pdf)). It explains what information the app stores
+provides a downloadable PDF copy ([NRV-Privacy-Notice.pdf](https://nicereturnvisits.org/assets/docs/NRV-Privacy-Notice.pdf)). It explains what information the app stores
 on the user's device, what may be sent to hosting and mapping providers, and
 that the app owner does not collect information identifying who downloads or
 uses the app.

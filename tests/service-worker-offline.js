@@ -8,6 +8,7 @@ const root = path.join(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");
 const base = "https://example.test/app/";
 const entries = new Map();
+const deletedCaches = [];
 const handlers = {};
 const normalize = (url) => new URL(typeof url === "string" ? url : url.url, base).href;
 const cache = {
@@ -23,12 +24,15 @@ const cache = {
 const caches = {
   async open() { return cache; },
   async match(request) { return entries.get(normalize(request)); },
+  async keys() { return ["return-visits-shell-v195", "unrelated-cache"]; },
+  async delete(name) { deletedCaches.push(name); return true; },
 };
 const self = {
   registration: { scope: base },
   location: { origin: new URL(base).origin },
   addEventListener(type, handler) { handlers[type] = handler; },
   async skipWaiting() {},
+  clients: { async claim() {} },
 };
 vm.runInNewContext(source, {
   URL, self, caches,
@@ -40,6 +44,14 @@ async function main() {
   let installation;
   handlers.install({ waitUntil(promise) { installation = promise; } });
   await installation;
+  assert(!source.includes("NRV-Privacy-Notice.pdf"));
+  assert(!entries.has(normalize("./docs/NRV-Privacy-Notice.pdf")));
+  console.log("PASS  service-worker installation does not require the removed local PDF");
+  let activation;
+  handlers.activate({ waitUntil(promise) { activation = promise; } });
+  await activation;
+  assert.deepStrictEqual(deletedCaches, ["return-visits-shell-v195"]);
+  console.log("PASS  service-worker update removes the previous PDF-containing cache");
   async function offline(relativePath, mode = "cors") {
     let response;
     handlers.fetch({

@@ -48,9 +48,17 @@ for (const [language, filename] of [["en", "help.html"], ["es", "help-es.html"]]
     if (language === "en") {
       main = main.replace(/\s*<p class="screen-only">.*?<\/p>/, "");
       main = main.replaceAll("./docs/", "assets/docs/");
+      main = main.replaceAll(
+        "https://nicereturnvisits.org/assets/docs/",
+        "assets/docs/",
+      );
       main = main.replace('<h3 id="remove-data">', '<span id="stop-using-the-app-and-remove-its-saved-data"></span>\n      <h3 id="remove-data">');
     } else {
       main = main.replaceAll("./docs/", "../assets/docs/");
+      main = main.replaceAll(
+        "https://nicereturnvisits.org/assets/docs/",
+        "../assets/docs/",
+      );
       main = main.replace('href="./privacy.html"', 'href="privacy.html"').replace('href="./terms.html"', 'href="terms.html"');
     }
     main = main.replaceAll(
@@ -64,11 +72,45 @@ for (const [language, filename] of [["en", "help.html"], ["es", "help-es.html"]]
       );
     }
     assert(websiteHtml.includes(main.trim()), `${language}: website and app reference content differ`);
-    const docs = ["install-browser-en.png", "install-browser-es.png", "NRV-Setup-User-Guide.pdf", "NRV-Setup-User-Guide-es.pdf"];
-    for (const name of docs) {
+    const images = ["install-browser-en.png", "install-browser-es.png"];
+    for (const name of images) {
       assert(fs.readFileSync(path.join(app, "docs", name)).equals(fs.readFileSync(path.join(site, "assets", "docs", name))), `${name}: published copy differs`);
     }
   }
   console.log(`PASS  ${language} Help anchors and local links`);
 }
+const publishedPdfs = [
+  {
+    name: "NRV-Setup-User-Guide.pdf",
+    url: "https://nicereturnvisits.org/assets/docs/NRV-Setup-User-Guide.pdf",
+    page: "help.html",
+  },
+  {
+    name: "NRV-Setup-User-Guide-es.pdf",
+    url: "https://nicereturnvisits.org/assets/docs/NRV-Setup-User-Guide-es.pdf",
+    page: "help-es.html",
+  },
+  {
+    name: "NRV-Privacy-Notice.pdf",
+    url: "https://nicereturnvisits.org/assets/docs/NRV-Privacy-Notice.pdf",
+    page: "privacy.html",
+  },
+];
+for (const { name, url, page } of publishedPdfs) {
+  const html = fs.readFileSync(path.join(app, page), "utf8");
+  assert(html.includes(`href="${url}"`), `${page}: link to authoritative ${name}`);
+  assert(
+    !fs.existsSync(path.join(app, "docs", name)),
+    `${name}: no duplicate PDF in the app repository`,
+  );
+  if (site) {
+    const websitePdf = path.join(site, "assets", "docs", name);
+    assert(fs.existsSync(websitePdf), `${name}: authoritative website PDF exists`);
+    assert(
+      fs.readFileSync(websitePdf).subarray(0, 5).equals(Buffer.from("%PDF-")),
+      `${name}: website copy has a PDF signature`,
+    );
+  }
+}
+console.log("PASS  published PDFs link to the website and are not duplicated in the app");
 if (!site) console.log("SKIP  website Help (set NRV_WEBSITE_PATH)");

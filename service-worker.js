@@ -1,4 +1,4 @@
-const CACHE_NAME = "return-visits-shell-v195";
+const CACHE_NAME = "return-visits-shell-v196";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -8,7 +8,6 @@ const APP_SHELL = [
   "./docs/install-browser-es.png",
   "./privacy.html",
   "./terms.html",
-  "./docs/NRV-Privacy-Notice.pdf",
   "./styles.css",
   "./app.js",
   "./dropbox.js",

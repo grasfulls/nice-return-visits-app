@@ -100,9 +100,8 @@ site:
 - `help.html` — illustrated installation guidance and full user guide.
 - `privacy.html` — Privacy & Data Notice.
 - `terms.html` — Terms of Use.
-- `docs/NRV-Setup-User-Guide.pdf` — downloadable setup/user
-  guide.
-- `docs/NRV-Privacy-Notice.pdf` — downloadable privacy notice.
+- [NRV Setup and User Guide PDF](https://nicereturnvisits.org/assets/docs/NRV-Setup-User-Guide.pdf) — downloadable setup/user guide.
+- [NRV Privacy Notice PDF](https://nicereturnvisits.org/assets/docs/NRV-Privacy-Notice.pdf) — downloadable privacy notice.
 - `README.md` — contains user-facing setup and hosting instructions mixed with
   repository/developer information; review before publishing it as public help.
 
