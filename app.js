@@ -6540,10 +6540,9 @@ const initializeApp = async () => {
     notice.dataset.kind = kind;
     notice.hidden = !kind;
     if (!kind) return;
+    const helpPage = window.NRVI18n?.getLanguage() === "es" ? "./help-es.html" : "./help.html";
     document.getElementById("copy-notice-link").href =
-      kind === "empty-installed"
-        ? "./help.html#backup"
-        : "./help.html#install-guide";
+      helpPage + (kind === "empty-installed" ? "#backup" : "#install-guide");
     document.getElementById("copy-notice-text").textContent =
       kind === "empty-installed"
         ? appText("contacts.emptyInstalled", "This installed copy is empty. If you already added contacts in your browser, open the app in that browser, go to Settings → Backup or Restore and back up, then restore here. Or connect Dropbox in both copies.")
@@ -9423,6 +9422,11 @@ const initializeApp = async () => {
 
 document.addEventListener("DOMContentLoaded", async () => {
   await window.nrvI18nReady;
+  if (window.NRVI18n?.getLanguage() === "es") {
+    document.querySelectorAll("[data-help-link]").forEach((link) => {
+      link.href = link.href.replace(/help\.html(?=#|$)/, "help-es.html");
+    });
+  }
   const installBanner = document.getElementById("install-screen");
   const installBannerKey = "return_visits_onboarding_v2_dismissed";
   const setupPendingKey = "return_visits_setup_pending";

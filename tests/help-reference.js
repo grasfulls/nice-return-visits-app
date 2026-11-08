@@ -1,0 +1,45 @@
+// Run with: NRV_WEBSITE_PATH=<website directory> node tests/help-reference.js
+const assert = require("assert");
+const fs = require("fs");
+const path = require("path");
+
+const app = path.join(__dirname, "..");
+const site = process.env.NRV_WEBSITE_PATH;
+
+function inspect(file, requiredIds) {
+  const html = fs.readFileSync(file, "utf8");
+  const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
+  assert.strictEqual(new Set(ids).size, ids.length, `${file}: duplicate IDs`);
+  for (const id of requiredIds) assert(ids.includes(id), `${file}: missing #${id}`);
+  for (const match of html.matchAll(/href="([^"]+)"/g)) {
+    const href = match[1].replace(/&amp;/g, "&");
+    if (/^(?:https?:|mailto:)/.test(href)) continue;
+    const [target, fragment] = href.split("#");
+    const name = target.split("?")[0];
+    const targetFile = name && name !== "./"
+      ? path.resolve(path.dirname(file), name)
+      : file;
+    assert(fs.existsSync(targetFile), `${file}: missing ${href}`);
+    if (fragment && targetFile.endsWith(".html")) {
+      const targetHtml = targetFile === file ? html : fs.readFileSync(targetFile, "utf8");
+      assert(targetHtml.includes(`id="${fragment}"`), `${file}: missing ${href}`);
+    }
+  }
+  assert(!/>[^<]*grasfulls\.github/i.test(html), `${file}: visible hosting address`);
+  return ids;
+}
+
+const common = [
+  "install-guide", "add-and-organize-contacts", "find-contacts-and-record-visits",
+  "time-in-service", "print-contacts", "passphrase-optional", "recovery-code",
+  "backup", "cloud-backup", "sync", "consolidate", "remove-data", "troubleshooting",
+];
+for (const [language, filename] of [["en", "help.html"], ["es", "help-es.html"]]) {
+  inspect(path.join(app, filename), common);
+  if (site) {
+    const websiteFile = language === "en" ? path.join(site, "help.html") : path.join(site, "es", "help.html");
+    inspect(websiteFile, common);
+  }
+  console.log(`PASS  ${language} Help anchors and local links`);
+}
+if (!site) console.log("SKIP  website Help (set NRV_WEBSITE_PATH)");

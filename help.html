@@ -291,6 +291,7 @@
     </header>
 
     <main>
+      <p><a href="./help-es.html" hreflang="es" lang="es">Español</a> · <a href="./">Back to NRV</a></p>
       <p class="document-link">
         Download the earlier illustrated
         <a href="./docs/NRV-Setup-User-Guide.pdf" download>PDF guide</a>.
@@ -313,6 +314,7 @@
           <li><a href="#remove-data">Remove unused data</a></li>
           <li><a href="#use-the-app-on-another-device">Move to another device</a></li>
           <li><a href="#already-using-the-app-in-a-browser">Existing browser copy</a></li>
+          <li><a href="#troubleshooting">Troubleshooting and offline use</a></li>
         </ul>
       </nav>
       <section class="guide-intro">
@@ -402,9 +404,9 @@
 
       <h2 id="important-where-your-information-is-kept-is-your-choice">Important: where your information is kept is your choice</h2>
       <p>
-        Contacts and settings are first saved in the browser on the device where
-        you use the app, and each browser or Home Screen icon keeps its own
-        separate data. Where else they exist is your choice. If you connect your
+        Contacts and settings are first saved in the browser or installed app
+        on the device where you use it; different browsers, profiles and
+        installed icons may have separate data. Where else they exist is your choice. If you connect your
         own Dropbox, backups are stored in your Dropbox account, so your data is
         held there as well as on your devices. If you send a backup or contact
         file by email, messaging or a cloud folder, the data leaves your device
@@ -886,12 +888,12 @@
           new recovery code.
         </li>
         <li>
-          To share one contact, open it with the pencil button and use the
-          export icon at the bottom of the Edit Contact screen. This creates a
-          contact file. If your device has a passphrase, the file is encrypted
-          and you give the recipient its separate sharing passphrase through a
-          different channel; with no passphrase, the file is plain and needs
-          none, so send it only to someone you trust.
+          To export one contact, open it with the pencil button and use the
+          export icon at the bottom of the Edit Contact screen. If a
+          passphrase is on, choose whether to encrypt the contact file. A
+          protected one-contact transfer uses a separate passphrase you create;
+          give it to the recipient through a different channel. An unencrypted
+          file is readable by anyone who obtains it.
         </li>
         <li>
           To import one or more contacts, choose the import icon (a tray with an
@@ -910,9 +912,9 @@
         saved earlier. If you connect more than one device to the same Dropbox,
         it also keeps them in step (see
         <a href="#sync">Syncing between devices</a>). It is off unless you turn
-        it on. Dropbox is entirely optional: the app works fully without it,
-        nothing is sent anywhere, and all your data can stay only on this
-        device. The file backups described above keep working either way.
+        it on. Dropbox is entirely optional. File backups work either way.
+        Other features such as map lookups, directions, sharing, and printing
+        can send selected information to other services or destinations.
       </p>
       <p class="notice">
         <strong>You need a Dropbox account.</strong> The app can send you to
@@ -943,9 +945,11 @@
           else in your Dropbox. Dropbox then sends you back to the app.
         </li>
         <li>
-          The app makes your first backup and shows when it finished. If you
-          connect on a new device with no contacts and Dropbox already has a
-          backup, the app offers to restore it.
+          If Dropbox already has a backup, read the restore or replace prompts
+          carefully. Restoring replaces this copy; replacing uploads this
+          device's data over the latest Dropbox copy. Cancel if unsure. If no
+          backup exists and this copy has contacts, the app makes a first
+          backup; an empty copy waits until contacts are added.
         </li>
       </ol>
       <h3>How it works</h3>
@@ -1013,13 +1017,10 @@
       </p>
 
       <p class="notice">
-        <strong
-          >All devices that sync together must use the same passphrase and the
-          same recovery code.</strong
-        >
-        Dropbox and your device sign-in are the only protection the app
-        requires. A passphrase is only needed if you want your Dropbox copies
-        encrypted; turn it on once, on your main device.
+        A passphrase is optional. For encrypted synchronization, restore the
+        protected backup on the other device so it receives the same protection
+        metadata, passphrase, and recovery code. Independently turning on an
+        identical passphrase may not produce compatible copies.
       </p>
 
       <h4>Setting up a second device (for example an iPad)</h4>
@@ -1057,8 +1058,9 @@
         </li>
 
         <li>
-          Your contacts appear and the cloud icon shows it is synced. After this
-          the two devices stay in step by themselves.
+          Check that your contacts appear and the cloud icon shows it is synced.
+          Check the status again after edits, and resolve any prompts before
+          relying on the other device.
         </li>
       </ol>
 
@@ -1132,7 +1134,7 @@
       <h2 id="consolidate">Consolidate copies and remove unused data</h2>
       <p>
         If Safari, Chrome, and a Home Screen app each have contacts, they are
-        separate local copies and do not sync, even if you use Dropbox on one of
+        potentially separate local copies and do not sync, even if you use Dropbox on one of
         them. For regular use, choose the Home Screen app as the one copy to
         keep. A full backup restore replaces all contacts and settings in the
         destination; it does not merge two full backups.
@@ -1146,7 +1148,7 @@
           destination's current contacts and settings.
         </li>
         <li>
-          Before changing anything, export an encrypted full backup from every
+          Before changing anything, export a full backup from every
           copy that contains information you may need. Keep these backups until
           the consolidation is complete.
         </li>
@@ -1164,8 +1166,8 @@
           duplicate if the same person is already in the destination.
         </li>
         <li>
-          Export a new encrypted full backup from the destination. Keep it
-          somewhere safe and confirm you know its passphrase before deleting any
+          Export a new full backup from the destination. Keep it somewhere safe
+          and, if encrypted, confirm you know its passphrase before deleting any
           source copy.
         </li>
         <li>
@@ -1251,7 +1253,7 @@
         helps avoid accidentally working in separate copies.
       </p>
       <p>
-        The browser version and the Home Screen app are separate copies and do
+        The browser version and the Home Screen app may be separate copies and do
         not sync with each other, even if you use Dropbox in one of them. If you
         add the app to your Home Screen, it will not transfer the data already
         saved in your browser; the two versions may keep separate local copies.
@@ -1263,15 +1265,14 @@
         >. Open the app icon and choose
         <strong>Restore from a backup file</strong> during setup, or use its
         restore option in Settings. Keep using your browser until you have
-        confirmed the contacts are visible in the icon. After the transfer,
-        changes made in one copy will not appear in the other, so use only the
-        icon from then on.
+        confirmed the contacts are visible in the icon. Without a shared sync
+        setup, changes made in one copy will not appear in the other.
       </p>
       <p class="notice">
         <strong>If you must continue using a browser:</strong> You can connect
         Dropbox to your browser tab, and if you add a Home Screen icon, you can
-        connect the same Dropbox account to it as well. Both will automatically
-        sync with each other—see <a href="#sync">Syncing between devices</a> for
+        connect the same Dropbox account to it as well. They can sync through
+        Dropbox when connected and compatible—see <a href="#sync">Syncing between devices</a> for
         details. Dropbox sync is a workaround that helps keep browser and icon
         versions in step, but the icon alone remains the most reliable approach.
       </p>
@@ -1279,11 +1280,41 @@
         The app is free to use and has no sync service of its own. Syncing
         happens only if you choose to connect your own Dropbox on each device
         (see
-        <a href="#sync">Syncing between devices</a>). Without Dropbox, each copy
-        is separate: keep track of which one has your latest changes, and move
+        <a href="#sync">Syncing between devices</a>). Without Dropbox, copies
+        may be separate: keep track of which one has your latest changes, and move
         changes by exporting and restoring a backup file. Restoring a full
         backup replaces the destination copy's contacts and settings.
       </p>
+      <h2 id="troubleshooting">Troubleshooting and offline use</h2>
+      <ul>
+        <li><strong>Missing contacts:</strong> clear search and all filters.
+          Confirm you opened the same browser, profile, device, or installed
+          icon. If the correct copy is empty, locate a backup before restoring;
+          a full restore replaces the destination.</li>
+        <li><strong>Cannot unlock:</strong> check the passphrase for this copy
+          or enter its current recovery code. A backup may have a different
+          passphrase or recovery code. Without the matching secret, encrypted
+          data cannot be opened.</li>
+        <li><strong>Backup will not restore:</strong> confirm it is a full NRV
+          JSON backup, use the secret for that backup if encrypted, and update
+          NRV if it says the file was made by a newer version. Keep the
+          original file and check the message if restoration fails.</li>
+        <li><strong>Dropbox is offline or paused:</strong> local edits remain
+          on the device. Reconnect and read the cloud status. If prompted to
+          restore or replace, back up both copies first and read which one
+          will be overwritten.</li>
+        <li><strong>Map or location fails:</strong> check your connection and
+          device permissions; try an address, a cross-street, or place a pin
+          manually. City pins and device location can be approximate.</li>
+        <li><strong>Storage or updates fail:</strong> do not clear browser data
+          as a first step. Save your work and a backup if possible, check
+          storage permissions and available space, then retry. Finish open
+          contact or Settings edits before refreshing.</li>
+        <li><strong>Offline:</strong> after the app has cached its files it
+          may open offline. Map tiles, address lookups, directions, Dropbox,
+          and other external resources need a connection. Local changes can
+          sync when connectivity returns.</li>
+      </ul>
     </main>
 
     <footer>

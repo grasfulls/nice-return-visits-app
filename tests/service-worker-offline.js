@@ -58,7 +58,7 @@ async function main() {
     assert(shell.body.includes('src="i18n.js"'));
     console.log(`PASS  ${lang} query launch falls back to the offline app shell`);
   }
-  for (const file of ["./app.js", "./i18n.js", "./styles.css"]) {
+  for (const file of ["./app.js", "./i18n.js", "./styles.css", "./help.html", "./help-es.html"]) {
     assert((await offline(file)).body.length > 0);
     console.log(`PASS  ${file} is available offline`);
   }
