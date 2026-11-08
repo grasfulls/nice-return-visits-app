@@ -25,7 +25,7 @@ The app helps a person keep track of people they want to revisit: who the person
 1. On first visit, choose to set up the recommended app icon or use NRV in the current browser. Accept the current Terms of Use and Privacy & Data Notice before using the app.
 2. If you choose the app icon, follow the install guidance, open NRV from the icon, then complete the agreement and first-launch setup. If you choose the browser, use the same browser on the same device as your working copy.
 3. Set a default state/province and city in Settings. Optionally fill in Your Details and create reusable Cities, Regions, and Areas.
-4. Add contacts. A first name and country are required; other contact details and location fields are optional. A map pin is separate from the street address and must be looked up, placed, or entered.
+4. Add contacts. A first name, country, and city are required; other contact details and location fields are optional. A map pin is separate from the street address and must be looked up, placed, or entered.
 5. Add visit notes as they happen. NRV uses the newest visit note (or the contact's creation date if there are no notes) to calculate elapsed days and urgency.
 6. Search, filter, sort, view, print, navigate to, or share the contacts currently needed.
 7. Protect the local copy with an optional passphrase and make backups. Dropbox backup/sync is optional and requires the user's Dropbox account.
@@ -202,7 +202,7 @@ The app helps a person keep track of people they want to revisit: who the person
 
 1. Use the header search field to search the supported text fields (name, email, phone, address, area, and visit-note text).
 2. Optionally select an urgency, city, region, and area. Conditions combine.
-3. Choose Newest First, Oldest First, or Alphabetical. This sorts by creation time or first name; it is not a last-visit sort.
+3. Choose Newest First, Oldest First, or Alphabetical. Newest and Oldest use the latest visit date, or the creation date when there are no visits; Alphabetical uses first name.
 4. Clear search and choose all-values in filters to restore the full list. The map uses this same visible subset.
 
 ### E. Use the map and directions
