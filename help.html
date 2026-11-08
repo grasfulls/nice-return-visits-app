@@ -198,6 +198,10 @@
         margin-top: 0.45rem;
       }
 
+      .guide-figure { margin: 1.5rem 0; }
+      .guide-figure img { display: block; width: min(100%, 560px); height: auto; }
+      .guide-figure figcaption { font-size: 0.9rem; }
+
       .document-link {
         margin: 0 0 1.25rem;
         padding: 0.75rem 2rem 0;
@@ -231,13 +235,16 @@
           box-shadow: none;
         }
 
-        .document-link {
+        .document-link, .screen-only {
           display: none;
         }
 
-        .return-to-app {
+        .return-to-app, footer {
           display: none;
         }
+
+        h2, h3, h4 { break-after: avoid; }
+        .guide-figure, .notice { break-inside: avoid; }
 
         a {
           color: inherit;
@@ -291,11 +298,9 @@
     </header>
 
     <main>
-      <p><a href="./help-es.html" hreflang="es" lang="es">Español</a> · <a href="./">Back to NRV</a></p>
+      <p class="screen-only"><a href="./help-es.html" hreflang="es" lang="es">Español</a> · <a href="./">Back to NRV</a></p>
       <p class="document-link">
-        Download the earlier illustrated
-        <a href="./docs/NRV-Setup-User-Guide.pdf" download>PDF guide</a>.
-        For current installation steps, use the interactive guide below.
+        Download the <a href="./docs/NRV-Setup-User-Guide.pdf" download>complete PDF guide</a>.
       </p>
       <nav aria-label="On this page">
         <h2>On this page</h2>
@@ -376,6 +381,23 @@
         After installation, close the browser page and open NRV from its new
         icon to continue setup or recovery.</p>
       <p><a href="./index.html?install=1">Start the NRV installation guide</a></p>
+      <figure class="guide-figure">
+        <img src="./docs/install-browser-en.png" alt="The installation guide asks which browser you are using and lets you confirm the detected browser or choose another." />
+        <figcaption>Example: browser selection on a computer. Your detected browser may differ.</figcaption>
+      </figure>
+      <h3>Browser-specific quick reference</h3>
+      <p>Use the interactive guide for one step at a time and help finding each control. Browser labels can vary by version. Open the NRV app page, not this Help page, before installing.</p>
+      <ul>
+        <li><strong>iPhone or iPad, Safari:</strong> use a normal tab. Tap Share (square with an upward arrow), then Add to Home Screen; turn on Open as Web App if offered and tap Add. If Share is hidden, check the three-dot menu; if the home-screen action is missing, scroll down or use Edit Actions (on iPad, View More if offered).</li>
+        <li><strong>Android, Chrome:</strong> tap the three dots, then Install app, or Add to Home screen if that appears instead. Confirm Install or Add.</li>
+        <li><strong>Android, Edge:</strong> tap the three-line menu at the bottom, then Add to phone; choose Install app rather than Create shortcut if asked. Confirm.</li>
+        <li><strong>Android, Firefox:</strong> tap the three dots, then Install. Confirm if asked.</li>
+        <li><strong>Android, Samsung Internet:</strong> tap the three-line menu at the bottom, then Add page to, then Home screen. Confirm if asked.</li>
+        <li><strong>Windows, Mac or other computer, Chrome:</strong> click the three dots at the top right, then Cast, save, and share → Install page as app. Click Install.</li>
+        <li><strong>Windows, Mac or other computer, Edge:</strong> click the three dots at the top right, then Apps → Install this site as an app. Click Install.</li>
+        <li><strong>Mac, Safari:</strong> click File → Add to Dock, then Add. If unavailable, update macOS and Safari or use Chrome.</li>
+      </ul>
+      <p>If a mobile menu is hidden, tap the page and look at the top or bottom of the browser; scroll or swipe the menu. If the desktop menu option is missing, look for an install icon at the right of the address bar or reload in a normal window. For unsupported combinations, use Safari on iPhone/iPad or Chrome on other devices and restart the guide.</p>
       <p>
         Once the icon is ready, open Nice Return Visits and continue through the
         NRV-Install setup. Choose
@@ -511,8 +533,9 @@
           current passphrase. You will get a new recovery code.
         </li>
         <li>
-          The recovery code is stored, locked, inside your backup files, so it
-          also works when you restore a backup on a new device.
+          Encrypted backups that contain recovery metadata can be restored with
+          the recovery code valid when that backup was made. Older backups may
+          not have a recovery code.
         </li>
         <li>
           Changing your passphrase makes a new code, and the old one stops
@@ -680,8 +703,9 @@
         </li>
         <li>
           Narrow the list with urgency, City, Region, or Area filters. Sort by
-          newest, oldest, or name. Clear filters to see the full contact list
-          again.
+          newest, oldest, or name. Date sorting uses the latest visit or, when
+          there is no visit, the creation date. Clear filters to see the full
+          contact list again.
         </li>
         <li>
           Choose <strong>🧭 Navigate</strong> on a contact card to open Google
@@ -874,7 +898,7 @@
         </li>
         <li>
           <strong
-            >One passphrase and one recovery code for all your devices.</strong
+            >Protection when restoring a backup.</strong
           >
           Restoring an encrypted backup onto a device that has no passphrase
           turns the passphrase on there (after a message and your confirmation),
@@ -889,17 +913,20 @@
         </li>
         <li>
           To export one contact, open it with the pencil button and use the
-          export icon at the bottom of the Edit Contact screen. If a
-          passphrase is on, choose whether to encrypt the contact file. A
-          protected one-contact transfer uses a separate passphrase you create;
-          give it to the recipient through a different channel. An unencrypted
-          file is readable by anyone who obtains it.
+          export icon at the bottom of the Edit Contact screen. If this copy
+          has a passphrase, create a separate transfer passphrase of at least
+          8 characters for the encrypted file; give it to the recipient through
+          a different channel. If this copy has no passphrase, the file is
+          unencrypted and readable by anyone who obtains it. To choose between
+          encrypted and plain export, use the contacts-list export instead.
         </li>
         <li>
           To import one or more contacts, choose the import icon (a tray with an
           arrow pointing down) at the far right of the contacts toolbar and
           select one or several contact files. You are asked for a passphrase
-          only if a file is encrypted. Importing adds the contacts without
+          only if a file is encrypted. A selection of several encrypted files
+          uses the same entered passphrase for all of them; import files with
+          different passphrases separately. Importing adds the contacts without
           replacing any existing ones.
         </li>
       </ul>
@@ -998,8 +1025,8 @@
           list in your Dropbox account.
         </li>
         <li>
-          The app never replaces your Dropbox copy with an empty one: it does
-          not back up automatically when this device has no contacts.
+          Automatic backup does not run when this device has no contacts.
+          Read any manual backup or replace confirmation carefully.
         </li>
         <li>
           Using more than one device is covered next, under
@@ -1012,8 +1039,8 @@
         Syncing is part of Dropbox backup.
         <strong>If you do not connect Dropbox, nothing syncs</strong>: your
         contacts stay only on that device, and each device is separate. If you
-        connect every device to the same Dropbox, they combine their changes
-        automatically.
+        connect compatible copies to the same Dropbox, they can combine changes
+        when connected and synchronization is not paused.
       </p>
 
       <p class="notice">
@@ -1075,8 +1102,9 @@
         </li>
 
         <li>
-          Contacts and visits added on different devices are all kept. Deleting
-          a contact or a visit on one device removes it on the others.
+          Compatible changes can combine contacts and visits. Deletions can
+          propagate too; check sync status and resolve conflicts before
+          relying on another device.
         </li>
 
         <li>
@@ -1181,10 +1209,10 @@
       </ol>
       <p class="notice">
         Full backups cannot be merged directly. If you need to bring over
-        contacts from a second full backup, restore that backup only if you are
-        ready to replace the destination, or import its contacts individually.
-        Do not delete source data or backup files until the destination has been
-        checked and backed up.
+        contacts from a second full backup, restore it in a separate copy first
+        (replacing that copy), export its contacts as contact files, and import
+        those files into the destination. Do not delete source data or backup
+        files until the destination has been checked and backed up.
       </p>
 
       <h2>Stop using the app and remove its saved data</h2>

@@ -62,6 +62,10 @@ async function main() {
     assert((await offline(file)).body.length > 0);
     console.log(`PASS  ${file} is available offline`);
   }
+  for (const file of ["./docs/install-browser-en.png", "./docs/install-browser-es.png"]) {
+    assert((await offline(file)).body.length > 0);
+    console.log(`PASS  ${file} is available offline`);
+  }
   for (const file of ["./version.json", "./version.json?check=unique"]) {
     let intercepted = false;
     handlers.fetch({

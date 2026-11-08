@@ -1,9 +1,11 @@
-const CACHE_NAME = "return-visits-shell-v193";
+const CACHE_NAME = "return-visits-shell-v194";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./help.html",
   "./help-es.html",
+  "./docs/install-browser-en.png",
+  "./docs/install-browser-es.png",
   "./privacy.html",
   "./terms.html",
   "./docs/NRV-Privacy-Notice.pdf",

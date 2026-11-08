@@ -24,6 +24,9 @@ function inspect(file, requiredIds) {
       const targetHtml = targetFile === file ? html : fs.readFileSync(targetFile, "utf8");
       assert(targetHtml.includes(`id="${fragment}"`), `${file}: missing ${href}`);
     }
+    for (const match of html.matchAll(/<img\b[^>]*\bsrc="([^"]+)"/g)) {
+      assert(fs.existsSync(path.resolve(path.dirname(file), match[1])), `${file}: missing image ${match[1]}`);
+    }
   }
   assert(!/>[^<]*grasfulls\.github/i.test(html), `${file}: visible hosting address`);
   return ids;
@@ -39,6 +42,23 @@ for (const [language, filename] of [["en", "help.html"], ["es", "help-es.html"]]
   if (site) {
     const websiteFile = language === "en" ? path.join(site, "help.html") : path.join(site, "es", "help.html");
     inspect(websiteFile, common);
+    const appHtml = fs.readFileSync(path.join(app, filename), "utf8").replace(/\r\n/g, "\n");
+    const websiteHtml = fs.readFileSync(websiteFile, "utf8").replace(/\r\n/g, "\n");
+    let main = appHtml.split("<main>")[1].split("</main>")[0];
+    if (language === "en") {
+      main = main.replace(/\s*<p class="screen-only">.*?<\/p>/, "");
+      main = main.replaceAll("./docs/", "assets/docs/");
+      main = main.replace('<h3 id="remove-data">', '<span id="stop-using-the-app-and-remove-its-saved-data"></span>\n      <h3 id="remove-data">');
+    } else {
+      main = main.replaceAll("./docs/", "../assets/docs/");
+      main = main.replace('href="./privacy.html"', 'href="privacy.html"').replace('href="./terms.html"', 'href="terms.html"');
+    }
+    main = main.replaceAll('href="./index.html', 'href="https://grasfulls.github.io/nice-return-visits-app/index.html');
+    assert(websiteHtml.includes(main.trim()), `${language}: website and app reference content differ`);
+    const docs = ["install-browser-en.png", "install-browser-es.png", "NRV-Setup-User-Guide.pdf", "NRV-Setup-User-Guide-es.pdf"];
+    for (const name of docs) {
+      assert(fs.readFileSync(path.join(app, "docs", name)).equals(fs.readFileSync(path.join(site, "assets", "docs", name))), `${name}: published copy differs`);
+    }
   }
   console.log(`PASS  ${language} Help anchors and local links`);
 }

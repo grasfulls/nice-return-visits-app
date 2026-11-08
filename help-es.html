@@ -13,13 +13,17 @@
     a:focus-visible { outline: 3px solid #d97706; outline-offset: 3px; }
     li + li { margin-top: .45rem; }
     .notice { padding: 1rem; border-left: 4px solid #b45309; background: #fff7ed; }
-    @media print { .screen-only { display: none; } a { color: inherit; } }
+    .guide-figure { margin: 1.5rem 0; }
+    .guide-figure img { display: block; width: min(100%, 560px); height: auto; }
+    .guide-figure figcaption { font-size: .9rem; }
+    @media print { body { margin: 0; padding: 0; } .screen-only { display: none; } a { color: inherit; } h2, h3 { break-after: avoid; } .guide-figure { break-inside: avoid; } }
   </style>
 </head>
 <body>
   <header>
     <h1>Nice Return Visits: guía de usuario</h1>
     <p class="screen-only"><a href="./help.html">English</a> · <a href="./">Volver a NRV</a></p>
+    <p class="screen-only">Descarga la <a href="./docs/NRV-Setup-User-Guide-es.pdf" download>guía completa en PDF</a>.</p>
   </header>
   <main>
     <nav aria-label="En esta página">
@@ -53,6 +57,23 @@
       <li>Acepta los avisos y sigue la configuración o restauración en la copia instalada. Si ya tenías contactos en otra copia, haz una copia de seguridad de esa copia, restáurala en la copia deseada y verifica los contactos antes de borrar el original.</li>
     </ol>
     <p>En iPhone o iPad usa una pestaña normal de Safari, no una privada. Los nombres de los controles pueden variar según la versión; la guía interactiva ofrece alternativas para cada navegador y dispositivo.</p>
+    <figure class="guide-figure">
+      <img src="./docs/install-browser-es.png" alt="La guía de instalación pregunta qué navegador usas y permite confirmar el detectado o elegir otro.">
+      <figcaption>Ejemplo: selección de navegador en una computadora. El navegador detectado puede ser diferente.</figcaption>
+    </figure>
+    <h3>Referencia rápida por navegador</h3>
+    <p>La guía interactiva ofrece un paso a la vez y ayuda para encontrar cada control. Los nombres pueden variar según la versión. Antes de instalar, abre la página de la aplicación NRV, no esta página de ayuda.</p>
+    <ul>
+      <li><strong>iPhone o iPad, Safari:</strong> usa una pestaña normal. Toca Compartir (cuadrado con flecha hacia arriba), luego Añadir a pantalla de inicio; activa Abrir como aplicación web si aparece y toca Añadir. Si Compartir no aparece, busca en el menú de tres puntos; si falta la acción, desplázate hacia abajo o usa Editar acciones (en iPad, Ver más si aparece).</li>
+      <li><strong>Android, Chrome:</strong> toca los tres puntos y luego Instalar aplicación, o Añadir a pantalla de inicio si aparece en su lugar. Confirma con Instalar o Añadir.</li>
+      <li><strong>Android, Edge:</strong> toca el menú de tres líneas abajo y luego Agregar al teléfono; si se pregunta, elige Instalar aplicación en vez de Crear acceso directo. Confirma.</li>
+      <li><strong>Android, Firefox:</strong> toca los tres puntos y luego Instalar. Confirma si se solicita.</li>
+      <li><strong>Android, Samsung Internet:</strong> toca el menú de tres líneas abajo, luego Añadir página a y Pantalla de inicio. Confirma si se solicita.</li>
+      <li><strong>Windows, Mac u otra computadora, Chrome:</strong> haz clic en los tres puntos arriba a la derecha, luego Enviar, guardar y compartir → Instalar página como aplicación. Haz clic en Instalar.</li>
+      <li><strong>Windows, Mac u otra computadora, Edge:</strong> haz clic en los tres puntos arriba a la derecha, luego Aplicaciones → Instalar este sitio como una aplicación. Haz clic en Instalar.</li>
+      <li><strong>Mac, Safari:</strong> haz clic en Archivo → Añadir al Dock y luego Añadir. Si no aparece, actualiza macOS y Safari o usa Chrome.</li>
+    </ul>
+    <p>Si el menú móvil está oculto, toca la página y mira arriba o abajo; desplázate por el menú. Si falta la opción en una computadora, busca un icono de instalación al extremo derecho de la barra de direcciones o recarga en una ventana normal. Para combinaciones no cubiertas usa Safari en iPhone/iPad o Chrome en otros dispositivos y reinicia la guía.</p>
 
     <h2 id="first-setup">Primeros pasos y copias</h2>
     <p>También puedes elegir <strong>Usar NRV en este navegador</strong>. En cada copia, lee los Términos de uso y el Aviso de privacidad y datos, marca la casilla y elige <strong>Aceptar y continuar</strong>. Si NRV encuentra datos anteriores, puedes usarlos o seguir el proceso de borrado y empezar de nuevo; haz primero una copia de seguridad si quieres conservarlos.</p>
@@ -63,7 +84,7 @@
     <ol>
       <li>En Contactos, elige <strong>Agregar un contacto</strong>. Introduce el nombre, elige un país y selecciona una ciudad guardada o agrégala; son obligatorios. El apellido, la dirección, el correo, el teléfono, la región, el área y las coordenadas son opcionales.</li>
       <li>Los valores predeterminados preparan los datos de ubicación, pero puedes cambiarlos para cada contacto. Agrega un país, ciudad, región o área desde el formulario cuando lo necesites. La región y el área son opcionales y se eligen después de la ciudad.</li>
-      <li>El correo debe tener formato válido. El teléfono admite diez dígitos en formato estadounidense, por ejemplo (555) 123-4567; el selector de país no habilita otros formatos telefónicos.</li>
+      <li>El correo debe tener formato válido. El teléfono admite diez dígitos en formato estadounidense, por ejemplo (555) 123-4567, o un 1 inicial; el selector de país no habilita otros formatos telefónicos.</li>
       <li>Selecciona el icono de guardar al pie del editor. Usa el lápiz de una tarjeta para editarla; al cerrar con cambios sin guardar, lee la confirmación. El signo + del editor permite iniciar otro contacto.</li>
     </ol>
     <p>En <strong>Configuración → Ciudades, regiones y áreas</strong>, agrega ciudades y sus regiones o áreas. Puedes editar nombres y asignaciones o eliminar lugares que no estén en uso. Reasigna primero los contactos si NRV impide eliminar un lugar. Los contactos con nombres iguales tienen identificadores distintos.</p>
@@ -74,31 +95,37 @@
     <ol>
       <li>Elige <strong>AGREGAR VISITA</strong> en una tarjeta, o abre el contacto y luego <strong>Visitas</strong>.</li>
       <li>Escribe una nota y, si quieres, cambia la fecha y hora. Guarda el contacto con el icono de guardar. Cambiar la fecha puede crear una visita sin texto; si no escribes ni cambias la fecha, no se crea una visita.</li>
-      <li>Para modificar una nota anterior, elige Editar junto a ella, cambia sus datos y actualiza el registro. Para borrarla, elige Eliminar y confirma. Eliminar un contacto también elimina sus visitas de esa copia.</li>
+      <li>Para modificar una nota anterior, elige Editar junto a ella, cambia sus datos y elige <strong>Actualizar registro</strong>. Para borrarla, elige Eliminar y confirma. Eliminar un contacto también elimina sus visitas de esa copia.</li>
     </ol>
+    <p>Para dictar una nota, usa la tecla de micrófono del teclado de tu dispositivo. NRV no graba audio; el dictado depende del dispositivo y puede enviar voz al proveedor del teclado según su configuración.</p>
 
     <h2 id="map">Mapa, marcadores y direcciones</h2>
     <p>Una dirección escrita no crea un marcador. En el editor del contacto elige <strong>Usar la dirección introducida</strong>, revisa los resultados y ajusta el marcador tocando o arrastrando el mapa, o introduce coordenadas. Si se ofrece una búsqueda por calle cercana, puedes usarla. Confirma la posición y guarda el contacto. Una búsqueda de solo ciudad es aproximada.</p>
     <p><strong>Usar la ubicación del dispositivo</strong> solicita permiso y usa tu posición actual, no necesariamente la del contacto. En Mapa, el punto azul es la ubicación actual y no se guarda en el contacto. Un contacto sin coordenadas puede aparecer en un marcador aproximado de ciudad si la búsqueda en línea tiene éxito. Puedes arrastrar un marcador guardado en el mapa principal; el cambio se guarda automáticamente.</p>
     <p>Selecciona un marcador para ver los datos, editar o abrir indicaciones. Las indicaciones abren Google Maps con el destino. Las búsquedas envían el texto de ubicación a OpenStreetMap Nominatim; las imágenes del mapa y las indicaciones necesitan conexión. En Tus datos puedes guardar un marcador de casa y un nombre para identificarte en mensajes compartidos.</p>
+    <p>El mapa puede centrarse en la ciudad predeterminada si no hay otros marcadores. Las búsquedas pueden ofrecer varias calles o una posición aproximada si no encuentran la dirección completa. Comprueba siempre la ubicación antes de guardar o usar indicaciones.</p>
 
     <h2 id="share">Compartir, importar y exportar</h2>
     <p>Abre un contacto guardado y usa Compartir para elegir ninguna nota, la más reciente o todas; luego elige mensaje, WhatsApp o correo. Revisa el mensaje antes de enviarlo: es texto legible, no un archivo cifrado. Guarda primero los cambios si los botones están deshabilitados.</p>
     <p>Para transferir contactos, usa el icono de exportación en el contacto o en la barra de Contactos. En la lista puedes elegir todos los mostrados o números y rangos, por ejemplo 3, 4-7, 9. Los números cambian al filtrar u ordenar. Para una selección grande, usa un archivo en lugar de un mensaje.</p>
-    <p>Si la frase de contraseña está activada, la exportación ofrece cifrado. Un archivo protegido de un solo contacto usa una frase de transferencia separada; envíala por otro medio. Sin cifrado, cualquiera con el archivo puede leerlo. Para importar, usa el icono de importación en Contactos, selecciona uno o varios archivos de contactos y proporciona la frase de cada archivo protegido si se solicita. Se agregan registros nuevos; revisa si hay duplicados. Un archivo de contactos no es una copia completa de configuración.</p>
+    <p>Si la frase de contraseña está activada, la exportación desde la lista permite elegir cifrado; el archivo cifrado usa la protección de esta copia. Al exportar desde el editor de un solo contacto, se pide crear una frase de transferencia separada de al menos 8 caracteres. Envíala por otro medio. Si esta copia no tiene frase, el archivo se exporta sin cifrar y cualquiera con él puede leerlo. Para importar, usa el icono de importación en Contactos y selecciona uno o varios archivos. Si seleccionas varios archivos cifrados se usa la misma frase para todos; importa por separado los que tengan frases diferentes. Se agregan registros nuevos; revisa si hay duplicados. Un archivo de contactos no es una copia completa de configuración.</p>
 
     <h2 id="print-contacts">Imprimir</h2>
     <p>El icono de impresora de la barra inferior imprime según la pantalla: en Contactos, la lista filtrada; en Mapa, elige direcciones con números o detalles de contacto; en Configuración, los valores y lugares, pero nunca la frase de contraseña. Para un contacto guardado, abre su editor y usa su impresora; elige la nota más reciente o todas. Guarda primero los cambios. La impresión abre las opciones de tu dispositivo, que pueden permitir guardar un PDF.</p>
+    <p>La lista impresa agrupa cada contacto por su ubicación más específica y muestra los datos disponibles y solo la nota más reciente. En el mapa los números coinciden con los marcadores; los contactos sin marcador se enumeran aparte.</p>
 
     <h2 id="time-in-service">Tiempo de servicio (opcional)</h2>
-    <p>En <strong>Configuración → Tiempo de servicio</strong>, activa <strong>Registrar tiempo de servicio</strong>. Aparece el botón Tiempo y un control para iniciar o detener el cronómetro en Contactos. En Tiempo puedes añadir, editar o eliminar registros y consultar totales. Opcionalmente muestra las metas de 50 horas al mes y 600 horas por año de servicio, del 1 de septiembre al 31 de agosto.</p>
+    <p>En <strong>Configuración → Tiempo de servicio</strong>, activa <strong>Registrar tiempo de servicio</strong>. Aparece el botón Tiempo y un control para iniciar o detener el cronómetro en Contactos. Actualmente ese control muestra <strong>Start Time</strong> para iniciar y <strong>Stop Time</strong> para detener. En Tiempo puedes añadir, editar o eliminar registros y consultar totales. Opcionalmente muestra las metas de 50 horas al mes y 600 horas por año de servicio, del 1 de septiembre al 31 de agosto.</p>
     <p>El cronómetro puede seguir mientras la aplicación está cerrada; al volver tras una ausencia, NRV puede preguntar si deseas continuar o detenerlo en la última actividad registrada. <strong>Desactivar el registro borra todo el tiempo registrado</strong> después de una advertencia. Las copias completas incluyen los registros de tiempo.</p>
+    <p>El total de hoy empieza de nuevo a medianoche; si el cronómetro sigue funcionando, el tiempo se divide entre los dos días. Los totales mensuales y anuales se calculan a partir de los registros y no se editan directamente.</p>
 
     <h2 id="passphrase-optional">Frase de contraseña (opcional)</h2>
     <p>Una copia nueva no exige frase de contraseña y sus datos no están cifrados por NRV. Para activarla, abre <strong>Configuración → Datos y seguridad → Frase de contraseña para abrir la aplicación</strong>, elige <strong>Activar frase de contraseña</strong>, introduce y confirma al menos 12 caracteres y guarda. La frase protege esta copia y cifra las nuevas copias completas, pero no sustituye una copia de seguridad.</p>
     <h3 id="recovery-code">Código de recuperación</h3>
     <p>Al activar o cambiar la frase, NRV muestra un código de recuperación. Guárdalo de forma privada y separada del dispositivo: quien lo tenga puede abrir los datos. Si olvidas la frase, introduce el código en su lugar al desbloquear y luego cambia la frase en Configuración. Sin la frase ni el código correspondientes no se pueden abrir los datos cifrados.</p>
     <p>En la misma sección puedes cambiar la frase o crear un nuevo código; los códigos anteriores dejan de funcionar para esa copia. Las copias de seguridad antiguas conservan sus propios secretos. Al desactivar la frase, los datos locales y las nuevas copias dejan de estar cifrados y el código deja de funcionar para esa copia; las copias anteriores conservan su protección.</p>
+    <p>Para cambiarla, elige <strong>Cambiar frase de contraseña</strong>, introduce la frase actual o el código de recuperación y confirma la nueva frase. Para desactivarla, elige <strong>Desactivar frase de contraseña</strong>, lee la advertencia y confirma con la frase actual o el código. Los demás dispositivos no cambian hasta que restauren una copia nueva.</p>
+    <p>Una copia cifrada que incluya metadatos de recuperación se puede restaurar con el código que era válido cuando se creó; algunas copias antiguas no contienen código. Si tenías una frase anterior a esta función, crea tu primer código en la sección de frase de contraseña.</p>
 
     <h2 id="backup">Copia de seguridad y restauración</h2>
     <ol>
@@ -117,18 +144,20 @@
     </ol>
     <p>Sin frase de contraseña las nuevas copias de Dropbox no están cifradas por NRV. Con una frase activa se cifran; las copias anteriores sin cifrar siguen siendo legibles. Protege también tu cuenta de Dropbox. La conexión es opcional; usa copias locales si lo prefieres y conserva una copia de recuperación fuera de la carpeta de NRV en Dropbox.</p>
     <h3 id="sync">Sincronizar dispositivos</h3>
-    <p>Para otro dispositivo, usa la misma cuenta de Dropbox y restaura la copia protegida para compartir la misma frase, código y metadatos de protección. Crear la misma frase por separado puede no producir copias compatibles. Verifica los contactos antes de modificar el original. NRV revisa cambios al abrirse, periódicamente y al volver la conexión; después de editar, espera a que termine la sincronización antes de cambiar de dispositivo.</p>
+    <p>Para otro dispositivo, usa la misma cuenta de Dropbox y, si usas protección, restaura la copia protegida para compartir la misma frase, código y metadatos. Crear la misma frase por separado puede no producir copias compatibles. Verifica los contactos antes de modificar el original. NRV revisa cambios al abrirse, periódicamente y al volver la conexión; después de editar, espera a que termine la sincronización antes de cambiar de dispositivo.</p>
     <p>El icono de nube indica el estado. Si hay cambios sin conexión, quedan en el dispositivo hasta poder sincronizar. Si la sincronización se pausa por una protección diferente, haz copias de ambas partes y lee las opciones de restaurar o reemplazar antes de decidir. Las visitas de cambios compatibles pueden combinarse; en conflictos de detalles del mismo contacto se usa el cambio más reciente. Los cambios de nombres o eliminación de lugares pueden reaparecer desde otra copia.</p>
     <p>En la sección de Dropbox puedes crear una copia ahora, consultar si hay una más reciente, restaurar una copia o desconectar. Se conserva la última y hasta diez copias fechadas; desconectar no elimina los archivos existentes en Dropbox.</p>
+    <p>Si pasan al menos 10 días sin una copia de seguridad correcta, NRV puede recordártelo una vez al día. Solo una copia correcta restablece el contador. Para retirar completamente el acceso, elimina Nice Return Visits de las aplicaciones conectadas de tu cuenta de Dropbox; los archivos existentes se eliminan por separado.</p>
 
     <h2 id="consolidate">Combinar copias o cambiar de dispositivo</h2>
     <p>Antes de cambiar de dispositivo, navegador o icono, crea y conserva copias completas de todas las versiones con datos. Elige una copia de destino. Una restauración completa reemplaza ese destino. Para añadir contactos de otra copia sin reemplazarlo, exporta contactos desde la otra copia e impórtalos en el destino. Revisa duplicados y visitas, crea una nueva copia completa y solo entonces elimina copias que ya no necesites.</p>
+    <p>Si solo tienes una segunda copia de seguridad completa, restáurala primero en una copia separada (que será reemplazada), exporta allí los contactos como archivos de contactos e impórtalos en el destino. No borres las fuentes ni sus copias de seguridad hasta verificar y respaldar el destino.</p>
 
     <h2 id="remove-data">Eliminar datos</h2>
     <p>Quitar un icono no siempre borra los datos. Para borrar una copia, abre esa copia y usa <strong>Configuración → Datos y seguridad → Borrar todos los datos / Empezar de nuevo</strong>; lee y confirma las advertencias. Esto elimina sus contactos, configuración, protección y conexión local. Los archivos descargados, impresiones y copias en Dropbox se eliminan por separado. Haz y verifica una copia antes si deseas conservar algo.</p>
 
     <h2 id="updates">Actualizaciones</h2>
-    <p>NRV comprueba actualizaciones al abrirse. Para comprobar manualmente, abre <strong>Configuración → Actualizaciones de la aplicación</strong> y elige la opción para buscar y actualizar. Guarda o termina las ediciones abiertas antes de actualizar. Si una copia se creó con una versión más reciente, actualiza NRV antes de abrirla o restaurarla.</p>
+    <p>NRV comprueba actualizaciones al abrirse. Para comprobar manualmente, abre <strong>Configuración → Actualizaciones de la aplicación → Buscar actualizaciones y recargar</strong>. Guarda o termina las ediciones abiertas antes de actualizar. Si una copia se creó con una versión más reciente, actualiza NRV antes de abrirla o restaurarla.</p>
 
     <h2 id="troubleshooting">Solución de problemas</h2>
     <ul>
