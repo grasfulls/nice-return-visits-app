@@ -14,11 +14,11 @@ Names in this document follow the user-facing product name **Nice Return Visits*
 
 ### What Nice Return Visits is
 
-Nice Return Visits (NRV) is a free, installable web app/PWA for keeping contact details and recording return-visit history. It can show the currently matching contacts on a map, print records, and optionally track time in service. It is not a full-featured general-purpose contact-management system.
+NRV is designed specifically to help our brothers and sisters, Jehovah’s Witnesses, keep track of and organize the return visits they follow through on in their preaching work. It is a free, installable web app/PWA that stores contact details and return-visit history, can show matching contacts on a map and print records, and optionally tracks time in service.
 
 ### Problem it solves and intended users
 
-The app helps a person keep track of people they want to revisit: who the person is, how to contact or locate them, where they fit in an optional city/region/area hierarchy, when visits happened, and the most recent visit note. The source does not identify a particular organization, occupation, or eligibility requirement. A guide should describe the practical use without assigning an audience the source does not establish.
+The app helps users keep track of people they want to revisit: who the person is, how to contact or locate them, where they fit in an optional city/region/area hierarchy, when visits happened, and the most recent visit note.
 
 ### Normal workflow in plain English
 

@@ -10,16 +10,16 @@ The following identifiers are **global brand elements** and must **remain unchan
 
 - **NRV** — the abbreviation for the app and for a single Nice Return Visit
 - **Nice Return Visits** — the full branded name of the app
-- **RV** — the branded abbreviation for "Return Visit" when used as a noun in context (e.g., "Never forget an RV.")
+- **RV** — the branded abbreviation for "Return Visit" when used as a noun in context
 
 ### Tagline Translation
 
-Translate the surrounding tagline naturally, but retain **RV** exactly as **RV**. The current approved examples are:
+Translate the surrounding tagline naturally. The current approved examples are:
 
-- **English:** NRV - Nice Return Visits / *Never forget an RV.*
-- **Spanish:** NRV - Nice Return Visits / *Nunca olvides un RV.*
+- **English:** NRV - Nice Return Visits / *Remember Your RVs.*
+- **Spanish:** NRV - Nice Return Visits / *Recuerda tus revisitas.*
 
-Future languages, including languages using non-Latin scripts, must follow the same branding rule: keep the brand name and RV unchanged, translate the tagline naturally.
+Future languages, including languages using non-Latin scripts, must keep the brand name unchanged and translate the tagline naturally.
 
 ---
 

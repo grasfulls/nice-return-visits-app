@@ -1,11 +1,9 @@
 # Nice Return Visits
 
-Nice Return Visits is free to use, with no app fees or subscription. It is
-intentionally a simple tool for maintaining contact details and tracking
-return visits—not a full-featured contact-management app. It may have fewer
-features or be less reliable than paid products. The app is provided as-is.
-Your internet or mobile provider may charge for data, and third-party services
-have their own terms.
+NRV is designed specifically to help our brothers and sisters, Jehovah’s
+Witnesses, keep track of and organize the return visits they follow through on
+in their preaching work. The app is provided as-is. Your internet or mobile
+provider may charge for data, and third-party services have their own terms.
 
 It is a client-side contact and return-visit tracker that can be used in a
 browser or installed as a Progressive Web App (PWA).
