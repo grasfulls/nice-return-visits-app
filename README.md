@@ -322,22 +322,17 @@ contact file or files without replacing existing contacts.
 
 ## Stop using the app and remove data
 
-Browser and Home Screen app copies may store data separately, so removing one
-copy may not remove another. To remove the Safari browser copy on iPhone or
-iPad, go to **iOS Settings → Safari → Advanced → Website Data** and delete
-`grasfulls.github.io`. To remove a separate Home Screen app copy, touch and
-hold its icon, choose **Remove App**, then **Delete App**. In Chrome on
-Android, use the site's **Clear data** or **Clear & reset** setting, or find it
-under **Settings → Site settings → All sites**. Menu names may vary by
-version. Repeat for every browser and device used. Downloaded backups,
+Browser and installed app copies may store data separately. Back up and verify
+any data you want to keep, then open each unused copy and use **Settings →
+Data/Security → Erase All Data / Start Fresh**. Remove its icon separately if
+desired. Repeat for every unused copy. Downloaded backups,
 exported contact files, PDFs, and printed pages are separate; delete those
 wherever you saved or shared them.
 
 ## Install and updates
 
-The app is published on GitHub Pages:
-
-**https://grasfulls.github.io/nice-return-visits-app/**
+Open [Nice Return Visits](https://grasfulls.github.io/nice-return-visits-app/)
+and choose the installation guide for browser-specific steps.
 
 The app checks for updates when it opens and shows any update prompt once it has
 finished opening (after unlocking, if a passphrase is on). If an update is ready, it prompts you to update now or later; an
@@ -397,14 +392,14 @@ non-atomic deployment, network-first loading can temporarily mix files from
 different releases; a version check does not verify each asset.
 
 The plain-language user guide is available from **Settings → Help → User Guide & Privacy Notice** or directly at
-**https://grasfulls.github.io/nice-return-visits-app/help.html**. It is an
+[NRV Help](https://grasfulls.github.io/nice-return-visits-app/help.html). It is an
 accessible, responsive HTML page that can be read in a standard web browser.
 The illustrated Setup and User Guide PDF,
 [docs/NRV-Setup-User-Guide.pdf](./docs/NRV-Setup-User-Guide.pdf), is linked from
 the page (it is not cached for offline use because of its size).
 
 The **Privacy & Data Notice** is available from Settings or directly at
-**https://grasfulls.github.io/nice-return-visits-app/privacy.html**. The page also
+[Privacy & Data Notice](https://grasfulls.github.io/nice-return-visits-app/privacy.html). The page also
 provides a downloadable PDF copy ([docs/NRV-Privacy-Notice.pdf](./docs/NRV-Privacy-Notice.pdf)). It explains what information the app stores
 on the user's device, what may be sent to hosting and mapping providers, and
 that the app owner does not collect information identifying who downloads or

@@ -194,85 +194,48 @@
     >
       <div class="install-screen-card">
         <h1 id="browser-install-title" data-i18n="install.title">Install Nice Return Visits</h1>
-        <p data-i18n="install.browserDoorway">
-          NRV is designed to be used from its Home Screen icon. This browser
-          page is only the doorway to installation; it cannot be used to work
-          with NRV contacts.
-        </p>
         <p data-i18n="install.guidance">
           We’ll guide you through adding the NRV icon. After you open that
           icon, NRV will check for previous NRV information and continue setup
           or offer recovery choices.
         </p>
         <div id="browser-install-selection">
-          <h2 data-i18n="install.chooseDevice">Choose your device</h2>
+          <h2 id="browser-install-select-title" tabindex="-1" data-i18n="install.chooseDevice">Choose your device</h2>
           <div class="install-device-choices">
             <button type="button" data-install-device="iphone">iPhone</button>
             <button type="button" data-install-device="ipad">iPad</button>
             <button type="button" data-install-device="android">Android</button>
-            <button type="button" data-install-device="windows" data-i18n="install.windows">Windows/Desktop</button>
+            <button type="button" data-install-device="windows">Windows</button>
             <button type="button" data-install-device="mac">Mac</button>
+            <button type="button" data-install-device="computer" data-i18n="install.otherComputer">Other computer</button>
           </div>
         </div>
+        <section id="browser-install-browser-selection" hidden>
+          <h2 id="browser-install-browser-title" tabindex="-1" data-i18n="install.chooseBrowser">Which browser are you using?</h2>
+          <p id="browser-install-detected"></p>
+          <div class="install-device-choices">
+            <button type="button" data-install-browser="chrome">Google Chrome</button>
+            <button type="button" data-install-browser="edge">Microsoft Edge</button>
+            <button type="button" data-install-browser="safari">Safari</button>
+            <button type="button" data-install-browser="firefox">Firefox</button>
+            <button type="button" data-install-browser="samsung">Samsung Internet</button>
+            <button type="button" data-install-browser="other" data-i18n="install.otherBrowser">Another browser / I don't know</button>
+          </div>
+        </section>
         <section id="browser-install-instructions" hidden>
-          <h2 id="browser-install-heading-iphone" tabindex="-1" data-i18n="install.forIphone" hidden>Instructions for iPhone</h2>
-          <h2 id="browser-install-heading-ipad" tabindex="-1" data-i18n="install.forIpad" hidden>Instructions for iPad</h2>
-          <h2 id="browser-install-heading-android" tabindex="-1" data-i18n="install.forAndroid" hidden>Instructions for Android</h2>
-          <h2 id="browser-install-heading-windows" tabindex="-1" data-i18n="install.forWindows" hidden>Instructions for Windows/Desktop</h2>
-          <h2 id="browser-install-heading-mac" tabindex="-1" data-i18n="install.forMac" hidden>Instructions for Mac</h2>
-          <button type="button" id="browser-install-change-device" class="inline-icon-link" data-i18n="install.changeDevice">Using a different device?</button>
-          <p data-i18n="install.general">Installation steps vary by device and browser. Look for an option such as “Install app” or “Add to Home Screen” in your browser menu. If you don’t see one, check your browser’s help for installing a website as an app.</p>
-        <section id="browser-install-ios" hidden>
-          <h3 data-i18n="install.safariHeading">Safari instructions</h3>
-          <p id="browser-install-browser-uncertain" data-i18n="install.browserUncertain" hidden>Safari could not be identified reliably. Use these steps only if you are using Safari.</p>
-          <p>
-            <strong data-i18n="install.safariWarning">Use normal Safari, not Private Browsing.</strong> <span data-i18n="install.safariDetails">NRV
-            cannot reliably identify Safari Private mode. If this page is in a
-            Private tab, stop here, close that tab, and reopen NRV in a normal
-            Safari tab. Private use is unsupported, and NRV cannot recover
-            information created or lost in a Private session.</span>
-          </p>
-          <label class="checkbox-row">
-            <input type="checkbox" id="browser-normal-safari-check" />
-            <span data-i18n="install.safariConfirm">I am using a normal Safari tab, not a Private tab.</span>
-          </label>
-          <div id="browser-install-ios-steps" hidden>
-            <ol id="browser-install-iphone-steps" hidden>
-              <li data-i18n="install.iphoneShare">Tap Share (the square with an upward arrow). If Share is not visible, tap More (three dots) near the address bar, then Share.</li>
-              <li data-i18n="install.iphoneAddHome">Scroll down and tap Add to Home Screen. If needed, use Edit Actions to add it to the Share menu.</li>
-              <li data-i18n="install.openAsApp">Turn on Open as Web App if offered, then tap Add.</li>
-            </ol>
-            <ol id="browser-install-ipad-steps" hidden>
-              <li data-i18n="install.stepShare">Tap Safari’s Share button (the square with an arrow pointing up).</li>
-              <li data-i18n="install.ipadAddHome">Tap View More, then Add to Home Screen. You may need to scroll to find it.</li>
-              <li data-i18n="install.openAsApp">Turn on Open as Web App if offered, then tap Add.</li>
-            </ol>
+          <h2 id="browser-install-step-title" tabindex="-1"></h2>
+          <p id="browser-install-step" aria-live="polite"></p>
+          <p id="browser-install-tip" hidden></p>
+          <div class="install-screen-actions">
+            <button type="button" id="browser-install-next" data-i18n="install.next">Done / Next</button>
+            <button type="button" id="browser-install-help" class="install-screen-secondary" data-i18n="install.cantFind">I don't see it</button>
           </div>
         </section>
-        <section>
-          <h2 data-i18n="install.openIconTitle">Open NRV from its installed icon</h2>
-          <p data-i18n="install.openIcon">
-            Install NRV to your device’s Home Screen, then close this browser
-            page and open NRV from the new icon. Do not use this browser page
-            as a second working copy.
-          </p>
-          <div id="browser-install-confirmation" hidden>
-            <p data-i18n="install.afterAdding">After adding the icon, return to this page if necessary and select the button below. Then close this page and open NRV from its icon.</p>
-            <button type="button" id="browser-install-added" data-i18n="install.added">
-              I added NRV to my Home Screen
-            </button>
-            <section id="browser-install-handoff" hidden>
-              <h2 data-i18n="install.completeTitle">Installation page complete</h2>
-              <p data-i18n="install.complete">
-                This part of installation is complete. Close this Safari tab
-                or window. Find the NRV icon on your Home Screen and tap it to
-                continue installation and setup.
-              </p>
-            </section>
-          </div>
-          <p><a href="./help.html#install-guide" data-i18n="install.viewGuide">View installation guidance</a></p>
-        </section>
-        </section>
+        <div class="install-screen-actions">
+          <button type="button" id="browser-install-back" class="install-screen-secondary" data-i18n="install.back">Back</button>
+          <button type="button" id="browser-install-cancel" class="install-screen-secondary" data-i18n="install.cancel">Cancel installation</button>
+          <a href="https://nicereturnvisits.org/index.html" data-i18n="launch.websiteLink" data-i18n-attr="href:launch.websiteUrl">← Back to NRV website</a>
+        </div>
       </div>
     </section>
 

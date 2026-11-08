@@ -93,7 +93,7 @@ The app helps a person keep track of people they want to revisit: who the person
 | Backup reminder | App prompt on opening after a sufficiently long interval without a successful backup. | Answer whether to back up. With Dropbox connected, Yes triggers a Dropbox backup; without it, the app opens the local Backup & Restore section. | Prompt appears after 10 days, at most once per day; only a successful backup resets the interval. |
 | Persistent-storage status | Settings → Backup & Restore, **Storage protection** message. | The app checks/requests browser persistent storage when startup completes. Read whether it is on, unsupported, not granted, or could not be checked. | Browser support and decision vary. Persistent storage does not replace backups. |
 | Install/bookmark walkthrough | First-use banner on Contacts. | Step 1 selects device type, platform, browser and gives bookmark instructions; **I saved the bookmark — continue** or **Skip for now** moves to Step 2. Step 2 offers **Set up Defaults & Your Details** or **Skip setup and start using Contacts**. | This walkthrough teaches bookmarking; it does not itself install the PWA or transfer data. It guesses device/browser but lets the user correct them. |
-| PWA installation | Optional instructions in unlock/help content; manifest declares standalone app, portrait orientation and icons. | iPhone/iPad: open in Safari → Share → Add to Home Screen. Android: Chrome menu → Install app/Add to Home screen. Computer: Chrome/Edge install icon if offered. | Browser options vary. Browser and installed-app copies can have separate storage; installing an icon does not move contacts. |
+| PWA installation | Browser launch choice and the installation guide linked from Help and the website; manifest declares standalone app, portrait orientation and icons. | Choose a device, confirm a browser, and follow the individual steps. The guide offers a browser switch for unsupported combinations and explains how to open the installed icon and continue setup or recovery. | Browser options vary. Browser and installed-app copies can have separate storage; installing an icon does not move contacts. |
 | Offline shell and updates | Service worker, update dialog, Settings → App Updates. | Same-origin app shell/resources are cached after successful service-worker installation. Check for update manually or respond to the “App update available” dialog with **Update now** or **Later**. | Offline operation is limited to already cached same-origin resources; maps, geocoding, Dropbox and external assets require network. Update applies by refreshing; app blocks refresh if a contact is open or Settings has unsaved edits. |
 
 ---
@@ -275,8 +275,8 @@ The app helps a person keep track of people they want to revisit: who the person
 
 **Bookmark and optional installation**
 
-1. Use the first-run device/browser selectors and bookmark instructions, or the Help install section.
-2. iPhone/iPad: use Safari's Share → Add to Home Screen. Android: Chrome menu → Install app or Add to Home screen. Computer: Chrome/Edge install control if available.
+1. Open the installation guide from Help or choose **Set up the app icon** at the first browser launch.
+2. Select your device and confirm your browser, then follow the guide one step at a time. Close the browser page and open NRV from its new icon to continue setup or recovery.
 3. Choose one copy as the working copy. A bookmark is not an install; adding an icon does not move records. Use a full backup/restore to move a full set, or contact exports/imports to add contacts to an existing destination.
 
 **Updates**
