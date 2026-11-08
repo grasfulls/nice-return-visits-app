@@ -381,6 +381,10 @@ For each release:
    discover and cache the changed app shell.
 7. Run all `tests/*.js` scripts with Node.js, including the release-history,
    version, update, localization, and service-worker tests.
+   Before release, complete the physical-device and browser installation
+   verification tracked in [issue #2](https://github.com/grasfulls/nice-return-visits-app/issues/2).
+   The separate existing release-history layout test failure is tracked in
+   [issue #3](https://github.com/grasfulls/nice-return-visits-app/issues/3).
 8. Deploy the app, service worker, generated metadata, and website changes
    together. Verify the app and website show consistent notes.
 
