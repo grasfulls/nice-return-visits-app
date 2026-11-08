@@ -6,7 +6,7 @@ const vm = require("vm");
 
 const root = path.join(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");
-const base = "https://example.test/nrv/";
+const base = "https://example.test/app/";
 const entries = new Map();
 const handlers = {};
 const normalize = (url) => new URL(typeof url === "string" ? url : url.url, base).href;
@@ -57,6 +57,9 @@ async function main() {
     const shell = await offline(`./?lang=${lang}`, "navigate");
     assert(shell.body.includes('src="i18n.js"'));
     console.log(`PASS  ${lang} query launch falls back to the offline app shell`);
+    const installShell = await offline(`./?lang=${lang}&install=1`, "navigate");
+    assert(installShell.body.includes('src="i18n.js"'));
+    console.log(`PASS  ${lang} install query falls back to the offline app shell`);
   }
   for (const file of ["./app.js", "./i18n.js", "./styles.css", "./help.html", "./help-es.html"]) {
     assert((await offline(file)).body.length > 0);
@@ -77,6 +80,12 @@ async function main() {
     assert(!intercepted, "deployment version must not use a cached fallback");
   }
   assert(!entries.has(normalize("./version.json")));
+  let outOfScope = false;
+  handlers.fetch({
+    request: { url: "https://example.test/", method: "GET", mode: "navigate" },
+    respondWith() { outOfScope = true; },
+  });
+  assert(!outOfScope, "the /app/ worker does not intercept requests outside its scope");
   console.log("PASS  deployment version bypasses service-worker caching");
 }
 

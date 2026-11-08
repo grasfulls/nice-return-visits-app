@@ -15,7 +15,7 @@ const catalogs = Object.fromEntries(["en", "es"].map((code) => [
 function makeApp(search, saved, values = new Map(saved === undefined ? [] : [["nrv_language", saved]])) {
   const alerts = [];
   const location = {
-    href: `https://example.test/nrv/${search}`,
+    href: `https://example.test/app/${search}`,
     search,
   };
   const window = {
@@ -148,8 +148,8 @@ async function main() {
 
   for (const oauthError of [false, true]) {
     const url = new URL(oauthError
-      ? "https://example.test/nrv/?lang=es&error=access_denied&state=xyz&other=keep#part"
-      : "https://example.test/nrv/?lang=es&code=abc&state=xyz&other=keep#part");
+      ? "https://example.test/app/?lang=es&error=access_denied&state=xyz&other=keep#part"
+      : "https://example.test/app/?lang=es&code=abc&state=xyz&other=keep#part");
     const local = new Map([["return_visits_dropbox_pending", JSON.stringify({ verifier: "proof", state: "xyz" })]]);
     const session = new Map();
     const storage = (map) => ({
@@ -185,7 +185,7 @@ async function main() {
     assert.strictEqual(local.has("return_visits_dropbox_pending"), false);
     if (!oauthError) {
       assert.strictEqual(tokenRequest.options.body.get("code"), "abc");
-      assert.strictEqual(tokenRequest.options.body.get("redirect_uri"), "https://example.test/nrv/");
+      assert.strictEqual(tokenRequest.options.body.get("redirect_uri"), "https://example.test/app/");
       assert.strictEqual(JSON.parse(local.get("return_visits_dropbox")).refreshToken, "refresh");
     }
     console.log(`PASS  Dropbox ${oauthError ? "denial" : "success"} callback preserves unrelated parameters`);

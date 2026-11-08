@@ -53,7 +53,16 @@ for (const [language, filename] of [["en", "help.html"], ["es", "help-es.html"]]
       main = main.replaceAll("./docs/", "../assets/docs/");
       main = main.replace('href="./privacy.html"', 'href="privacy.html"').replace('href="./terms.html"', 'href="terms.html"');
     }
-    main = main.replaceAll('href="./index.html', 'href="https://grasfulls.github.io/nice-return-visits-app/index.html');
+    main = main.replaceAll(
+      `href="./index.html?lang=${language}&amp;install=1"`,
+      `href="https://nicereturnvisits.org/app/?lang=${language}&amp;install=1"`,
+    );
+    if (language === "en") {
+      main = main.replaceAll(
+        'href="./index.html?lang=en"',
+        'href="https://nicereturnvisits.org/app/?lang=en"',
+      );
+    }
     assert(websiteHtml.includes(main.trim()), `${language}: website and app reference content differ`);
     const docs = ["install-browser-en.png", "install-browser-es.png", "NRV-Setup-User-Guide.pdf", "NRV-Setup-User-Guide-es.pdf"];
     for (const name of docs) {

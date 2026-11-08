@@ -58,16 +58,16 @@ Users select a language by clicking a link; there is no automatic language detec
 
 ## Website-to-App Language Handoff
 
-When a user clicks the "Open NRV" button on the website, they are directed to the app at `https://grasfulls.github.io/nice-return-visits-app/` (the same URL from both English and Spanish pages).
+When a user clicks the "Open NRV" button on the website, English and Spanish pages link to `https://nicereturnvisits.org/app/?lang=en` and `https://nicereturnvisits.org/app/?lang=es`, respectively.
 
-**Current behavior:** The website does not currently pass a language parameter to the app. When the app launches, it:
+**Current behavior:** The website passes the language parameter to the app. When the app launches, it:
 1. First checks for a valid `?lang=<code>` URL parameter (if present)
 2. Then checks for a previously stored language preference in browser `localStorage`
 3. Falls back to English if neither is available
 
 If a language parameter is provided in the URL, the app will use that language and save it to local storage for subsequent visits.
 
-**Future enhancement:** The website may be updated to pass `?lang=en` or `?lang=es` parameters to the app launch URLs, ensuring that users who arrive from the Spanish website will launch the app in Spanish, and that preference will persist on return visits.
+The app's paths are relative to its install location so the same app files can run from the GitHub Pages project path or `/app/` on the public website.
 
 ---
 
@@ -268,8 +268,8 @@ To add a language to either the website or the app, follow these steps:
 3. **Run automated tests**:
    - `node tests/i18n-check.js` — Validates the locale file structure and completeness
 
-4. **(Optional, future enhancement) Update the website** to link to the app with the new language parameter:
-   - When the website is updated to pass `?lang=<code>` to app URLs, add links like: `https://grasfulls.github.io/nice-return-visits-app/?lang=fr`
+4. **Update the website app links** to use the new language parameter:
+   - Add links like: `https://nicereturnvisits.org/app/?lang=fr`
 
 5. **Test the language in the app:**
    - Launch the app and verify all text displays correctly in the new language
