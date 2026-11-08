@@ -1653,22 +1653,41 @@
       </div>
     </dialog>
 
+    <dialog
+      id="nrv-message-dialog"
+      class="nrv-message-dialog"
+      aria-labelledby="nrv-message-title"
+      aria-describedby="nrv-message-content"
+      aria-modal="true"
+    >
+      <p class="nrv-message-brand">Nice Return Visits</p>
+      <h2 id="nrv-message-title">Nice Return Visits</h2>
+      <p id="nrv-message-content"></p>
+      <div class="restore-dialog-actions">
+        <button type="button" id="nrv-message-cancel" data-i18n="common.cancel">Cancel</button>
+        <button type="button" id="nrv-message-accept" data-i18n="common.ok">OK</button>
+      </div>
+    </dialog>
+
     <section id="print-container" hidden aria-hidden="true"></section>
 
+    <script src="nrv-dialog.js"></script>
     <script src="i18n.js"></script>
     <script>
       if (window.NRVI18n) {
-        window.nrvI18nReady = NRVI18n.init().catch((error) => {
+        window.nrvI18nReady = NRVI18n.init().catch(async (error) => {
           console.error("Language setup failed; using built-in English:", error);
-          alert("Could not load the selected language. NRV will use English. / No se pudo cargar el idioma seleccionado. NRV usará inglés.");
+          await NRVDialogs.alert("Could not load the selected language. NRV will use English. / No se pudo cargar el idioma seleccionado. NRV usará inglés.");
         }).finally(() => {
           document.documentElement.classList.remove("i18n-loading");
         });
       } else {
         console.error("Language setup failed: i18n.js could not be loaded.");
-        alert("Could not load language support. NRV will use English. / No se pudo cargar la función de idiomas. NRV usará inglés.");
-        document.documentElement.classList.remove("i18n-loading");
-        window.nrvI18nReady = Promise.resolve();
+        window.nrvI18nReady = NRVDialogs.alert(
+          "Could not load language support. NRV will use English. / No se pudo cargar la función de idiomas. NRV usará inglés.",
+        ).finally(() => {
+          document.documentElement.classList.remove("i18n-loading");
+        });
       }
     </script>
     <!-- Leaflet JS -->

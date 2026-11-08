@@ -97,18 +97,28 @@
   async function init() {
     const explicit = explicitLanguage();
     const code = explicit || readStoredLanguage();
+    let languageSaveFailed = false;
     if (explicit) {
       try {
         root.localStorage.setItem(STORAGE_KEY, code);
       } catch (error) {
         console.error("Unable to save the selected language:", error);
-        root.alert("Could not save the selected language. Check browser storage. / No se pudo guardar el idioma seleccionado. Revisa el almacenamiento del navegador.");
+        languageSaveFailed = true;
       }
     }
     try {
       await loadCatalog(DEFAULT_LANGUAGE);
       await loadCatalog(code);
       current = code;
+      if (languageSaveFailed) {
+        await root.NRVDialogs.alert(
+          t(
+            "language.saveError",
+            undefined,
+            "The language choice could not be saved on this device. Check your browser storage settings and try again.",
+          ),
+        );
+      }
     } finally {
       apply();
     }

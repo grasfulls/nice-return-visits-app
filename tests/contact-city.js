@@ -41,7 +41,7 @@ const context = {
   populateDropdowns() {},
   showStorageError() { errorReported = true; },
   appText: (key, fallback) => fallback,
-  alert: (text) => { message = text; },
+  NRVDialogs: { alert: async (text) => { message = text; } },
   Promise,
 };
 vm.runInNewContext(`let contactEditorSession = 1;\n${source.slice(start, end)}

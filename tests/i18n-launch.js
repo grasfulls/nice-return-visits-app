@@ -40,7 +40,7 @@ function makeApp(search, saved, values = new Map(saved === undefined ? [] : [["n
         location.search = new URL(href).search;
       },
     },
-    alert: (message) => alerts.push(message),
+    NRVDialogs: { alert: (message) => alerts.push(message) },
   };
   vm.runInNewContext(source, { window, URLSearchParams, URL, Intl, console });
   return { window, values, alerts };
@@ -133,6 +133,7 @@ async function main() {
   assert.strictEqual(await failure.window.NRVI18n.init(), "es");
   assert.strictEqual(failure.values.get("nrv_language"), "en");
   assert.strictEqual(failure.alerts.length, 1);
+  assert.strictEqual(failure.alerts[0], catalogs.es["language.saveError"]);
   console.log("PASS  storage failure is reported while the selected language is used");
 
   const unavailable = makeApp("?lang=es", "en");

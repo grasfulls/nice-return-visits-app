@@ -356,6 +356,8 @@
   "time.add": "Add Time",
   "time.entries": "Time entries",
   "common.cancel": "Cancel",
+  "dialog.confirmTitle": "Confirm",
+  "dialog.title": "Nice Return Visits",
   "common.close": "Close",
   "common.print": "Print",
   "settings.title": "Settings",

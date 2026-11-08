@@ -495,12 +495,12 @@ document
   );
 document
   .getElementById("btn-apply-app-update")
-  .addEventListener("click", () => {
+  .addEventListener("click", async () => {
     const blockMessage = getAppRefreshBlockMessage();
     if (blockMessage) {
       document.getElementById("app-update-dialog").close();
       document.getElementById("app-update-status").textContent = blockMessage;
-      alert(blockMessage);
+      await NRVDialogs.alert(blockMessage);
       revealAppRefreshBlock();
       return;
     }
@@ -1881,7 +1881,7 @@ const initializeAppData = async () => {
         const restored = await decryptBackup(backup, passphrase);
         if (
           restored.wasLegacyPlaintext &&
-          !confirm(
+          !await NRVDialogs.confirm(
             appText("backup.legacyConfirm", "This older backup is not encrypted. It will be encrypted with the passphrase you entered when restored. Continue?"),
           )
         ) {
@@ -1897,7 +1897,7 @@ const initializeAppData = async () => {
             storedContacts !== undefined ||
             localStorage.getItem("return_visits_settings") !== null ||
             localStorage.getItem("return_visits_contacts") !== null) &&
-          !confirm(
+          !await NRVDialogs.confirm(
             appText("backup.startupReplaceConfirm", "Restoring this backup will replace the data currently stored on this device. Continue?"),
           )
         ) {
@@ -2065,7 +2065,7 @@ const initializeAppData = async () => {
           dismissUnlockScreen(prompt.screen);
           if (newRecoveryCode) await showRecoveryCodeDialog(newRecoveryCode);
           if (usedRecoveryCode) {
-            alert(
+            await NRVDialogs.alert(
               appText("recovery.unlocked", "Unlocked with your recovery code. Open Settings → Data/Security → Passphrase to Open App and choose a new passphrase; you can enter your recovery code as the current passphrase. You will also get a new recovery code."),
             );
           }
@@ -2099,7 +2099,7 @@ const initializeAppData = async () => {
   });
 };
 
-const showStorageError = (action, error) => {
+const showStorageError = async (action, error) => {
   console.error(`Unable to ${action}:`, error);
   const actions = {
     "save country": appText("storage.actionCountry", "save country"),
@@ -2117,7 +2117,7 @@ const showStorageError = (action, error) => {
     "export encrypted backup": appText("storage.actionBackup", "export encrypted backup"),
     "export contacts": appText("storage.actionExportContacts", "export contacts"),
   };
-  alert(
+  await NRVDialogs.alert(
     appText("storage.actionFailed", `Could not ${action}. Your changes may not have been saved. Please try again.`, { action: actions[action] || action }),
   );
 };
@@ -2619,7 +2619,7 @@ const initializeApp = async () => {
     const { container, input } = getCountryAddFields(select);
     const enteredCountry = normalizeCountry(input.value);
     if (!enteredCountry) {
-      alert(appText("location.enterCountryError", "Enter a country name."));
+      await NRVDialogs.alert(appText("location.enterCountryError", "Enter a country name."));
       input.focus({ preventScroll: select === meCountrySelect });
       return;
     }
@@ -2635,7 +2635,7 @@ const initializeApp = async () => {
       settings.countries = settings.countries.filter(
         (existing) => existing !== country,
       );
-      showStorageError("save country", error);
+      await showStorageError("save country", error);
       return;
     }
     const previousCountry = select.dataset.selectedCountry || settings.country;
@@ -2695,7 +2695,7 @@ const initializeApp = async () => {
   const saveNewContactCity = async () => {
     const enteredCity = toTitleCase(newContactCityInput.value.trim());
     if (!enteredCity) {
-      alert(appText("location.enterCityError", "Enter a city name."));
+      await NRVDialogs.alert(appText("location.enterCityError", "Enter a city name."));
       newContactCityInput.focus();
       return false;
     }
@@ -2712,7 +2712,7 @@ const initializeApp = async () => {
         await saveSettings();
       } catch (error) {
         rollbackNewCity(city);
-        showStorageError("save city", error);
+        await showStorageError("save city", error);
         newContactCityButton.disabled = false;
         newContactCityInput.disabled = false;
         return false;
@@ -2804,12 +2804,12 @@ const initializeApp = async () => {
     const name = toTitleCase(input.value);
     const city = citySelect.value;
     if (!name) {
-      alert(appText("location.enterRegionError", "Enter a name for the new region."));
+      await NRVDialogs.alert(appText("location.enterRegionError", "Enter a name for the new region."));
       input.focus();
       return;
     }
     if (!city || city === "__ADD_NEW__") {
-      alert(appText("location.chooseCityRegion", "Choose a city before adding a region."));
+      await NRVDialogs.alert(appText("location.chooseCityRegion", "Choose a city before adding a region."));
       return;
     }
     const existingRegion = settings.regions.find(
@@ -2821,7 +2821,7 @@ const initializeApp = async () => {
       dropdownHelpers.populateContactRegionArea(existingRegion.name, "");
       newContactRegionContainer.hidden = true;
       input.value = "";
-      alert(appText("location.regionExists", "That region already exists in this city."));
+      await NRVDialogs.alert(appText("location.regionExists", "That region already exists in this city."));
       return;
     }
 
@@ -2830,7 +2830,7 @@ const initializeApp = async () => {
       await saveSettings();
     } catch (error) {
       settings.regions.pop();
-      showStorageError("save settings", error);
+      await showStorageError("save settings", error);
       return;
     }
     populateDropdowns();
@@ -2854,12 +2854,12 @@ const initializeApp = async () => {
       const city = citySelect.value;
       const region = contactRegionSelect.value;
       if (!name) {
-        alert(appText("location.enterAreaError", "Enter a name for the new area."));
+        await NRVDialogs.alert(appText("location.enterAreaError", "Enter a name for the new area."));
         input.focus();
         return;
       }
       if (!city) {
-        alert(appText("location.chooseCityArea", "Choose a city before adding an area."));
+        await NRVDialogs.alert(appText("location.chooseCityArea", "Choose a city before adding an area."));
         return;
       }
       const existingArea = settings.areas.find(
@@ -2869,7 +2869,7 @@ const initializeApp = async () => {
       if (existingArea) {
         dropdownHelpers.populateContactRegionArea(region, existingArea.name);
         document.getElementById("new-contact-area-container").hidden = true;
-        alert(appText("location.areaExists", "That area already exists in this city."));
+        await NRVDialogs.alert(appText("location.areaExists", "That area already exists in this city."));
         return;
       }
 
@@ -2879,7 +2879,7 @@ const initializeApp = async () => {
         await saveSettings();
       } catch (error) {
         settings.areas.pop();
-        showStorageError("save settings", error);
+        await showStorageError("save settings", error);
         return;
       }
       populateDropdowns();
@@ -2917,14 +2917,14 @@ const initializeApp = async () => {
           await saveSettings();
         } catch (error) {
           rollbackNewCity(val);
-          showStorageError("save settings", error);
+          await showStorageError("save settings", error);
           return;
         }
         populateDropdowns();
-        alert(appText("location.cityAdded", `City "${val}" added.`, { name: val }));
+        await NRVDialogs.alert(appText("location.cityAdded", `City "${val}" added.`, { name: val }));
       } else if (val) {
         input.value = "";
-        alert(appText("location.cityExists", "That city already exists."));
+        await NRVDialogs.alert(appText("location.cityExists", "That city already exists."));
       }
     });
 
@@ -2951,7 +2951,7 @@ const initializeApp = async () => {
       const val = toTitleCase(input.value);
       const city = document.getElementById("setting-area-city").value;
       if (!city) {
-        alert(appText("location.chooseCityAreaFirst", "Choose a city for this area first."));
+        await NRVDialogs.alert(appText("location.chooseCityAreaFirst", "Choose a city for this area first."));
         return;
       }
       if (
@@ -2967,16 +2967,16 @@ const initializeApp = async () => {
           await saveSettings();
         } catch (error) {
           settings.areas.pop();
-          showStorageError("save settings", error);
+          await showStorageError("save settings", error);
           return;
         }
         input.value = "";
         updateAddAreaButton();
         populateDropdowns();
-        alert(appText("location.areaAdded", `Area "${val}" added to ${city}.`, { name: val, city }));
+        await NRVDialogs.alert(appText("location.areaAdded", `Area "${val}" added to ${city}.`, { name: val, city }));
       } else if (val) {
         input.value = "";
-        alert(appText("location.areaExists", "That area already exists in this city."));
+        await NRVDialogs.alert(appText("location.areaExists", "That area already exists in this city."));
       }
     });
 
@@ -3000,19 +3000,19 @@ const initializeApp = async () => {
           await saveSettings();
         } catch (error) {
           settings.regions.pop();
-          showStorageError("save settings", error);
+          await showStorageError("save settings", error);
           return;
         }
         input.value = "";
         updateAddRegionButton();
         populateDropdowns();
-        alert(appText("location.regionAdded", `Region "${region}" added to ${city}.`, { name: region, city }));
+        await NRVDialogs.alert(appText("location.regionAdded", `Region "${region}" added to ${city}.`, { name: region, city }));
       } else if (region) {
         if (city) {
           input.value = "";
           updateAddRegionButton();
         }
-        alert(
+        await NRVDialogs.alert(
           city
             ? "That region already exists in this city."
             : "Choose a city for this region first.",
@@ -3155,7 +3155,7 @@ const initializeApp = async () => {
       const name = toTitleCase(input.value);
       const city = meFields.city.value.trim();
       if (!name || !city) {
-        alert(appText("location.enterRegionAfterCity", "Enter a region name after choosing a city."));
+        await NRVDialogs.alert(appText("location.enterRegionAfterCity", "Enter a region name after choosing a city."));
         input.focus({ preventScroll: true });
         return;
       }
@@ -3168,7 +3168,7 @@ const initializeApp = async () => {
         populateDropdowns();
         meFields.region.value = existing.name;
         document.getElementById("new-me-region-container").hidden = true;
-        alert(appText("location.regionExists", "That region already exists in this city."));
+        await NRVDialogs.alert(appText("location.regionExists", "That region already exists in this city."));
         return;
       }
       const region = { name, city };
@@ -3180,7 +3180,7 @@ const initializeApp = async () => {
       } catch (error) {
         settings.regions.pop();
         if (newCity) rollbackNewCity(city);
-        showStorageError("save region", error);
+        await showStorageError("save region", error);
         return;
       }
       populateDropdowns();
@@ -3204,7 +3204,7 @@ const initializeApp = async () => {
       const city = meFields.city.value.trim();
       const region = meFields.region.value;
       if (!name || !city) {
-        alert(appText("location.enterAreaAfterCity", "Enter an area name after choosing a city."));
+        await NRVDialogs.alert(appText("location.enterAreaAfterCity", "Enter an area name after choosing a city."));
         input.focus({ preventScroll: true });
         return;
       }
@@ -3216,7 +3216,7 @@ const initializeApp = async () => {
         populateDropdowns();
         meFields.area.value = existing.name;
         document.getElementById("new-me-area-container").hidden = true;
-        alert(appText("location.areaExists", "That area already exists in this city."));
+        await NRVDialogs.alert(appText("location.areaExists", "That area already exists in this city."));
         return;
       }
       const area = { name, city };
@@ -3228,7 +3228,7 @@ const initializeApp = async () => {
       } catch (error) {
         settings.areas.pop();
         if (newCity) rollbackNewCity(city);
-        showStorageError("save area", error);
+        await showStorageError("save area", error);
         return;
       }
       populateDropdowns();
@@ -3353,12 +3353,12 @@ const initializeApp = async () => {
     ),
   });
   let savedDetailsState = captureDetailsState();
-  const showDetailsValidationError = (message, input) => {
+  const showDetailsValidationError = async (message, input) => {
     meStatus.textContent = message;
     document.getElementById("defaults-your-details-section").open = true;
     document.getElementById("your-details-section").open = true;
     input.focus({ preventScroll: true });
-    alert(message);
+    await NRVDialogs.alert(message);
   };
   const saveDefaultsAndDetails = async () => {
     commitMeCity();
@@ -3374,7 +3374,7 @@ const initializeApp = async () => {
           (area) => area.city === me.city && area.name === me.area,
         ))
     ) {
-      showDetailsValidationError(
+      await showDetailsValidationError(
         appText("settings.validLocation", "Choose a valid country, city, region, and area."),
         meFields.city,
       );
@@ -3387,7 +3387,7 @@ const initializeApp = async () => {
       !(Number.isFinite(lat) && Number.isFinite(lng) &&
         Math.abs(lat) <= 90 && Math.abs(lng) <= 180)
     ) {
-      showDetailsValidationError(
+      await showDetailsValidationError(
         appText("map.validCoordinates", "Enter valid latitude and longitude values."),
         meFields.lat,
       );
@@ -3417,7 +3417,7 @@ const initializeApp = async () => {
     } catch (error) {
       settings.me = previousMe;
       Object.assign(settings, previousDefaults);
-      showStorageError("save your details", error);
+      await showStorageError("save your details", error);
       return false;
     }
     document.getElementById("setting-state").value = settings.state;
@@ -3430,8 +3430,8 @@ const initializeApp = async () => {
     return true;
   };
 
-  document.getElementById("btn-me-clear").addEventListener("click", () => {
-    if (!confirm(appText("settings.clearConfirm", "Clear your details and remove your home pin?"))) return;
+  document.getElementById("btn-me-clear").addEventListener("click", async () => {
+    if (!await NRVDialogs.confirm(appText("settings.clearConfirm", "Clear your details and remove your home pin?"))) return;
     Object.entries(meFields).forEach(([key, input]) => {
       if (key !== "country") input.value = "";
     });
@@ -3565,7 +3565,7 @@ const initializeApp = async () => {
     } catch (error) {
       settings = previousState.settings;
       contacts = previousState.contacts;
-      showStorageError(action, error);
+      await showStorageError(action, error);
       populateDropdowns();
       renderContacts();
       return false;
@@ -3579,7 +3579,7 @@ const initializeApp = async () => {
   const renameLocation = async (type, location, proposedName) => {
     const name = toTitleCase(proposedName);
     if (!name) {
-      alert(appText("location.blankName", "A location name cannot be blank."));
+      await NRVDialogs.alert(appText("location.blankName", "A location name cannot be blank."));
       return false;
     }
     if (name === location.name) return true;
@@ -3588,7 +3588,7 @@ const initializeApp = async () => {
       (city) => city.toLowerCase() === name.toLowerCase(),
     );
     if (duplicate) {
-      alert(appText("location.cityNameExists", "A city with that name already exists."));
+      await NRVDialogs.alert(appText("location.cityNameExists", "A city with that name already exists."));
       return false;
     }
 
@@ -3657,11 +3657,11 @@ const initializeApp = async () => {
     const typeLabel = type.toLowerCase();
     const displayType = locationTypeDisplay(type);
     if (!name) {
-      alert(appText("location.typeBlank", `A ${typeLabel} name cannot be blank.`, { type: displayType }));
+      await NRVDialogs.alert(appText("location.typeBlank", `A ${typeLabel} name cannot be blank.`, { type: displayType }));
       return false;
     }
     if (!selectedCities.length) {
-      alert(
+      await NRVDialogs.alert(
         appText("location.typeChooseCity", `Choose at least one city for this ${typeLabel}, or use Delete to remove it.`, { type: displayType }),
       );
       return false;
@@ -3681,7 +3681,7 @@ const initializeApp = async () => {
       ),
     );
     if (clashCity) {
-      alert(appText("location.typeClash", `${clashCity} already has a ${typeLabel} named "${name}".`, { city: clashCity, type: displayType, name }));
+      await NRVDialogs.alert(appText("location.typeClash", `${clashCity} already has a ${typeLabel} named "${name}".`, { city: clashCity, type: displayType, name }));
       return false;
     }
     const blockedCity = currentCities.find(
@@ -3693,7 +3693,7 @@ const initializeApp = async () => {
         ),
     );
     if (blockedCity) {
-      alert(
+      await NRVDialogs.alert(
         appText("location.removeBlocked", `Cannot remove "${oldName}" from ${blockedCity} while contacts there use it. Reassign those contacts first.`, { name: oldName, city: blockedCity }),
       );
       return false;
@@ -3730,7 +3730,7 @@ const initializeApp = async () => {
           settings.areas.filter((area) => area.city === location.name).length
         : 0;
     if (assignedContacts.length) {
-      alert(
+      await NRVDialogs.alert(
         appText("location.deleteBlocked", `Cannot delete this ${type.toLowerCase()} while it has ${assignedContacts.length} assigned contact${assignedContacts.length === 1 ? "" : "s"}. Reassign those contacts first.`, { type: locationTypeDisplay(type), count: assignedContacts.length }),
       );
       return;
@@ -3739,7 +3739,7 @@ const initializeApp = async () => {
     const areaCount = settings.areas.filter((area) => area.city === location.name).length;
     const childDescription = appText("location.childCounts", `${regionCount} region(s) and ${areaCount} area(s)`, { regions: regionCount, areas: areaCount });
     if (
-      !confirm(
+      !await NRVDialogs.confirm(
         childLocations
           ? appText("location.deleteWithChildren", `Delete ${type.toLowerCase()} "${location.name}" and its ${childDescription}? No contacts are assigned to them.`, { type: locationTypeDisplay(type), name: location.name, children: childDescription })
           : type === "City"
@@ -3950,7 +3950,7 @@ const initializeApp = async () => {
 
       try {
         if (
-          !confirm(
+          !await NRVDialogs.confirm(
             appText("security.turnOffConfirm", "Turn off the passphrase? Your data on this device will be stored without encryption, and the app will open without asking for a passphrase. You can turn it on again later."),
           )
         ) {
@@ -4514,7 +4514,7 @@ const initializeApp = async () => {
           id: "btn-print-visible",
           icon: "print",
           title: appText("print.contactsShown", "Print the contacts shown"),
-          onClick: () => printVisibleContacts(),
+          onClick: async () => await printVisibleContacts(),
         },
       ];
     }
@@ -4524,7 +4524,7 @@ const initializeApp = async () => {
           id: "btn-print-map",
           icon: "print",
           title: appText("print.mapContacts", "Print the map contacts"),
-          onClick: () => requestMapPrint(),
+          onClick: async () => await requestMapPrint(),
         },
       ];
     }
@@ -4534,7 +4534,7 @@ const initializeApp = async () => {
           id: "btn-print-settings",
           icon: "print",
           title: appText("print.settings", "Print all settings"),
-          onClick: () => printSettings(),
+          onClick: async () => await printSettings(),
         },
       ];
     }
@@ -4566,8 +4566,8 @@ const initializeApp = async () => {
   const setupNextStepsNotice = document.getElementById(
     "setup-next-steps-notice",
   );
-  const notifySetupSaveFailure = () =>
-    alert(
+  const notifySetupSaveFailure = async () =>
+    await NRVDialogs.alert(
       appText("setup.saveDeviceProgressFailed", "We could not save your setup progress on this device. Check device storage and try again."),
     );
   const showSetupNextStepsIfReady = () => {
@@ -4584,9 +4584,9 @@ const initializeApp = async () => {
   };
   document
     .getElementById("btn-setup-add-first-contact")
-    .addEventListener("click", () => {
+    .addEventListener("click", async () => {
       if (!markInstalledSetupComplete()) {
-        notifySetupSaveFailure();
+        await notifySetupSaveFailure();
         return;
       }
       setupNextStepsDialog.close();
@@ -4615,9 +4615,9 @@ const initializeApp = async () => {
     });
   document
     .getElementById("btn-setup-continue-later")
-    .addEventListener("click", () => {
+    .addEventListener("click", async () => {
       if (!markInstalledSetupComplete()) {
-        notifySetupSaveFailure();
+        await notifySetupSaveFailure();
         return;
       }
       setupNextStepsNotice.hidden = true;
@@ -4916,7 +4916,7 @@ const initializeApp = async () => {
       return true;
     } catch (error) {
       settings.timeTracking = normalizeTimeTracking(previous);
-      showStorageError("save time in service", error);
+      await showStorageError("save time in service", error);
       return false;
     }
   };
@@ -4956,11 +4956,11 @@ const initializeApp = async () => {
     const note = document.getElementById("time-entry-note").value.trim();
     const seconds = Math.round(hours * 3600 + minutes * 60);
     if (!date || date > toDateKey(new Date())) {
-      alert(appText("time.validDate", "Choose a date that is today or earlier."));
+      await NRVDialogs.alert(appText("time.validDate", "Choose a date that is today or earlier."));
       return;
     }
     if (hours < 0 || minutes < 0 || minutes > 59 || seconds <= 0 || hours > 24) {
-      alert(appText("time.validDuration", "Enter hours (up to 24) and minutes (0–59) greater than zero."));
+      await NRVDialogs.alert(appText("time.validDuration", "Enter hours (up to 24) and minutes (0–59) greater than zero."));
       return;
     }
     const tracking = settings.timeTracking;
@@ -4993,7 +4993,7 @@ const initializeApp = async () => {
   };
 
   const deleteTimeEntry = async (id) => {
-    if (!confirm(appText("time.deleteConfirm", "Delete this time entry?"))) return;
+    if (!await NRVDialogs.confirm(appText("time.deleteConfirm", "Delete this time entry?"))) return;
     const tracking = settings.timeTracking;
     const previous = JSON.parse(JSON.stringify(tracking));
     tracking.entries = tracking.entries.filter((entry) => entry.id !== id);
@@ -5021,7 +5021,7 @@ const initializeApp = async () => {
       settings.timeTracking.enabled = true;
     } else {
       if (
-        !confirm(
+        !await NRVDialogs.confirm(
           "Turning off Track Time in Service erases all the time you have recorded, including this month's and this service year's totals. This cannot be undone unless you have a backup. Turn it off?",
         )
       ) {
@@ -5079,7 +5079,7 @@ const initializeApp = async () => {
       return;
     }
     checkingTimer = true;
-    const keep = confirm(
+    const keep = await NRVDialogs.confirm(
       `Your timer is still running. You were last in the app at ${new Date(lastSeen).toLocaleString()}.\n\nOK = Keep time going.\nCancel = Stop the timer at that time.`,
     );
     if (keep) {
@@ -5123,7 +5123,7 @@ const initializeApp = async () => {
       await encryptStoredValue(database, "contacts", contacts, encryptionKey);
       contactSignatures = nextSignatures;
     } catch (error) {
-      showStorageError("save contacts", error);
+      await showStorageError("save contacts", error);
       return false;
     }
     cloudBackupHook();
@@ -5894,7 +5894,7 @@ const initializeApp = async () => {
     settingsLeavePending = true;
     try {
       const other = findPendingOtherSettingsEdit();
-      if (other && !confirmDiscardOtherSettings(other)) return false;
+      if (other && !(await confirmDiscardOtherSettings(other))) return false;
       const pending = findPendingDetailsEdit();
       if (!pending) return true;
       const choice = await chooseSettingsChanges();
@@ -5908,13 +5908,13 @@ const initializeApp = async () => {
       settingsLeavePending = false;
     }
   };
-  const confirmDiscardOtherSettings = (pending) => {
+  const confirmDiscardOtherSettings = async (pending) => {
     const pendingDescription =
       pending.input.type === "file"
         ? "A backup file is selected but has not been restored."
         : `"${pending.field}" in ${pending.section} has not been saved.`;
     if (
-      confirm(
+      await NRVDialogs.confirm(
         `Discard unsaved changes?\n\n${pendingDescription}\n\nChoose OK to discard, or Cancel to go back and finish it.`,
       )
     ) {
@@ -6085,10 +6085,10 @@ const initializeApp = async () => {
   });
 
   let contactEditorSession = 0;
-  const attemptExit = () => {
+  const attemptExit = async () => {
     const currentState = captureFormState();
     if (currentState !== initialFormState) {
-      const confirmExit = confirm(appText("contacts.discardExit", "Changes were made, exit without saving?"));
+      const confirmExit = await NRVDialogs.confirm(appText("contacts.discardExit", "Changes were made, exit without saving?"));
       if (confirmExit) {
         contactEditorSession += 1;
         modal.style.display = "none";
@@ -6261,10 +6261,10 @@ const initializeApp = async () => {
   closeModal.addEventListener("click", attemptExit);
   document
     .getElementById("btn-add-another-contact")
-    .addEventListener("click", () => {
+    .addEventListener("click", async () => {
       if (
         captureFormState() !== initialFormState &&
-        !confirm(appText("contacts.discardNew", "Changes were made, discard them and add a new contact?"))
+        !await NRVDialogs.confirm(appText("contacts.discardNew", "Changes were made, discard them and add a new contact?"))
       ) {
         return;
       }
@@ -6355,7 +6355,7 @@ const initializeApp = async () => {
     const country = normalizeCountry(contactCountrySelect.value);
     const state = normalizeLocationState(country, contactStateInput.value);
     if (!country) {
-      alert(appText("contacts.countryRequired", "Choose a country before saving this contact."));
+      await NRVDialogs.alert(appText("contacts.countryRequired", "Choose a country before saving this contact."));
       contactCountrySelect.focus();
       return;
     }
@@ -6366,17 +6366,17 @@ const initializeApp = async () => {
     const latitude = Number(lat);
     const longitude = Number(lng);
     if (email && !/^[^\s@]+@[^\s@]+$/.test(email)) {
-      alert(appText("contacts.emailInvalid", "Enter an email address in the format name@example.com."));
+      await NRVDialogs.alert(appText("contacts.emailInvalid", "Enter an email address in the format name@example.com."));
       document.getElementById("contact-email").focus();
       return;
     }
     if (phone && !/^\(\d{3}\) \d{3}-\d{4}$/.test(phone)) {
-      alert(appText("contacts.phoneInvalid", "Enter a 10-digit phone number in the format (555) 123-4567."));
+      await NRVDialogs.alert(appText("contacts.phoneInvalid", "Enter a 10-digit phone number in the format (555) 123-4567."));
       phoneInput.focus();
       return;
     }
     if (!city || !settings.cities.includes(city)) {
-      alert(appText("contacts.cityRequired", "Choose or add a city before saving this contact."));
+      await NRVDialogs.alert(appText("contacts.cityRequired", "Choose or add a city before saving this contact."));
       citySelect.focus();
       return;
     }
@@ -6390,7 +6390,7 @@ const initializeApp = async () => {
           (item) => item.name === area && item.city === city,
         ))
     ) {
-      alert(appText("contacts.locationInvalid", "Choose a region and area that belong to the selected city."));
+      await NRVDialogs.alert(appText("contacts.locationInvalid", "Choose a region and area that belong to the selected city."));
       return;
     }
     if (
@@ -6402,7 +6402,7 @@ const initializeApp = async () => {
         longitude < -180 ||
         longitude > 180)
     ) {
-      alert(
+      await NRVDialogs.alert(
         "Enter valid latitude and longitude coordinates, or clear both fields.",
       );
       return;
@@ -6511,7 +6511,7 @@ const initializeApp = async () => {
     editContact(targetId, contactVisitsSection.open ? "visits" : "info");
     // Re-baseline right after the form is repopulated so a quick close is not seen as unsaved.
     initialFormState = captureFormState();
-    alert(appText("contacts.saved", "Contact saved successfully!"));
+    await NRVDialogs.alert(appText("contacts.saved", "Contact saved successfully!"));
     initialFormState = captureFormState();
   });
 
@@ -6797,7 +6797,7 @@ const initializeApp = async () => {
   };
 
   const printContainer = document.getElementById("print-container");
-  const printContent = (title, subtitle, content) => {
+  const printContent = async (title, subtitle, content) => {
     printContainer.innerHTML = `
       <header class="print-header">
         <h1>${escapeHtml(title)}</h1>
@@ -6813,7 +6813,7 @@ const initializeApp = async () => {
       printContainer.hidden = true;
       printContainer.setAttribute("aria-hidden", "true");
       console.error("Unable to open the print dialog:", error);
-      alert(appText("print.openFailed", "Could not open the print dialog. Please try again."));
+      await NRVDialogs.alert(appText("print.openFailed", "Could not open the print dialog. Please try again."));
     }
   };
 
@@ -6823,7 +6823,7 @@ const initializeApp = async () => {
     printContainer.replaceChildren();
   });
 
-  const printSettings = () => {
+  const printSettings = async () => {
     const rows = settings.cities
       .map((city) => {
         const regions = settings.regions
@@ -6839,7 +6839,7 @@ const initializeApp = async () => {
         }${areas ? `<li>${escapeHtml(appText("print.areas", "Areas:"))} ${areas}</li>` : ""}</ul>`;
       })
       .join("");
-    printContent(
+    await printContent(
       appText("settings.title", "Settings"),
       new Date().toLocaleDateString(),
       `<section class="print-location-group">
@@ -6862,11 +6862,11 @@ const initializeApp = async () => {
     );
   };
 
-  const printVisibleContacts = () => {
+  const printVisibleContacts = async () => {
       if (!visibleContacts.length) return;
       const count = visibleContacts.length;
       if (
-        !confirm(
+        !await NRVDialogs.confirm(
           appText("print.visibleConfirm", `Print ${count} visible contact${count === 1 ? "" : "s"}? The printout will include only the most recent note for each contact.`, { count }),
         )
       ) {
@@ -6902,7 +6902,7 @@ const initializeApp = async () => {
           `,
         )
         .join("");
-      printContent(
+      await printContent(
         appText("print.visibleTitle", "Visible Contacts"),
         appText("print.visibleSubtitle", `${count} contact${count === 1 ? "" : "s"} • most recent note per contact • ${new Date().toLocaleDateString()}`, { count, date: new Date().toLocaleDateString() }),
         content,
@@ -6911,7 +6911,7 @@ const initializeApp = async () => {
 
   // Prints the same numbered list the map pins use, then any contacts
   // that have no pin.
-  const printMapList = (detail) => {
+  const printMapList = async (detail) => {
     const precisePins = visibleContacts.filter(hasContactCoordinates);
     const approximateCityPins = new Map();
     visibleContacts.forEach((contact) => {
@@ -6986,7 +6986,7 @@ const initializeApp = async () => {
           ? `<section class="print-location-group"><h2>${escapeHtml(appText("print.noMapPin", "No map pin"))}</h2>${unpinned.map((c) => entry(c, 0)).join("")}</section>`
           : ""
       }`;
-    printContent(
+    await printContent(
       appText("print.mapContactsTitle", "Map Contacts"),
       appText("print.mapLocationCount", `${pinCount} map location${pinCount === 1 ? "" : "s"} • ${new Date().toLocaleDateString()}`, { count: pinCount, date: new Date().toLocaleDateString() }),
       content,
@@ -6994,18 +6994,18 @@ const initializeApp = async () => {
   };
 
   const mapPrintDialog = document.getElementById("map-print-dialog");
-  const requestMapPrint = () => {
+  const requestMapPrint = async () => {
     if (!visibleContacts.length) {
-      alert(appText("print.noContacts", "There are no contacts to print."));
+      await NRVDialogs.alert(appText("print.noContacts", "There are no contacts to print."));
       return;
     }
     mapPrintDialog.showModal();
   };
-  document.getElementById("map-print-form").addEventListener("submit", (e) => {
+  document.getElementById("map-print-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const detail = new FormData(e.target).get("map-print-detail");
     mapPrintDialog.close();
-    printMapList(detail);
+    await printMapList(detail);
   });
   document
     .getElementById("cancel-map-print")
@@ -7023,34 +7023,34 @@ const initializeApp = async () => {
     return contacts.find((contact) => String(contact.id) === String(contactId));
   };
 
-  shareContactButton.addEventListener("click", () => {
+  shareContactButton.addEventListener("click", async () => {
     if (shareContactButton.disabled) return;
     const contact = getSavedContactFromEditor();
     if (!contact) {
-      alert(appText("contacts.saveBeforeShare", "Save this contact before sharing."));
+      await NRVDialogs.alert(appText("contacts.saveBeforeShare", "Save this contact before sharing."));
       return;
     }
     openContactShareDialog(contact);
   });
 
-  exportContactButton.addEventListener("click", () => {
+  exportContactButton.addEventListener("click", async () => {
     if (exportContactButton.disabled) return;
     const contact = getSavedContactFromEditor();
     if (!contact) {
-      alert(appText("contacts.saveBeforeExport", "Save this contact before exporting."));
+      await NRVDialogs.alert(appText("contacts.saveBeforeExport", "Save this contact before exporting."));
       return;
     }
     exportContact(contact);
   });
 
-  printContactButton.addEventListener("click", () => {
+  printContactButton.addEventListener("click", async () => {
     if (printContactButton.disabled) return;
     const contactId = document.getElementById("contact-id").value;
     selectedContactToPrint = contacts.find(
       (contact) => String(contact.id) === String(contactId),
     );
     if (!selectedContactToPrint) {
-      alert(appText("contacts.saveBeforePrint", "Save this contact before printing."));
+      await NRVDialogs.alert(appText("contacts.saveBeforePrint", "Save this contact before printing."));
       return;
     }
     const fullName =
@@ -7071,7 +7071,7 @@ const initializeApp = async () => {
     selectedContactToPrint = null;
   });
 
-  contactPrintForm.addEventListener("submit", (event) => {
+  contactPrintForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!selectedContactToPrint) return;
     const contact = selectedContactToPrint;
@@ -7102,7 +7102,7 @@ const initializeApp = async () => {
 
     contactPrintDialog.close();
     selectedContactToPrint = null;
-    printContent(
+    await printContent(
       fullName,
       `Contact ID: ${contact.id} • ${includeAllNotes ? "all visit notes" : "most recent note only"} • ${new Date().toLocaleDateString()}`,
       `
@@ -7264,7 +7264,7 @@ const initializeApp = async () => {
         try {
           await saveSettings();
         } catch (error) {
-          showStorageError("save your home pin", error);
+          await showStorageError("save your home pin", error);
         }
       });
     }
@@ -7373,7 +7373,7 @@ const initializeApp = async () => {
 
   // Inline Visit Log Editor Functions
   window.deleteVisitLog = async (contactId, logId) => {
-    if (confirm(appText("visits.confirmDelete", "Are you sure you want to delete this visit log?"))) {
+    if (await NRVDialogs.confirm(appText("visits.confirmDelete", "Are you sure you want to delete this visit log?"))) {
       const contact = contacts.find((c) => c.id == contactId);
       if (contact && contact.notesHistory) {
         contact.notesHistory = contact.notesHistory.filter(
@@ -7553,7 +7553,7 @@ const initializeApp = async () => {
             ev.stopPropagation();
             const updatedText = textArea.value.trim();
             if (!updatedText) {
-              alert(appText("visits.emptyError", "Note text cannot be empty."));
+              await NRVDialogs.alert(appText("visits.emptyError", "Note text cannot be empty."));
               return;
             }
             const updatedDate = new Date(dateInput.value);
@@ -7615,7 +7615,7 @@ const initializeApp = async () => {
   };
 
   window.deleteContact = async (id) => {
-    if (confirm(appText("contacts.confirmDelete", "Delete this contact and all of its data?"))) {
+    if (await NRVDialogs.confirm(appText("contacts.confirmDelete", "Delete this contact and all of its data?"))) {
       const previousState = cloneLocationState();
       contacts = contacts.filter((c) => c.id != id);
       settings.deletedContacts = [
@@ -7687,7 +7687,7 @@ const initializeApp = async () => {
       window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
       markBackupDone();
     } catch (error) {
-      showStorageError("export encrypted backup", error);
+      await showStorageError("export encrypted backup", error);
     }
   };
 
@@ -7719,7 +7719,7 @@ const initializeApp = async () => {
       link.click();
       window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
     } catch (error) {
-      showStorageError("export contacts", error);
+      await showStorageError("export contacts", error);
     }
   };
 
@@ -8010,18 +8010,18 @@ const initializeApp = async () => {
     contactTransferDialogResolve = null;
   };
 
-  function onContactTransferSubmit(event) {
+  async function onContactTransferSubmit(event) {
     event.preventDefault();
     const passphrase = contactTransferPassphrase.value;
     if (passphrase.length < 8) {
-      alert(appText("security.minEight", "Use a passphrase with at least 8 characters."));
+      await NRVDialogs.alert(appText("security.minEight", "Use a passphrase with at least 8 characters."));
       return;
     }
     if (
       contactTransferMode === "export" &&
       passphrase !== contactTransferConfirm.value
     ) {
-      alert(appText("security.mismatch", "The passphrases do not match."));
+      await NRVDialogs.alert(appText("security.mismatch", "The passphrases do not match."));
       contactTransferConfirm.select();
       return;
     }
@@ -8088,7 +8088,7 @@ const initializeApp = async () => {
       window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
     } catch (error) {
       console.error("Unable to export contact:", error);
-      alert(appText("contacts.exportFailed", "Could not export this contact. No contact data was changed."));
+      await NRVDialogs.alert(appText("contacts.exportFailed", "Could not export this contact. No contact data was changed."));
     }
   };
 
@@ -8124,7 +8124,7 @@ const initializeApp = async () => {
           );
         }
         if (
-          !confirm(
+          !await NRVDialogs.confirm(
             appText("contacts.importConfirm", `Import ${importedList.length} contact${importedList.length === 1 ? "" : "s"} as new? Visit history is included. Existing contacts will not be changed.`, { count: importedList.length }),
           )
         ) {
@@ -8224,7 +8224,7 @@ const initializeApp = async () => {
         populateDropdowns();
         renderContacts();
         contactFileInput.value = "";
-        alert(
+        await NRVDialogs.alert(
           appText("contacts.importedCount", `${importedList.length} contact${importedList.length === 1 ? "" : "s"} imported.`, { count: importedList.length }),
         );
       } catch (error) {
@@ -8245,7 +8245,7 @@ const initializeApp = async () => {
               : Object.prototype.hasOwnProperty.call(importErrors, error.message)
                 ? importErrors[error.message]
                 : error.message || appText("contacts.importCheckFile", "Check that the file is valid and the passphrase is correct.");
-        alert(
+        await NRVDialogs.alert(
           appText("contacts.importFailed", `Could not import. ${detail} Your current contacts were not changed.`, { detail }),
         );
       }
@@ -8286,9 +8286,9 @@ const initializeApp = async () => {
       restorePassphraseInput.focus();
     });
 
-  const reportRestoreError = (error) => {
+  const reportRestoreError = async (error) => {
     console.error("Unable to restore encrypted backup:", error);
-    alert(
+    await NRVDialogs.alert(
       error instanceof NewerDataVersionError
         ? appText("backup.newerData", "This data was saved by a newer version of the app. Update the app (reload it) before opening this data. Nothing was changed. Your current data was not replaced.")
         : appText("backup.restoreFailed", "Could not restore that backup. Check that the file is valid and the passphrase is correct. Your current data was not replaced."),
@@ -8331,7 +8331,7 @@ const initializeApp = async () => {
       passphraseNote = appText("backup.restoreDevicePassphrase", " This backup is not encrypted; the restored data will be protected by this device's passphrase.");
     }
     if (
-      !confirm(
+      !await NRVDialogs.confirm(
         appText("backup.replaceConfirm", `This will replace all ${contacts.length} current contacts with ${restored.contacts.length} contacts from the backup.${passphraseNote} Continue?`, { current: contacts.length, restored: restored.contacts.length, note: passphraseNote }),
       )
     ) {
@@ -8359,7 +8359,7 @@ const initializeApp = async () => {
     renderContacts();
     updatePassphraseSection();
     markBackupDone();
-    alert(
+    await NRVDialogs.alert(
       encryptionKey && !restored.metadata?.recovery
         ? appText("backup.restoredNoRecovery", "Backup restored. It has no recovery code yet; open Settings → Data/Security → Passphrase to Open App and choose Make a New Recovery Code.")
         : appText("backup.restored", "Backup restored successfully."),
@@ -8369,7 +8369,7 @@ const initializeApp = async () => {
 
   const restoreBackupFile = async (file) => {
     if (!file) {
-      alert(appText("backup.chooseEncrypted", "Choose an encrypted backup file first."));
+      await NRVDialogs.alert(appText("backup.chooseEncrypted", "Choose an encrypted backup file first."));
       return false;
     }
 
@@ -8382,7 +8382,7 @@ const initializeApp = async () => {
       }
       return restored;
     } catch (error) {
-      reportRestoreError(error);
+      await reportRestoreError(error);
       return false;
     }
   };
@@ -8786,7 +8786,7 @@ const initializeApp = async () => {
       }
     } catch (error) {
       setCloudStatus("");
-      reportRestoreError(error);
+      await reportRestoreError(error);
     }
     return false;
   };
@@ -8855,7 +8855,7 @@ const initializeApp = async () => {
           ? appText("dropbox.remoteUnsaved", " This device also has changes that are not in Dropbox yet; restoring will replace them.")
           : "";
       if (
-        confirm(
+        await NRVDialogs.confirm(
           appText("dropbox.remoteDifferentPassphrase", `Dropbox has a backup from another device (${when}) that uses a different passphrase, so it cannot be combined automatically.${unsaved} Restore it onto this device now?`, { when, unsaved }),
         )
       ) {
@@ -8899,7 +8899,7 @@ const initializeApp = async () => {
   }, 120000);
   document.getElementById("sync-status").addEventListener("click", async () => {
     await syncNow();
-    alert(getSyncSummary().text);
+    await NRVDialogs.alert(getSyncSummary().text);
   });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden" && cloudTimer) {
@@ -8941,7 +8941,7 @@ const initializeApp = async () => {
         ? appText("dropbox.warningEncrypted", "Your Dropbox backups will be encrypted with this app's passphrase before they are uploaded. Keep that passphrase and your recovery code safe; anyone who obtains an unencrypted export or a copy made before encryption may still read it.")
         : appText("dropbox.warningUnencrypted", "No app passphrase is on, so backups in Dropbox will not be encrypted. Anyone who can access those Dropbox files may be able to read them. Turning on a passphrase first (Settings → Data/Security → Passphrase to Open App) is optional and will encrypt new backups; existing unencrypted Dropbox copies remain readable until you delete them.");
       if (
-        !confirm(
+        !await NRVDialogs.confirm(
           appText("dropbox.connectionWarning", `Dropbox is optional. Connecting sends Nice Return Visits backups to the Dropbox folder named Return Visits in your account. ${encryptionWarning} You can also protect your Dropbox account with a strong password and two-step verification. Dropbox account or device security can still be compromised. Continue to Dropbox sign-in?`, { warning: encryptionWarning }),
         )
       ) {
@@ -8962,7 +8962,7 @@ const initializeApp = async () => {
         localStorage.getItem(CLOUD_RECONNECT_DECISION_KEY) === "1";
       if (
         reconnectNeedsDecision &&
-        !confirm(
+        !await NRVDialogs.confirm(
           appText("dropbox.replaceConfirm", "Dropbox already has NRV backup data. Backing up now will replace its latest copy with this device's data. Older dated copies stay in Dropbox. Continue?"),
         )
       ) {
@@ -8970,7 +8970,7 @@ const initializeApp = async () => {
       }
       if (
         !contacts.length &&
-        !confirm(
+        !await NRVDialogs.confirm(
           appText("dropbox.emptyBackupConfirm", "There are no contacts on this device. Backing up now could replace your latest Dropbox copy with an empty one. Continue?"),
         )
       ) {
@@ -8987,7 +8987,7 @@ const initializeApp = async () => {
         } catch (error) {
           if (error.code !== "cloud-newer") throw error;
           if (
-            !confirm(
+            !await NRVDialogs.confirm(
               appText("dropbox.replaceNewerConfirm", `Dropbox has a newer backup from another device (${new Date(error.remote.modified).toLocaleString()}). Replace it with this device's data? Older dated copies stay in Dropbox. Choose Cancel, then Check for a Newer Backup, to restore it instead.`, { when: new Date(error.remote.modified).toLocaleString() }),
             )
           ) {
@@ -9016,7 +9016,7 @@ const initializeApp = async () => {
     .getElementById("btn-cloud-disconnect")
     .addEventListener("click", async () => {
       if (
-        !confirm(
+        !await NRVDialogs.confirm(
           appText("dropbox.disconnectConfirm", "Disconnect Dropbox? Your existing backups stay in your Dropbox, but the app will stop backing up there."),
         )
       ) {
@@ -9144,7 +9144,7 @@ const initializeApp = async () => {
         );
         if (existing.length) {
           if (
-            confirm(
+            await NRVDialogs.confirm(
               appText("dropbox.chooseExistingConfirm", "Dropbox already has NRV backup data. Do you want to choose a backup to restore onto this device now?"),
             )
           ) {
@@ -9175,7 +9175,7 @@ const initializeApp = async () => {
       if (remote) {
         const when = new Date(remote.modified).toLocaleString();
         if (
-          confirm(
+          await NRVDialogs.confirm(
             appText("dropbox.restoreExistingConfirm", `Dropbox already has a backup (${when}). Restore it onto this device? That replaces the ${contacts.length} contacts here.`, { when, count: contacts.length }),
           )
         ) {
@@ -9183,7 +9183,7 @@ const initializeApp = async () => {
           return;
         }
         if (
-          !confirm(
+          !await NRVDialogs.confirm(
             appText("dropbox.backupInsteadConfirm", "Back up this device to Dropbox instead? That replaces the latest Dropbox copy with this device's data. Older dated copies stay."),
           )
         ) {
@@ -9264,20 +9264,20 @@ const initializeApp = async () => {
       const detail = Object.prototype.hasOwnProperty.call(eraseErrors, error.message)
         ? eraseErrors[error.message]
         : error.message || appText("storage.eraseRetry", "Close other NRV windows or tabs, reload, and try again.");
-      alert(
+      await NRVDialogs.alert(
         appText("storage.eraseFailed", `NRV could not verify a complete erase. No fresh start was confirmed. ${detail}`, { detail }),
       );
     }
   };
-  const confirmEraseAllData = () => {
+  const confirmEraseAllData = async () => {
     if (
-      !confirm(
+      !await NRVDialogs.confirm(
         appText("storage.eraseConfirm", "Before erasing, create or verify a current backup and keep a separate recovery copy outside NRV's normal storage and Dropbox app folder. This removes contacts, settings, passphrase/security data, setup choices, and Dropbox connection state from this app copy. Downloaded backup files and Dropbox backups are not deleted. Continue?"),
       )
     ) {
       return;
     }
-    if (!confirm(appText("settings.eraseFinalConfirm", "Last check: erase this NRV working copy and start fresh?"))) return;
+    if (!await NRVDialogs.confirm(appText("settings.eraseFinalConfirm", "Last check: erase this NRV working copy and start fresh?"))) return;
     void eraseAllData();
   };
   document
@@ -9375,7 +9375,7 @@ const initializeApp = async () => {
     }
     localStorage.setItem(LAST_BACKUP_PROMPT_KEY, today);
     if (
-      !confirm(
+      !await NRVDialogs.confirm(
         appText("backup.reminder", `You haven't backed up in ${days} days. Back up now?`, { days }),
       )
     ) {
@@ -9397,10 +9397,10 @@ const initializeApp = async () => {
           userInitiated: true,
         });
         await refreshCloudUi();
-        alert(appText("dropbox.backupSuccess", "Backed up to Dropbox."));
+        await NRVDialogs.alert(appText("dropbox.backupSuccess", "Backed up to Dropbox."));
       } catch (error) {
         console.error(error);
-        alert(appText("dropbox.backupFailed", "Could not back up to Dropbox. Check your connection and try again."));
+        await NRVDialogs.alert(appText("dropbox.backupFailed", "Could not back up to Dropbox. Check your connection and try again."));
       }
       return;
     }
@@ -9662,7 +9662,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
     navButton?.click();
   };
-  const startSetup = () => {
+  const startSetup = async () => {
     installBanner.hidden = true;
     try {
       localStorage.setItem(installBannerKey, "true");
@@ -9670,7 +9670,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       localStorage.removeItem(wizardStepKey);
     } catch (error) {
       console.error("Unable to save the setup status:", error);
-      alert(
+      await NRVDialogs.alert(
         appText("setup.saveProgressFailed", "We could not save your setup progress. Please check device storage and try again."),
       );
       installBanner.hidden = false;
@@ -9691,17 +9691,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
   document
     .getElementById("btn-setup-passphrase")
-    .addEventListener("click", () => {
-      if (!startSetup()) return;
+    .addEventListener("click", async () => {
+      if (!(await startSetup())) return;
       openSettingsSection("passphrase-section");
       window.setTimeout(() => {
         document.getElementById("choices-section").open = true;
         document.getElementById("passphrase-section").open = true;
       }, 0);
     });
-  const skipSetup = () => {
+  const skipSetup = async () => {
     if (!markInstalledSetupComplete()) {
-      alert(
+      await NRVDialogs.alert(
         appText("setup.saveDeviceProgressFailed", "We could not save your setup progress on this device. Check device storage and try again."),
       );
       return;
@@ -9805,15 +9805,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       showJustUpdatedNotice();
       if (appUpdateAvailable) appUpdatePromptHandler();
     })
-    .catch((error) => {
+    .catch(async (error) => {
       console.error("Unable to start the app:", error);
       if (error instanceof NewerDataVersionError) {
-        alert(appText("storage.newerData", "This data was saved by a newer version of the app. Update the app (reload it) before opening this data. Nothing was changed."));
+        await NRVDialogs.alert(appText("storage.newerData", "This data was saved by a newer version of the app. Update the app (reload it) before opening this data. Nothing was changed."));
         appReadyForUpdates = true;
         if (appUpdateAvailable) appUpdatePromptHandler();
         return;
       }
-      alert(
+      await NRVDialogs.alert(
         appText("storage.startupFailed", "NRV could not open and verify its storage. Private Safari use is unsupported: close the Private tab and reopen NRV in normal Safari, then install and open NRV from its Home Screen icon. Nothing has been deleted."),
       );
     });

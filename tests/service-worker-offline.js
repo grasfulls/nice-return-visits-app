@@ -62,6 +62,8 @@ async function main() {
     assert((await offline(file)).body.length > 0);
     console.log(`PASS  ${file} is available offline`);
   }
+  assert((await offline("./nrv-dialog.js")).body.length > 0);
+  console.log("PASS  ./nrv-dialog.js is available offline");
   for (const file of ["./docs/install-browser-en.png", "./docs/install-browser-es.png"]) {
     assert((await offline(file)).body.length > 0);
     console.log(`PASS  ${file} is available offline`);

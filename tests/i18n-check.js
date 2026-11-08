@@ -162,7 +162,7 @@ if (mapControlsHandler) {
     appSource.includes("localizeMapControls(pickerMap);"),
   "Leaflet controls are localized on both maps");
 }
-const storageHandler = appSource.match(/const showStorageError = [\s\S]*?\r?\n};\r?\n\r?\nconst LAST_BACKUP_KEY/);
+const storageHandler = appSource.match(/const showStorageError = async \([\s\S]*?\r?\n};\r?\n\r?\nconst LAST_BACKUP_KEY/);
 check(Boolean(storageHandler), "storage error handler is available for translation tests");
 if (storageHandler) {
   const actions = [
@@ -175,7 +175,7 @@ if (storageHandler) {
   const context = {
     appText: (key, fallback, vars) => i18n.t(key, vars, fallback),
     console: { error() {} },
-    alert: (text) => { message = text; },
+    NRVDialogs: { alert: async (text) => { message = text; } },
   };
   vm.runInNewContext(storageHandler[0].replace(/\r?\n\r?\nconst LAST_BACKUP_KEY$/, "") +
     "\nthis.showStorageError = showStorageError;", context);
