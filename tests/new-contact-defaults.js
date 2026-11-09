@@ -13,7 +13,7 @@ const fieldIds = ["contact-firstname", "contact-lastname", "contact-address", "c
 const positions = fieldIds.map((id) => contactSection.indexOf(`id="${id}"`));
 assert(positions.every((position) => position >= 0));
 assert.deepStrictEqual(positions, [...positions].sort((a, b) => a - b));
-assert(!contactSection.includes("contact-postal-code"));
+assert(contactSection.includes('id="contact-postal-code"'));
 assert(contactSection.indexOf('id="btn-find-address"') > contactSection.indexOf('id="contact-phone"'));
 assert(contactSection.indexOf('id="btn-gps"') > contactSection.indexOf('id="btn-find-address"'));
 assert(contactSection.indexOf('id="btn-gps"') < contactSection.indexOf('id="location-status"'));
@@ -23,14 +23,23 @@ assert(contactSection.includes('id="contact-cross-street"'));
 assert.strictEqual((contactSection.match(/id="btn-gps"/g) || []).length, 1);
 
 const nodes = new Map();
+const profileState = { country: "" };
 const node = (id) => {
   if (!nodes.has(id)) nodes.set(id, { value: "", hidden: false, disabled: false, dataset: {}, innerHTML: "" });
   return nodes.get(id);
 };
 const listeners = {};
-const settings = { country: "Canada", state: "Ontario", defaultCity: "Toronto", me: { country: "Peru", state: "Lima", city: "Miraflores" } };
+const settings = {
+  country: "Canada",
+  addressingCountry: "Canada",
+  state: "Ontario",
+  defaultCity: "Toronto",
+  workingNeedGreater: { enabled: false, designation: "", country: "" },
+  me: { country: "Peru", state: "Lima", city: "Miraflores" },
+};
 const context = {
   settings,
+  normalizeCountry: (country) => country,
   document: { getElementById: node },
   btnOpenModal: { addEventListener: (event, handler) => { listeners.open = handler; } },
   contactForm: { reset() {} },
@@ -47,6 +56,7 @@ const context = {
     node("contact-area-select").value = area;
   } },
   updateContactLocationFields() {},
+  updateContactAddressingProfile(country) { profileState.country = country; },
   setLocationStatus() {}, clearAddressMatches() {},
   toLocalDateTimeString: () => "2026-01-01T00:00",
   escapeHtml: (text) => text,
@@ -57,7 +67,7 @@ const context = {
 const start = source.indexOf('  btnOpenModal.addEventListener("click", async () => {');
 const end = source.indexOf('  btnFindAddress.addEventListener("click", () => {', start);
 assert(start >= 0 && end > start);
-vm.runInNewContext(`let contactEditorSession = 0, lastCommittedContactCity = "", pendingContactCitySave;\n${source.slice(start, end)}\nthis.committedCity = () => lastCommittedContactCity;`, context);
+vm.runInNewContext(`let contactEditorSession = 0, lastCommittedContactCity = "", pendingContactCitySave, activeWorkingNeedDesignation;\n${source.slice(start, end)}\nthis.committedCity = () => lastCommittedContactCity; this.workingDesignation = () => activeWorkingNeedDesignation;`, context);
 
 async function main() {
   await listeners.open();
@@ -70,15 +80,45 @@ async function main() {
   context.citySelect.value = "Ottawa";
   context.contactStateInput.value = "Quebec";
   context.contactCountrySelect.value = "Mexico";
-  assert.deepStrictEqual(settings, { country: "Canada", state: "Ontario", defaultCity: "Toronto", me: { country: "Peru", state: "Lima", city: "Miraflores" } });
+  assert.deepStrictEqual(settings, {
+    country: "Canada",
+    addressingCountry: "Canada",
+    state: "Ontario",
+    defaultCity: "Toronto",
+    workingNeedGreater: { enabled: false, designation: "", country: "" },
+    me: { country: "Peru", state: "Lima", city: "Miraflores" },
+  });
   await listeners.open();
   assert.deepStrictEqual([context.citySelect.value, context.contactStateInput.value, context.contactCountrySelect.value], ["Toronto", "Ontario", "Canada"]);
   assert(source.includes('contact.state || "",'));
   assert(source.includes('getElementById("contact-lastname").value = contact.lastName || "";'));
-  assert(!source.includes('getElementById("contact-postal-code")'));
-  assert(source.includes('const postalCode = getSavedContactFromEditor()?.postalCode || "";'));
+  assert(/getElementById\("contact-postal-code"\)\s*\.value\.trim\(\)/.test(source));
   assert(source.includes('contact.postalCode = postalCode;'));
-  console.log("PASS  new-contact order, saved defaults, independent edits, None and preserved postal data");
+  assert(source.includes('contact.addressingCountry = selectedContactAddressingCountry;'));
+
+  settings.workingNeedGreater = {
+    enabled: true,
+    designation: "country",
+    country: "Peru",
+  };
+  await listeners.open();
+  assert.strictEqual(context.contactCountrySelect.value, "Peru");
+  assert.strictEqual(context.contactStateInput.value, "");
+  assert.strictEqual(context.citySelect.value, "");
+  assert.strictEqual(profileState.country, "Peru");
+  assert.strictEqual(context.workingDesignation(), "Peru");
+  settings.workingNeedGreater = {
+    enabled: true,
+    designation: "unassigned",
+    country: "Peru",
+  };
+  await listeners.open();
+  assert.strictEqual(context.contactCountrySelect.value, "Canada");
+  assert.strictEqual(context.contactStateInput.value, "Ontario");
+  assert.strictEqual(context.citySelect.value, "Toronto");
+  assert.strictEqual(context.workingDesignation(), "U");
+  assert.deepStrictEqual(settings.me, { country: "Peru", state: "Lima", city: "Miraflores" });
+  console.log("PASS  new-contact defaults respect temporary country or U designations without changing primary/My Details data");
 
   let success;
   let failure;

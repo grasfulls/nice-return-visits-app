@@ -11,6 +11,7 @@ assert(start >= 0 && end > start);
 const nodes = {
   "contact-city-select": { value: "Toronto" },
   "contact-cross-street": { value: "King St" },
+  "contact-postal-code": { value: "" },
 };
 let responses = [];
 let status = "";
@@ -22,12 +23,14 @@ const context = {
   contactStateInput: { value: "Ontario" },
   contactRegionSelect: { value: "" },
   contactAreaSelect: { value: "" },
+  selectedContactAddressingCountry: "Canada",
   settings: { country: "Canada" },
   crossStreetSearch: { hidden: true },
   btnFindAddress: { disabled: false },
   btnFindCrossStreet: { disabled: false },
   document: { getElementById: (id) => nodes[id] },
   normalizeStreetName: (street) => street.trim(),
+  normalizeStreetForAddressing: (street) => street.trim(),
   normalizeLocationState: (country, state) => state,
   getSavedContactFromEditor: () => null,
   getFormattedContactAddress: (parts) => [

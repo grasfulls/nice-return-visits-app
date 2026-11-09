@@ -1,12 +1,16 @@
 const DEFAULT_SETTINGS = {
   country: "United States",
-  countries: ["Canada", "Mexico", "Peru", "United States"],
+  addressingCountry: "United States",
+  workingNeedGreater: { enabled: false, designation: "", country: "" },
+  countries: ["Canada", "Japan", "Mexico", "Peru", "United States"],
   state: "",
   defaultCity: "",
   cities: [],
   regions: [],
   areas: [],
 };
+let selectedAddressingCountry = DEFAULT_SETTINGS.addressingCountry;
+let selectedContactAddressingCountry = DEFAULT_SETTINGS.addressingCountry;
 const ENCRYPTION_ITERATIONS = 310000;
 const ENCRYPTION_META_KEY = "encryption-meta";
 // Set to true to require a passphrase when no encryption has been set up yet.
@@ -120,30 +124,34 @@ const displayCountry = (country) => {
     Canada: appText("country.canada", "Canada"),
     Mexico: appText("country.mexico", "Mexico"),
     Peru: appText("country.peru", "Peru"),
+    Japan: appText("country.japan", "Japan"),
     "United States": appText("country.unitedStates", "United States"),
   };
   return Object.prototype.hasOwnProperty.call(labels, country) ? labels[country] : country;
 };
 const updateAddressLabels = (prefix, country) => {
   const peru = normalizeCountry(country) === "Peru";
+  const japan = normalizeCountry(country) === "Japan";
   const labels = prefix === "contact"
     ? [
-        ["state-label", peru ? "contacts.department" : "contacts.state"],
-        ["city-label", peru ? "contacts.locality" : "contacts.city"],
-        ["region-label", peru ? "contacts.province" : "contacts.region"],
-        ["area-label", peru ? "contacts.district" : "contacts.area"],
-        ["new-region-label", peru ? "location.newProvince" : "location.newRegion"],
-        ["new-area-label", peru ? "location.newDistrict" : "location.newArea"],
+        ["address-label", japan ? "contacts.japaneseAddress" : "contacts.address"],
+        ["state-label", peru ? "contacts.department" : japan ? "contacts.prefecture" : "contacts.state"],
+        ["city-label", peru ? "contacts.locality" : japan ? "contacts.cityWard" : "contacts.city"],
+        ["region-label", peru ? "contacts.province" : japan ? "contacts.neighborhood" : "contacts.region"],
+        ["area-label", peru ? "contacts.district" : japan ? "contacts.block" : "contacts.area"],
+        ["new-region-label", peru ? "location.newProvince" : japan ? "location.newNeighborhood" : "location.newRegion"],
+        ["new-area-label", peru ? "location.newDistrict" : japan ? "location.newBlock" : "location.newArea"],
         ["region-hint", peru ? "location.provinceHint" : "location.regionHint"],
         ["area-hint", peru ? "location.districtHint" : "location.areaHint"],
       ]
     : [
-        ["state-label", peru ? "contacts.department" : "contacts.state"],
-        ["city-label", peru ? "location.localityLabel" : "location.cityLabel"],
-        ["region-label", peru ? "location.provinceLabel" : "location.regionLabel"],
-        ["area-label", peru ? "location.districtLabel" : "location.areaLabel"],
-        ["new-region-label", peru ? "location.newProvince" : "location.newRegion"],
-        ["new-area-label", peru ? "location.newDistrict" : "location.newArea"],
+        ["address-label", japan ? "contacts.japaneseAddress" : "contacts.address"],
+        ["state-label", peru ? "contacts.department" : japan ? "contacts.prefecture" : "contacts.state"],
+        ["city-label", peru ? "location.localityLabel" : japan ? "contacts.cityWard" : "location.cityLabel"],
+        ["region-label", peru ? "location.provinceLabel" : japan ? "contacts.neighborhood" : "location.regionLabel"],
+        ["area-label", peru ? "location.districtLabel" : japan ? "contacts.block" : "location.areaLabel"],
+        ["new-region-label", peru ? "location.newProvince" : japan ? "location.newNeighborhood" : "location.newRegion"],
+        ["new-area-label", peru ? "location.newDistrict" : japan ? "location.newBlock" : "location.newArea"],
       ];
   labels.forEach(([suffix, key]) => {
     const element = document.getElementById(`${prefix}-${suffix}`);
@@ -165,13 +173,21 @@ const updateAddressLabels = (prefix, country) => {
   const areaButton = document.getElementById(`btn-save-new-${prefix}-area`);
   if (stateInput) {
     stateInput.placeholder = appText(
-      peru ? "location.departmentPlaceholder" : "location.statePlaceholder",
+      peru
+        ? "location.departmentPlaceholder"
+        : japan
+          ? "location.prefecturePlaceholder"
+          : "location.statePlaceholder",
       stateInput.placeholder,
     );
   }
   if (cityInput) {
     cityInput.placeholder = appText(
-      peru ? "location.localityPlaceholder" : "location.cityPlaceholder",
+      peru
+        ? "location.localityPlaceholder"
+        : japan
+          ? "location.cityWardPlaceholder"
+          : "location.cityPlaceholder",
       cityInput.placeholder,
     );
   }
@@ -185,7 +201,11 @@ const updateAddressLabels = (prefix, country) => {
     );
     if (addOption) {
       addOption.textContent = appText(
-        peru ? "location.addProvinceButton" : "location.addRegion",
+        peru
+          ? "location.addProvinceButton"
+          : japan
+            ? "location.addNeighborhood"
+            : "location.addRegion",
         addOption.textContent,
       );
     }
@@ -200,32 +220,52 @@ const updateAddressLabels = (prefix, country) => {
     );
     if (addOption) {
       addOption.textContent = appText(
-        peru ? "location.addDistrictButton" : "location.addArea",
+        peru
+          ? "location.addDistrictButton"
+          : japan
+            ? "location.addBlock"
+            : "location.addArea",
         addOption.textContent,
       );
     }
   }
   if (regionInput) {
     regionInput.placeholder = appText(
-      peru ? "location.enterProvince" : "location.enterRegion",
+      peru
+        ? "location.enterProvince"
+        : japan
+          ? "location.enterNeighborhood"
+          : "location.enterRegion",
       regionInput.placeholder,
     );
   }
   if (areaInput) {
     areaInput.placeholder = appText(
-      peru ? "location.enterDistrict" : "location.enterArea",
+      peru
+        ? "location.enterDistrict"
+        : japan
+          ? "location.enterBlock"
+          : "location.enterArea",
       areaInput.placeholder,
     );
   }
   if (regionButton) {
     regionButton.textContent = appText(
-      peru ? "location.addProvinceButton" : "location.addRegionButton",
+      peru
+        ? "location.addProvinceButton"
+        : japan
+          ? "location.addNeighborhoodButton"
+          : "location.addRegionButton",
       regionButton.textContent,
     );
   }
   if (areaButton) {
     areaButton.textContent = appText(
-      peru ? "location.addDistrictButton" : "location.addAreaButton",
+      peru
+        ? "location.addDistrictButton"
+        : japan
+          ? "location.addBlockButton"
+          : "location.addAreaButton",
       areaButton.textContent,
     );
   }
@@ -238,7 +278,8 @@ const locationTypeDisplay = (type) => ({
 
 // Bump on any change to the stored data shape, and add a migration in
 // normalizeRegionData. Version 3 added country; version 5 added postal codes.
-const SCHEMA_VERSION = 5;
+// Version 6 added the independent address-formatting country preference.
+const SCHEMA_VERSION = 7;
 const EPOCH_TIMESTAMP = "1970-01-01T00:00:00.000Z";
 
 class NewerDataVersionError extends Error {
@@ -620,6 +661,7 @@ const normalizeCountry = (value) => {
   const country = String(value ?? "").trim().replace(/\s+/g, " ");
   const normalized = country.toLowerCase();
   if (["ca", "can", "canada"].includes(normalized)) return "Canada";
+  if (["jp", "jpn", "japan", "日本"].includes(normalized)) return "Japan";
   if (["mx", "mex", "mexico", "méxico"].includes(normalized)) return "Mexico";
   if (["pe", "peru", "perú"].includes(normalized)) return "Peru";
   if (
@@ -632,12 +674,14 @@ const normalizeCountry = (value) => {
   return toTitleCase(country);
 };
 const normalizeLocationState = (country, value) =>
-  normalizeCountry(country) === "United States"
+  normalizeCountry(country) === "Japan"
+    ? String(value ?? "").trim().replace(/\s+/g, " ")
+    : normalizeCountry(country) === "United States"
     ? normalizeUsState(value)
     : /^[a-z]{2}$/i.test(String(value ?? "").trim())
       ? String(value).trim().toUpperCase()
       : toTitleCase(String(value ?? "").trim().replace(/\s+/g, " "));
-const DEFAULT_COUNTRIES = ["Canada", "Mexico", "Peru", "United States"];
+const DEFAULT_COUNTRIES = ["Canada", "Japan", "Mexico", "Peru", "United States"];
 
 const STREET_SUFFIX_ABBREVIATIONS = {
   alley: "Aly",
@@ -800,6 +844,13 @@ const normalizeStreetName = (value) => {
   }
   return words.join(" ");
 };
+const normalizeStreetForAddressing = (
+  value,
+  country = selectedAddressingCountry,
+) =>
+  normalizeCountry(country) === "Japan"
+    ? String(value ?? "").trim().replace(/\s+/g, " ")
+    : normalizeStreetName(value);
 
 const escapeHtml = (value) =>
   String(value ?? "").replace(/[&<>"']/g, (character) => {
@@ -830,18 +881,60 @@ const getStreetAddress = (contact) => {
   return parts.join(", ");
 };
 
-const getFormattedContactAddress = (contact) =>
-  [
-    normalizeStreetName(getStreetAddress(contact)),
-    contact.area,
-    contact.region,
-    contact.city,
-    normalizeLocationState(contact.country, contact.state),
-    contact.postalCode,
-    contact.country,
-  ]
-    .filter(Boolean)
-    .join(", ");
+const getFormattedContactAddress = (
+  contact,
+  addressingCountry = contact.addressingCountry || selectedAddressingCountry,
+) => {
+  const street = normalizeStreetForAddressing(
+    getStreetAddress(contact),
+    addressingCountry,
+  );
+  const state = normalizeLocationState(contact.country, contact.state);
+  const parts = normalizeCountry(addressingCountry) === "Japan"
+    ? [
+        contact.postalCode ? `〒${contact.postalCode}` : "",
+        state,
+        contact.city,
+        contact.region,
+        contact.area,
+        street,
+        contact.country,
+      ]
+    : [
+        street,
+        contact.area,
+        contact.region,
+        contact.city,
+        state,
+        contact.postalCode,
+        contact.country,
+      ];
+  return parts.filter(Boolean).join(", ");
+};
+const normalizeWorkingNeedGreater = (value) => {
+  const source = value && typeof value === "object" ? value : {};
+  const designation = ["country", "unassigned", "seldomWorked"].includes(
+    source.designation,
+  )
+    ? source.designation
+    : "";
+  const country =
+    typeof source.country === "string" ? normalizeCountry(source.country) : "";
+  return {
+    enabled:
+      source.enabled === true &&
+      Boolean(designation) &&
+      (designation !== "country" || Boolean(country)),
+    designation,
+    country,
+  };
+};
+const normalizeWorkingDesignation = (value) =>
+  typeof value === "string" && value.trim()
+    ? value.trim() === "U" || value.trim() === "SW"
+      ? value.trim()
+      : normalizeCountry(value)
+    : undefined;
 
 const hasContactCoordinates = (contact) => {
   const latitude = Number(contact.lat);
@@ -1272,7 +1365,7 @@ const normalizeTransferredContact = (contact) => {
             typeof area.region === "string" &&
             (area.city === undefined || typeof area.city === "string"),
         ))) ||
-    ["country", "city", "region", "area", "state", "streetAddress", "postalCode"].some(
+    ["country", "city", "region", "area", "state", "streetAddress", "postalCode", "addressingCountry", "workingNeedDesignation"].some(
       (field) =>
         contact[field] !== undefined && typeof contact[field] !== "string",
     ) ||
@@ -1283,8 +1376,13 @@ const normalizeTransferredContact = (contact) => {
   ) {
     throw new Error("The contact file contents are invalid.");
   }
+  const transferredContact = { ...contact };
+  delete transferredContact.workingNeedDesignation;
+  const workingNeedDesignation = normalizeWorkingDesignation(
+    contact.workingNeedDesignation,
+  );
   return {
-    ...contact,
+    ...transferredContact,
     region:
       contact.region ||
       contact.areaAssignments?.[0]?.region ||
@@ -1302,6 +1400,14 @@ const normalizeTransferredContact = (contact) => {
       "",
     email: contact.email || "",
     phone: contact.phone || "",
+    addressingCountry: normalizeCountry(
+      contact.addressingCountry || contact.country || DEFAULT_SETTINGS.addressingCountry,
+    ),
+    ...(workingNeedDesignation
+      ? {
+          workingNeedDesignation,
+        }
+      : {}),
     areaAssignments: contact.areaAssignments || [],
     notesHistory: contact.notesHistory || [],
   };
@@ -1391,6 +1497,12 @@ const normalizeRegionData = (settings, contacts) => {
   const defaultCountry = normalizeCountry(
     settings.me?.country || settings.country || DEFAULT_SETTINGS.country,
   );
+  const addressingCountry = normalizeCountry(
+    settings.addressingCountry || DEFAULT_SETTINGS.addressingCountry,
+  );
+  const workingNeedGreater = normalizeWorkingNeedGreater(
+    settings.workingNeedGreater,
+  );
   const countries = [
     ...new Set([
       ...DEFAULT_COUNTRIES,
@@ -1398,6 +1510,8 @@ const normalizeRegionData = (settings, contacts) => {
         .filter((country) => typeof country === "string" && country.trim())
         .map(normalizeCountry),
       defaultCountry,
+      addressingCountry,
+      ...(workingNeedGreater.country ? [workingNeedGreater.country] : []),
     ]),
   ];
   const cities = Array.isArray(settings.cities)
@@ -1523,6 +1637,10 @@ const normalizeRegionData = (settings, contacts) => {
     const rest = { ...contact };
     delete rest.areas;
     delete rest.areaAssignments;
+    delete rest.workingNeedDesignation;
+    const workingNeedDesignation = normalizeWorkingDesignation(
+      contact.workingNeedDesignation,
+    );
     return {
       ...rest,
       country: normalizeCountry(contact.country || defaultCountry),
@@ -1535,6 +1653,10 @@ const normalizeRegionData = (settings, contacts) => {
         : "",
       streetAddress: getStreetAddress(contact),
       postalCode: typeof contact.postalCode === "string" ? contact.postalCode : "",
+      addressingCountry: normalizeCountry(
+        contact.addressingCountry || addressingCountry,
+      ),
+      ...(workingNeedDesignation ? { workingNeedDesignation } : {}),
       updatedAt: contact.updatedAt || getContactLastActivity(contact),
     };
   });
@@ -1542,6 +1664,8 @@ const normalizeRegionData = (settings, contacts) => {
   normalizedSettings.schemaVersion = SCHEMA_VERSION;
   normalizedSettings.timeTracking = normalizeTimeTracking(settings.timeTracking);
   normalizedSettings.country = defaultCountry;
+  normalizedSettings.addressingCountry = addressingCountry;
+  normalizedSettings.workingNeedGreater = workingNeedGreater;
   normalizedSettings.countries = countries;
   if (normalizedSettings.me) {
     normalizedSettings.me = {
@@ -2103,6 +2227,7 @@ const showStorageError = async (action, error) => {
   console.error(`Unable to ${action}:`, error);
   const actions = {
     "save country": appText("storage.actionCountry", "save country"),
+    "save Country Addressing": appText("storage.actionAddressing", "save Country Addressing"),
     "save city": appText("storage.actionCity", "save city"),
     "save settings": appText("storage.actionSettings", "save settings"),
     "save region": appText("storage.actionRegion", "save region"),
@@ -2175,6 +2300,12 @@ const initializeApp = async () => {
   // Settings State & Lists
   let settings = savedSettings;
   settings.country = normalizeCountry(settings.country);
+  settings.addressingCountry = normalizeCountry(settings.addressingCountry);
+  selectedAddressingCountry = settings.addressingCountry;
+  selectedContactAddressingCountry = settings.addressingCountry;
+  settings.workingNeedGreater = normalizeWorkingNeedGreater(
+    settings.workingNeedGreater,
+  );
   settings.state = normalizeLocationState(settings.country, settings.state);
   settings.timeTracking = normalizeTimeTracking(settings.timeTracking);
   const saveSettings = () =>
@@ -2197,6 +2328,60 @@ const initializeApp = async () => {
     document.getElementById("me-country"),
     document.getElementById("contact-country"),
   ];
+  const addressingCountrySelects = [
+    document.getElementById("settings-address-country"),
+    document.getElementById("setup-address-country"),
+  ];
+  const contactAddressingCountrySelect = document.getElementById(
+    "contact-addressing-country",
+  );
+  const workingNeedCountrySelect = document.getElementById(
+    "settings-working-need-country",
+  );
+  const populateWorkingNeedCountryOptions = () => {
+    const currentCountry =
+      workingNeedCountrySelect.value || settings.workingNeedGreater.country;
+    workingNeedCountrySelect.replaceChildren();
+    const chooseCountry = document.createElement("option");
+    chooseCountry.value = "";
+    chooseCountry.textContent = appText(
+      "workingNeed.chooseCountry",
+      "Choose a country",
+    );
+    workingNeedCountrySelect.appendChild(chooseCountry);
+    [...DEFAULT_COUNTRIES, ...settings.countries.filter(
+      (country) => !DEFAULT_COUNTRIES.includes(country),
+    )].forEach((country) => {
+      const option = document.createElement("option");
+      option.value = country;
+      option.textContent = displayCountry(country);
+      workingNeedCountrySelect.appendChild(option);
+    });
+    workingNeedCountrySelect.value = Array.from(
+      workingNeedCountrySelect.options,
+    ).some((option) => option.value === currentCountry)
+      ? currentCountry
+      : "";
+  };
+  const populateAddressingCountryOptions = () => {
+    [...addressingCountrySelects, contactAddressingCountrySelect].forEach((select) => {
+      const currentCountry = select.value || settings.addressingCountry;
+      select.replaceChildren();
+      [...DEFAULT_COUNTRIES, ...settings.countries.filter(
+        (country) => !DEFAULT_COUNTRIES.includes(country),
+      )].forEach((country) => {
+        const option = document.createElement("option");
+        option.value = country;
+        option.textContent = displayCountry(country);
+        select.appendChild(option);
+      });
+      select.value = Array.from(select.options).some(
+        (option) => option.value === currentCountry,
+      )
+        ? currentCountry
+        : settings.addressingCountry;
+    });
+  };
   const populateCountryOptions = () => {
     countrySelects.forEach((select) => {
       const currentCountry = select.value || settings.country;
@@ -2220,6 +2405,8 @@ const initializeApp = async () => {
         : settings.country;
       select.dataset.selectedCountry = select.value;
     });
+    populateAddressingCountryOptions();
+    populateWorkingNeedCountryOptions();
   };
   populateCountryOptions();
   const compareNames = (a, b) =>
@@ -2524,24 +2711,34 @@ const initializeApp = async () => {
       }
     }
 
-    const defaultCountryIsPeru = normalizeCountry(settings.country) === "Peru";
+    const defaultCountryIsPeru = selectedAddressingCountry === "Peru";
+    const defaultCountryIsJapan = selectedAddressingCountry === "Japan";
     document.getElementById("setting-state-label").textContent = appText(
-      defaultCountryIsPeru ? "settings.defaultDepartment" : "settings.defaultState",
+      defaultCountryIsPeru
+        ? "settings.defaultDepartment"
+        : defaultCountryIsJapan
+          ? "settings.defaultPrefecture"
+          : "settings.defaultState",
       document.getElementById("setting-state-label").textContent,
     );
     document.getElementById("setting-state").placeholder = appText(
-      defaultCountryIsPeru ? "location.departmentPlaceholder" : "location.statePlaceholder",
+      defaultCountryIsPeru
+        ? "location.departmentPlaceholder"
+        : defaultCountryIsJapan
+          ? "location.prefecturePlaceholder"
+          : "location.statePlaceholder",
       document.getElementById("setting-state").placeholder,
     );
     document.getElementById("setting-city-label").textContent = appText(
-      defaultCountryIsPeru ? "settings.defaultLocality" : "settings.defaultCity",
+      defaultCountryIsPeru
+        ? "settings.defaultLocality"
+        : defaultCountryIsJapan
+          ? "settings.defaultCityWard"
+          : "settings.defaultCity",
       document.getElementById("setting-city-label").textContent,
     );
-    updateAddressLabels(
-      "contact",
-      document.getElementById("contact-country").value,
-    );
-    updateAddressLabels("me", document.getElementById("me-country").value);
+    updateAddressLabels("contact", selectedContactAddressingCountry);
+    updateAddressLabels("me", selectedAddressingCountry);
     return {
       populateContactRegionArea,
       populateMeRegionArea,
@@ -2553,6 +2750,208 @@ const initializeApp = async () => {
   const contactAreaSelect = document.getElementById("contact-area-select");
   const contactCountrySelect = document.getElementById("contact-country");
   const meCountrySelect = document.getElementById("me-country");
+  const updateAddressingProfile = (country) => {
+    selectedAddressingCountry = normalizeCountry(country);
+    addressingCountrySelects.forEach((select) => {
+      select.value = selectedAddressingCountry;
+    });
+    const peru = selectedAddressingCountry === "Peru";
+    const japan = selectedAddressingCountry === "Japan";
+    const stateLabel = document.getElementById("setting-state-label");
+    const cityLabel = document.getElementById("setting-city-label");
+    const stateInput = document.getElementById("setting-state");
+    stateLabel.textContent = appText(
+      peru
+        ? "settings.defaultDepartment"
+        : japan
+          ? "settings.defaultPrefecture"
+          : "settings.defaultState",
+      stateLabel.textContent,
+    );
+    stateInput.placeholder = appText(
+      peru
+        ? "location.departmentPlaceholder"
+        : japan
+          ? "location.prefecturePlaceholder"
+          : "location.statePlaceholder",
+      stateInput.placeholder,
+    );
+    cityLabel.textContent = appText(
+      peru
+        ? "settings.defaultLocality"
+        : japan
+          ? "settings.defaultCityWard"
+          : "settings.defaultCity",
+      cityLabel.textContent,
+    );
+    updateAddressLabels("contact", selectedContactAddressingCountry);
+    updateAddressLabels("me", selectedAddressingCountry);
+  };
+  const reorderContactAddressFields = (country) => {
+    const container = document.getElementById("contact-address-fields");
+    if (!container) return;
+    const order =
+      normalizeCountry(country) === "Japan"
+        ? [
+            "postal",
+            "state",
+            "city",
+            "region",
+            "area",
+            "street",
+            "country",
+            "addressing",
+          ]
+        : [
+            "street",
+            "city",
+            "state",
+            "postal",
+            "country",
+            "addressing",
+            "region",
+            "area",
+          ];
+    order.forEach((field) => {
+      const group = container.querySelector(
+        `[data-address-field="${field}"]`,
+      );
+      if (group) container.appendChild(group);
+    });
+  };
+  const updateContactAddressingProfile = (country) => {
+    selectedContactAddressingCountry = normalizeCountry(country);
+    contactAddressingCountrySelect.value = selectedContactAddressingCountry;
+    updateAddressLabels("contact", selectedContactAddressingCountry);
+    reorderContactAddressFields(selectedContactAddressingCountry);
+  };
+  const refreshAddressPresentation = () => {
+    renderContacts();
+    if (map) renderMapMarkers();
+  };
+  updateAddressingProfile(settings.addressingCountry);
+  updateContactAddressingProfile(selectedContactAddressingCountry);
+  contactAddressingCountrySelect.addEventListener("change", (event) => {
+    updateContactAddressingProfile(event.target.value);
+  });
+  const workingNeedEnabledInput = document.getElementById(
+    "settings-working-need-enabled",
+  );
+  const workingNeedDesignationSelect = document.getElementById(
+    "settings-working-need-designation",
+  );
+  const workingNeedPrivacyDialog = document.getElementById(
+    "working-need-privacy-dialog",
+  );
+  const workingNeedPrivacyAccepted = () =>
+    new Promise((resolve) => {
+      const continueButton = document.getElementById(
+        "working-need-privacy-continue",
+      );
+      const cancelButton = document.getElementById(
+        "working-need-privacy-cancel",
+      );
+      const onContinue = () => {
+        finish(true);
+        workingNeedPrivacyDialog.close();
+      };
+      const onCancel = () => {
+        finish(false);
+        workingNeedPrivacyDialog.close();
+      };
+      const finish = (accepted) => {
+        workingNeedPrivacyDialog.removeEventListener("close", onClose);
+        continueButton.removeEventListener("click", onContinue);
+        cancelButton.removeEventListener("click", onCancel);
+        resolve(accepted);
+      };
+      const onClose = () => finish(false);
+      continueButton.addEventListener("click", onContinue);
+      cancelButton.addEventListener("click", onCancel);
+      workingNeedPrivacyDialog.addEventListener("close", onClose, {
+        once: true,
+      });
+      workingNeedPrivacyDialog.showModal();
+    });
+  const syncWorkingNeedControls = () => {
+    workingNeedEnabledInput.checked = settings.workingNeedGreater.enabled;
+    workingNeedDesignationSelect.value =
+      settings.workingNeedGreater.designation;
+    workingNeedCountrySelect.value = settings.workingNeedGreater.country;
+  };
+  syncWorkingNeedControls();
+  const saveWorkingNeedSettings = async () => {
+    const previous = settings.workingNeedGreater;
+    const next = {
+      enabled: workingNeedEnabledInput.checked,
+      designation: workingNeedDesignationSelect.value,
+      country: workingNeedCountrySelect.value,
+    };
+    const status = document.getElementById("working-need-status");
+    if (next.enabled && !next.designation) {
+      status.textContent = appText(
+        "workingNeed.designationRequired",
+        "Choose Country, Unassigned, or Seldom Worked before turning this setting on.",
+      );
+      syncWorkingNeedControls();
+      return;
+    }
+    if (next.enabled && next.designation === "country" && !next.country) {
+      status.textContent = appText(
+        "workingNeed.countryRequired",
+        "Choose a working country for the Country designation.",
+      );
+      syncWorkingNeedControls();
+      return;
+    }
+    if (
+      next.enabled &&
+      !previous.enabled &&
+      !(await workingNeedPrivacyAccepted())
+    ) {
+      syncWorkingNeedControls();
+      return;
+    }
+    settings.workingNeedGreater = normalizeWorkingNeedGreater(next);
+    try {
+      await saveSettings();
+      status.textContent = "";
+    } catch (error) {
+      settings.workingNeedGreater = previous;
+      syncWorkingNeedControls();
+      await showStorageError("save Working Need Greater setting", error);
+    }
+  };
+  [
+    workingNeedEnabledInput,
+    workingNeedDesignationSelect,
+    workingNeedCountrySelect,
+  ].forEach((input) =>
+    input.addEventListener("change", saveWorkingNeedSettings),
+  );
+  document
+    .getElementById("settings-address-country")
+    .addEventListener("change", (event) => {
+      updateAddressingProfile(event.target.value);
+      refreshAddressPresentation();
+    });
+  document
+    .getElementById("setup-address-country")
+    .addEventListener("change", async (event) => {
+      const previousCountry = settings.addressingCountry;
+      updateAddressingProfile(event.target.value);
+      refreshAddressPresentation();
+      settings.addressingCountry = selectedAddressingCountry;
+      try {
+        await saveSettings();
+        savedDetailsState = captureDetailsState();
+      } catch (error) {
+        settings.addressingCountry = previousCountry;
+        updateAddressingProfile(previousCountry);
+        refreshAddressPresentation();
+        await showStorageError("save Country Addressing", error);
+      }
+    });
   const updateContactLocationFields = () => {
     const hasCountry = Boolean(contactCountrySelect.value);
     document.getElementById("contact-state").disabled = !hasCountry;
@@ -2561,7 +2960,7 @@ const initializeApp = async () => {
       contactRegionSelect.value,
       contactAreaSelect.value,
     );
-    updateAddressLabels("contact", contactCountrySelect.value);
+    updateAddressLabels("contact", selectedContactAddressingCountry);
   };
   const updateMeLocationFields = () => {
     const hasCountry = Boolean(meCountrySelect.value);
@@ -2571,7 +2970,7 @@ const initializeApp = async () => {
       document.getElementById("me-region").value,
       document.getElementById("me-area").value,
     );
-    updateAddressLabels("me", meCountrySelect.value);
+    updateAddressLabels("me", selectedAddressingCountry);
   };
   const resetDependentLocationFields = (select) => {
     if (select === contactCountrySelect) {
@@ -2645,14 +3044,18 @@ const initializeApp = async () => {
     container.hidden = true;
     input.value = "";
     if (country !== previousCountry) resetDependentLocationFields(select);
+    if (select === contactCountrySelect) {
+      updateContactAddressingProfile(country);
+    }
   };
   countrySelects.forEach((select) =>
     select.addEventListener("change", () => {
       handleCountryChange(select);
-      updateAddressLabels(
-        select === contactCountrySelect ? "contact" : "me",
-        select.value,
-      );
+      if (select === contactCountrySelect) {
+        updateContactAddressingProfile(select.value);
+      } else {
+        updateAddressLabels("me", selectedAddressingCountry);
+      }
     }),
   );
   document
@@ -2684,6 +3087,7 @@ const initializeApp = async () => {
   });
   let pendingContactCitySave = Promise.resolve(true);
   let lastCommittedContactCity = "";
+  let activeWorkingNeedDesignation;
   const newContactCityContainer = document.getElementById("new-contact-city-container");
   const newContactCityInput = document.getElementById("input-new-contact-city");
   const newContactCityButton = document.getElementById("btn-save-new-contact-city");
@@ -3074,7 +3478,7 @@ const initializeApp = async () => {
     });
     me.country = normalizeCountry(me.country);
     me.state = normalizeLocationState(me.country, me.state);
-    me.street = me.street ? normalizeStreetName(me.street) : "";
+    me.street = me.street ? normalizeStreetForAddressing(me.street) : "";
     me.city = me.city ? toTitleCase(me.city) : "";
     return me;
   };
@@ -3344,6 +3748,7 @@ const initializeApp = async () => {
 
   const captureDetailsState = () => JSON.stringify({
     country: meFields.country.value,
+    addressingCountry: document.getElementById("settings-address-country").value,
     defaultState: document.getElementById("setting-state").value.trim(),
     defaultCity: document.getElementById("setting-default-city").value.trim(),
     ...Object.fromEntries(
@@ -3396,12 +3801,17 @@ const initializeApp = async () => {
     const previousMe = settings.me;
     const previousDefaults = {
       country: settings.country,
+      addressingCountry: settings.addressingCountry,
       state: settings.state,
       defaultCity: settings.defaultCity,
       cities: [...settings.cities],
     };
     settings.me = me;
     settings.country = me.country;
+    settings.addressingCountry = normalizeCountry(
+      document.getElementById("settings-address-country").value,
+    );
+    selectedAddressingCountry = settings.addressingCountry;
     settings.state = normalizeLocationState(me.country, document.getElementById("setting-state").value);
     settings.defaultCity = toTitleCase(document.getElementById("setting-default-city").value);
     for (const key of ["defaultCity", "city"]) {
@@ -3417,6 +3827,7 @@ const initializeApp = async () => {
     } catch (error) {
       settings.me = previousMe;
       Object.assign(settings, previousDefaults);
+      updateAddressingProfile(previousDefaults.addressingCountry);
       await showStorageError("save your details", error);
       return false;
     }
@@ -3442,6 +3853,206 @@ const initializeApp = async () => {
 
   let contacts = savedContacts;
   let visibleContacts = [];
+  const mapLocationSelect = document.getElementById("map-location-select");
+  let selectedMapLocation = "";
+  let mapLocationIsDefault = true;
+  const getMapDefaultLocation = () => {
+    const working = settings.workingNeedGreater;
+    if (working?.enabled && working.designation === "country" && working.country) {
+      return JSON.stringify(["country", working.country]);
+    }
+    return settings.state
+      ? JSON.stringify(["division", settings.country, settings.state])
+      : JSON.stringify(["country", settings.country]);
+  };
+  const getMapLocationParts = (value = selectedMapLocation) => {
+    try {
+      const parts = JSON.parse(value);
+      if (parts[0] === "division") {
+        return { type: "division", country: parts[1], division: parts[2] };
+      }
+      if (parts[0] === "country") return { type: "country", country: parts[1] };
+    } catch (error) {
+      console.error("Invalid saved Map Location selection:", error);
+    }
+    return { type: "country", country: settings.country };
+  };
+  const getMapLocationLabel = (parts = getMapLocationParts()) => {
+    const country = displayCountry(parts.country);
+    if (parts.type === "division") {
+      const divisionLabel =
+        parts.country === "Peru"
+          ? appText("map.department", "Department")
+          : parts.country === "Japan"
+            ? appText("map.prefecture", "Prefecture")
+            : appText("map.stateProvince", "State / Province");
+      return appText(
+        "map.divisionLocation",
+        `${country} — ${divisionLabel}: ${parts.division}`,
+        { country, division: divisionLabel, value: parts.division },
+      );
+    }
+    return appText("map.countryLocation", country, { country });
+  };
+  const isContactInMapLocation = (contact, parts = getMapLocationParts()) => {
+    if (normalizeCountry(contact.country || settings.country) !== parts.country) {
+      return false;
+    }
+    return (
+      parts.type !== "division" ||
+      normalizeLocationState(parts.country, contact.state || "") ===
+        normalizeLocationState(parts.country, parts.division)
+    );
+  };
+  const getVisibleMapContacts = () =>
+    visibleContacts.filter((contact) => isContactInMapLocation(contact));
+  const getMapScopedContacts = () =>
+    contacts.filter((contact) => isContactInMapLocation(contact));
+  const populateMapLocationOptions = () => {
+    if (mapLocationIsDefault || !selectedMapLocation) {
+      selectedMapLocation = getMapDefaultLocation();
+    }
+    const countries = [
+      ...new Set([
+        ...contacts.map((contact) =>
+          normalizeCountry(contact.country || settings.country),
+        ),
+        settings.country,
+        ...(settings.workingNeedGreater?.country
+          ? [settings.workingNeedGreater.country]
+          : []),
+      ]),
+    ].filter(Boolean);
+    mapLocationSelect.replaceChildren();
+    countries.forEach((country) => {
+      const countryOption = document.createElement("option");
+      countryOption.value = JSON.stringify(["country", country]);
+      countryOption.textContent = displayCountry(country);
+      mapLocationSelect.appendChild(countryOption);
+      const divisions = [
+        ...new Set([
+          ...contacts
+            .filter(
+              (contact) =>
+                normalizeCountry(contact.country || settings.country) ===
+                country,
+            )
+            .map((contact) =>
+              normalizeLocationState(country, contact.state || ""),
+            ),
+          ...(country === settings.country && settings.state
+            ? [normalizeLocationState(country, settings.state)]
+            : []),
+        ]),
+      ]
+        .filter(Boolean)
+        .sort((a, b) =>
+          a.localeCompare(b, undefined, {
+            sensitivity: "base",
+            numeric: true,
+          }),
+        );
+      divisions.forEach((division) => {
+        const option = document.createElement("option");
+        option.value = JSON.stringify(["division", country, division]);
+        option.textContent = getMapLocationLabel({
+          type: "division",
+          country,
+          division,
+        });
+        mapLocationSelect.appendChild(option);
+      });
+    });
+    if (
+      !Array.from(mapLocationSelect.options).some(
+        (option) => option.value === selectedMapLocation,
+      )
+    ) {
+      mapLocationIsDefault = true;
+      selectedMapLocation = getMapDefaultLocation();
+    }
+    mapLocationSelect.value = selectedMapLocation;
+  };
+  const setFilterOptions = (select, label, values, selected) => {
+    select.replaceChildren();
+    const allOption = document.createElement("option");
+    allOption.value = "";
+    allOption.textContent = label;
+    select.appendChild(allOption);
+    [...new Set(values.filter(Boolean))]
+      .sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: "base", numeric: true }),
+      )
+      .forEach((value) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+      });
+    select.value = Array.from(select.options).some(
+      (option) => option.value === selected,
+    )
+      ? selected
+      : "";
+  };
+  const populateMapGeographicFilters = () => {
+    if (!document.body.classList.contains("map-view-active")) return;
+    const scopedContacts = getMapScopedContacts();
+    const cityFilter = document.getElementById("filter-city");
+    const regionFilter = document.getElementById("filter-region");
+    const areaFilter = document.getElementById("filter-area");
+    const city = cityFilter.value;
+    const region = regionFilter.value;
+    const area = areaFilter.value;
+    setFilterOptions(
+      cityFilter,
+      appText("filter.allCities", "All Cities"),
+      scopedContacts.map((contact) => contact.city),
+      city,
+    );
+    const cityContacts = city
+      ? scopedContacts.filter((contact) => contact.city === city)
+      : scopedContacts;
+    setFilterOptions(
+      regionFilter,
+      appText("filter.allRegions", "All Regions"),
+      cityContacts.map((contact) => contact.region),
+      region,
+    );
+    const regionContacts = region
+      ? cityContacts.filter((contact) => contact.region === region)
+      : cityContacts;
+    setFilterOptions(
+      areaFilter,
+      appText("filter.allAreas", "All Areas"),
+      regionContacts.map((contact) => contact.area),
+      area,
+    );
+  };
+  const mapFiltersAreActive = () =>
+    selectedMapLocation !== getMapDefaultLocation() ||
+    Boolean(document.getElementById("search-input").value.trim()) ||
+    Boolean(document.getElementById("filter-working-need").value !== "all") ||
+    Boolean(document.getElementById("filter-urgency").value) ||
+    Boolean(document.getElementById("filter-city").value) ||
+    Boolean(document.getElementById("filter-region").value) ||
+    Boolean(document.getElementById("filter-area").value) ||
+    document.getElementById("sort-select").value !== "chronological-desc";
+  const updateMapChangeViewIndicator = () => {
+    const button = document.getElementById("btn-map-change-view");
+    const active = mapFiltersAreActive();
+    button.classList.toggle("filters-active", active);
+    button.setAttribute("aria-pressed", String(active));
+    button.setAttribute(
+      "aria-label",
+      appText(
+        active ? "map.changeViewActive" : "map.changeViewInactive",
+        active ? "Change View, filters active" : "Change View, default view",
+      ),
+    );
+    document.getElementById("map-change-view-indicator").hidden = !active;
+  };
+  populateMapLocationOptions();
 
   // Stamp updatedAt only on contacts whose content actually changed.
   const getContactSignature = (contact) =>
@@ -3607,19 +4218,12 @@ const initializeApp = async () => {
         settings.defaultCity === location.name ? name : settings.defaultCity;
       contacts = contacts.map((contact) => {
         if (contact.city !== location.name) return contact;
-        const streetAddress = getStreetAddress(contact);
+        const updatedContact = { ...contact, city: name };
+        const streetAddress = getStreetAddress(updatedContact);
         return {
-          ...contact,
-          city: name,
+          ...updatedContact,
           streetAddress,
-          address: [
-            streetAddress,
-            name,
-            contact.state,
-            contact.country,
-          ]
-            .filter(Boolean)
-            .join(", "),
+          address: getFormattedContactAddress(updatedContact),
         };
       });
 
@@ -4218,7 +4822,13 @@ const initializeApp = async () => {
   const fitMapToContactPoints = () => {
     if (!map || !map.getContainer().offsetWidth) return;
     const points = [...mapContactPoints];
-    const home = getHomePoint();
+    const homeContact = {
+      country: settings.me?.country || settings.country,
+      state: settings.me?.state || "",
+    };
+    const home = isContactInMapLocation(homeContact)
+      ? getHomePoint()
+      : null;
     if (home) points.push(home);
     if (userLocationMarker) {
       const location = userLocationMarker.getLatLng();
@@ -4249,14 +4859,12 @@ const initializeApp = async () => {
     ]
       .filter(Boolean)
       .join(", ");
-  const getDefaultCityQuery = () =>
-    [
-      settings.defaultCity.trim(),
-      settings.state.trim(),
-      settings.country || DEFAULT_SETTINGS.country,
-    ]
-      .filter(Boolean)
-      .join(", ");
+  const getDefaultCityQuery = () => {
+    const location = getMapLocationParts();
+    return location.type === "division"
+      ? [location.division, location.country].filter(Boolean).join(", ")
+      : location.country;
+  };
 
   const lookupCityPinCoordinates = async (query) => {
     if (cityPinCoordinates.has(query)) {
@@ -4306,23 +4914,27 @@ const initializeApp = async () => {
 
   const centerMapOnDefaultCity = async () => {
     if (!map || mapMarkers.length > 0 || userLocationMarker) return;
-    const city = settings.defaultCity.trim();
-    const state = settings.state.trim();
-    if (!city) return;
-    const displayLocation = `${city}${state ? `, ${state}` : ""}`;
-
     const query = getDefaultCityQuery();
+    const displayLocation = getMapLocationLabel();
     if (query === lastDefaultCityCenterQuery) return;
     const status = document.getElementById("map-location-status");
     const cachedLocation = defaultCityCoordinates.get(query);
     if (cachedLocation) {
-      map.setView(cachedLocation, 13);
+      map.setView(cachedLocation, getMapLocationParts().type === "division" ? 8 : 5);
       lastDefaultCityCenterQuery = query;
-      status.textContent = appText("map.centeredNear", `No contact pins to show. The map is centered near ${displayLocation}.`, { location: displayLocation });
+      status.textContent = appText(
+        "map.scopeNoPins",
+        `No contact pins to show for ${displayLocation}.`,
+        { location: displayLocation },
+      );
       return;
     }
 
-    status.textContent = appText("map.locatingDefault", `Locating the default city, ${displayLocation}...`, { location: displayLocation });
+    status.textContent = appText(
+      "map.locatingScope",
+      `Locating ${displayLocation}...`,
+      { location: displayLocation },
+    );
     try {
       let lookup = pendingDefaultCityLookups.get(query);
       if (!lookup) {
@@ -4366,13 +4978,22 @@ const initializeApp = async () => {
       )
         return;
       if (!location) {
-        status.textContent = appText("map.defaultNotFound", `Couldn't locate ${displayLocation}. Choose Find Address or City Pin on a contact to locate an address.`, { location: displayLocation });
+        status.textContent = appText(
+          "map.scopeNotFound",
+          `Couldn't locate ${displayLocation}. Choose another Map Location or check your connection.`,
+          { location: displayLocation },
+        );
         return;
       }
 
-      map.setView(location, 13);
+      const zoom = getMapLocationParts().type === "division" ? 8 : 5;
+      map.setView(location, zoom);
       lastDefaultCityCenterQuery = query;
-      status.textContent = appText("map.centeredNear", `No contact pins to show. The map is centered near ${displayLocation}.`, { location: displayLocation });
+      status.textContent = appText(
+        "map.scopeNoPins",
+        `No contact pins to show for ${displayLocation}.`,
+        { location: displayLocation },
+      );
     } catch (error) {
       if (
         mapMarkers.length > 0 ||
@@ -4381,7 +5002,11 @@ const initializeApp = async () => {
       )
         return;
       console.error("Unable to locate the default city on the map:", error);
-      status.textContent = appText("map.defaultLookupFailed", `Couldn't locate ${displayLocation}. Check your connection or use Find Address or City Pin on a contact.`, { location: displayLocation });
+      status.textContent = appText(
+        "map.scopeLookupFailed",
+        `Couldn't locate ${displayLocation}. Check your connection or choose another Map Location.`,
+        { location: displayLocation },
+      );
     } finally {
       pendingDefaultCityLookups.delete(query);
     }
@@ -4390,8 +5015,8 @@ const initializeApp = async () => {
   const initMap = () => {
     if (map) return;
     map = L.map("map", { doubleClickZoom: false }).setView(
-      [39.8283, -98.5795],
-      4,
+      [0, 0],
+      2,
     );
     localizeMapControls(map);
     map.createPane("userLocationPane");
@@ -4718,6 +5343,7 @@ const initializeApp = async () => {
           }
           const previousViewId = currentViewId;
           currentViewId = btnConfig.id;
+          setMapFilterPlacement(currentViewId === "map-view");
           if (currentViewId === "settings-view") discardDefaultsAndDetails();
           document
             .querySelectorAll(".view")
@@ -5184,7 +5810,10 @@ const initializeApp = async () => {
   });
 
   streetAddressInput.addEventListener("blur", () => {
-    streetAddressInput.value = normalizeStreetName(streetAddressInput.value);
+    streetAddressInput.value = normalizeStreetForAddressing(
+      streetAddressInput.value,
+      selectedContactAddressingCountry,
+    );
   });
   contactStateInput.addEventListener("blur", () => {
     contactStateInput.value = normalizeLocationState(
@@ -5385,14 +6014,20 @@ const initializeApp = async () => {
   };
   const getStreetMatchLabel = (result) =>
     result.address?.road
-      ? normalizeStreetName(result.address.road)
+      ? normalizeStreetForAddressing(
+          result.address.road,
+          selectedContactAddressingCountry,
+        )
       : result.display_name;
   const getUniqueStreetMatches = (results) => {
     const streetMatches = results.filter((result) => result.address?.road);
     if (streetMatches.length === 0) return results;
     const uniqueStreets = new Map();
     streetMatches.forEach((result) => {
-      const streetName = normalizeStreetName(result.address.road);
+      const streetName = normalizeStreetForAddressing(
+        result.address.road,
+        selectedContactAddressingCountry,
+      );
       const key = streetName.toLowerCase();
       if (!uniqueStreets.has(key)) uniqueStreets.set(key, result);
     });
@@ -5405,8 +6040,9 @@ const initializeApp = async () => {
     const address = result.address || {};
     const houseNumber = enteredStreet.match(/^\d+[A-Za-z]?\b/)?.[0];
     if (address.road) {
-      streetAddressInput.value = normalizeStreetName(
+      streetAddressInput.value = normalizeStreetForAddressing(
         [houseNumber, address.road].filter(Boolean).join(" "),
+        selectedContactAddressingCountry,
       );
     }
     updatePrintContactAvailability();
@@ -5479,7 +6115,10 @@ const initializeApp = async () => {
       );
       return;
     }
-    const street = normalizeStreetName(streetAddressInput.value);
+    const street = normalizeStreetForAddressing(
+      streetAddressInput.value,
+      selectedContactAddressingCountry,
+    );
     const city = document.getElementById("contact-city-select").value.trim();
     const state = normalizeLocationState(
       contactCountrySelect.value,
@@ -5490,7 +6129,9 @@ const initializeApp = async () => {
       contactRegionSelect.value === "__ADD_NEW__" ? "" : contactRegionSelect.value;
     const area =
       contactAreaSelect.value === "__ADD_NEW__" ? "" : contactAreaSelect.value;
-    const postalCode = getSavedContactFromEditor()?.postalCode || "";
+    const postalCode = document
+      .getElementById("contact-postal-code")
+      .value.trim();
     streetAddressInput.value = street;
     contactStateInput.value = state;
     if (
@@ -5504,11 +6145,14 @@ const initializeApp = async () => {
     }
     clearAddressMatches();
     const locationParts = { area, region, city, state, postalCode, country };
-    const query = getFormattedContactAddress({
-      ...locationParts,
-      streetAddress: street,
-    });
-    const cityQuery = getFormattedContactAddress(locationParts);
+    const query = getFormattedContactAddress(
+      { ...locationParts, streetAddress: street },
+      selectedContactAddressingCountry,
+    );
+    const cityQuery = getFormattedContactAddress(
+      locationParts,
+      selectedContactAddressingCountry,
+    );
     const cityState = cityQuery;
     btnFindAddress.disabled = true;
     setLocationStatus(appText("map.lookingUpAddress", "Looking up the entered address..."));
@@ -5564,7 +6208,7 @@ const initializeApp = async () => {
             getFormattedContactAddress({
               ...locationParts,
               streetAddress: streetOnly,
-            }),
+            }, selectedContactAddressingCountry),
           ),
         );
         if (streetResults.length > 1) {
@@ -5635,7 +6279,9 @@ const initializeApp = async () => {
     const city = document.getElementById("contact-city-select").value.trim();
     const region = contactRegionSelect.value;
     const area = contactAreaSelect.value;
-    const postalCode = getSavedContactFromEditor()?.postalCode || "";
+    const postalCode = document
+      .getElementById("contact-postal-code")
+      .value.trim();
     const state = normalizeLocationState(
       contactCountrySelect.value,
       contactStateInput.value,
@@ -5654,14 +6300,17 @@ const initializeApp = async () => {
       url.search = new URLSearchParams({
         q: [
           crossStreet,
-          getFormattedContactAddress({
-            area,
-            region,
-            city,
-            state,
-            postalCode,
-            country: contactCountrySelect.value || settings.country,
-          }),
+          getFormattedContactAddress(
+            {
+              area,
+              region,
+              city,
+              state,
+              postalCode,
+              country: contactCountrySelect.value || settings.country,
+            },
+            selectedContactAddressingCountry,
+          ),
         ]
           .filter(Boolean)
           .join(", "),
@@ -5764,6 +6413,7 @@ const initializeApp = async () => {
     const current = JSON.parse(captureDetailsState());
     const fields = {
       country: meFields.country,
+      addressingCountry: document.getElementById("settings-address-country"),
       defaultState: settingStateInput,
       defaultCity: settingDefaultCityInput,
       ...meFields,
@@ -5861,6 +6511,7 @@ const initializeApp = async () => {
   const discardDefaultsAndDetails = () => {
     settingStateInput.value = settings.state;
     settingDefaultCityInput.value = settings.defaultCity;
+    updateAddressingProfile(settings.addressingCountry);
     populateMeForm();
     ["country", "region", "area"].forEach((name) => {
       document.getElementById(`new-me-${name}-container`).hidden = true;
@@ -5908,6 +6559,53 @@ const initializeApp = async () => {
       settingsLeavePending = false;
     }
   };
+  const languageSelects = [
+    document.getElementById("setup-language"),
+    document.getElementById("settings-language"),
+  ];
+  languageSelects.forEach((select) => {
+    select.value = window.NRVI18n.getLanguage();
+    select.addEventListener("change", async (event) => {
+      const language = event.target.value;
+      const restoreLanguage = () => {
+        languageSelects.forEach((item) => {
+          item.value = window.NRVI18n.getLanguage();
+        });
+      };
+      if (document.getElementById("contact-modal").open) {
+        await NRVDialogs.alert(
+          appText("language.finishContact", "Save or finish the open contact before changing the language."),
+        );
+        restoreLanguage();
+        return;
+      }
+      if (!(await confirmLeaveSettings())) {
+        restoreLanguage();
+        return;
+      }
+      if (!(await NRVDialogs.confirm(
+        appText(
+          "language.reloadConfirm",
+          "Changing the language reloads NRV. Save or finish any unsaved changes first. Continue?",
+        ),
+      ))) {
+        restoreLanguage();
+        return;
+      }
+      try {
+        window.NRVI18n.setLanguage(language);
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.delete("lang");
+        window.location.href = nextUrl.href;
+      } catch (error) {
+        console.error("Unable to change the selected language:", error);
+        await NRVDialogs.alert(
+          appText("language.saveError", "The language choice could not be saved on this device. Check your browser storage settings and try again."),
+        );
+        restoreLanguage();
+      }
+    });
+  });
   const confirmDiscardOtherSettings = async (pending) => {
     const pendingDescription =
       pending.input.type === "file"
@@ -6196,10 +6894,30 @@ const initializeApp = async () => {
         button.disabled = true;
       },
     );
-    contactCountrySelect.value = settings.country;
+    const workingNeed = settings.workingNeedGreater;
+    const workingInSelectedCountry =
+      workingNeed.enabled && workingNeed.designation === "country";
+    const newContactCountry = workingInSelectedCountry
+      ? workingNeed.country
+      : settings.country;
+    const usePrimaryDefaults =
+      normalizeCountry(newContactCountry) === settings.country;
+    activeWorkingNeedDesignation = !workingNeed.enabled
+      ? undefined
+      : workingNeed.designation === "country"
+        ? workingNeed.country
+        : workingNeed.designation === "unassigned"
+          ? "U"
+          : "SW";
+    contactCountrySelect.value = newContactCountry;
     contactCountrySelect.dataset.selectedCountry = contactCountrySelect.value;
-    contactStateInput.value = settings.state || "";
-    citySelect.value = settings.defaultCity || "";
+    contactStateInput.value = usePrimaryDefaults ? settings.state || "" : "";
+    citySelect.value = usePrimaryDefaults ? settings.defaultCity || "" : "";
+    updateContactAddressingProfile(
+      workingInSelectedCountry
+        ? workingNeed.country
+        : settings.addressingCountry,
+    );
     lastCommittedContactCity = citySelect.value;
     updateContactLocationFields();
     dropdownHelpers.populateContactRegionArea("", "");
@@ -6347,11 +7065,16 @@ const initializeApp = async () => {
     const lastName = document.getElementById("contact-lastname").value.trim();
     const email = document.getElementById("contact-email").value.trim();
     const phone = phoneInput.value.trim();
-    const street = normalizeStreetName(streetAddressInput.value);
+    const street = normalizeStreetForAddressing(
+      streetAddressInput.value,
+      selectedContactAddressingCountry,
+    );
     const city = document.getElementById("contact-city-select").value.trim();
     const region = contactRegionSelect.value;
     const area = contactAreaSelect.value;
-    const postalCode = getSavedContactFromEditor()?.postalCode || "";
+    const postalCode = document
+      .getElementById("contact-postal-code")
+      .value.trim();
     const country = normalizeCountry(contactCountrySelect.value);
     const state = normalizeLocationState(country, contactStateInput.value);
     if (!country) {
@@ -6418,9 +7141,19 @@ const initializeApp = async () => {
       Boolean(newNoteText) ||
       document.getElementById("new-log-timestamp").dataset.touched === "1";
 
-    const fullAddress = [street, area, region, city, state, postalCode, country]
-      .filter(Boolean)
-      .join(", ");
+    const addressingContact = {
+      streetAddress: street,
+      area,
+      region,
+      city,
+      state,
+      postalCode,
+      country,
+    };
+    const fullAddress = getFormattedContactAddress(
+      addressingContact,
+      selectedContactAddressingCountry,
+    );
 
     let targetId = id;
 
@@ -6439,6 +7172,12 @@ const initializeApp = async () => {
         contact.region = region;
         contact.area = area;
         contact.postalCode = postalCode;
+        contact.addressingCountry = selectedContactAddressingCountry;
+        if (activeWorkingNeedDesignation) {
+          contact.workingNeedDesignation = activeWorkingNeedDesignation;
+        } else {
+          delete contact.workingNeedDesignation;
+        }
         contact.lat = lat;
         contact.lng = lng;
 
@@ -6491,6 +7230,10 @@ const initializeApp = async () => {
         state,
         area,
         postalCode,
+        addressingCountry: selectedContactAddressingCountry,
+        ...(activeWorkingNeedDesignation
+          ? { workingNeedDesignation: activeWorkingNeedDesignation }
+          : {}),
         lat,
         lng,
         notesHistory,
@@ -6563,13 +7306,86 @@ const initializeApp = async () => {
       notice.hidden = true;
     });
 
+  const updateWorkingNeedFilterOptions = () => {
+    const filter = document.getElementById("filter-working-need");
+    const selected = filter.value || "all";
+    filter.replaceChildren();
+    [
+      ["all", "filter.allContacts", "All Contacts"],
+      ["working", "filter.allWorkingNeed", "All Working Need Greater"],
+    ].forEach(([value, key, fallback]) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = appText(key, fallback);
+      filter.appendChild(option);
+    });
+    const designations = [
+      ...new Set(
+        contacts
+          .map((contact) => normalizeWorkingDesignation(contact.workingNeedDesignation))
+          .filter(Boolean),
+      ),
+    ];
+    designations
+      .filter((designation) => designation !== "U" && designation !== "SW")
+      .sort((a, b) => a.localeCompare(b))
+      .forEach((country) => {
+        const option = document.createElement("option");
+        option.value = JSON.stringify(["country", country]);
+        option.textContent = displayCountry(country);
+        filter.appendChild(option);
+      });
+    [
+      ["U", "filter.unassigned", "Unassigned"],
+      ["SW", "filter.seldomWorked", "Seldom Worked"],
+    ].forEach(([designation, key, fallback]) => {
+      const option = document.createElement("option");
+      option.value = `designation:${designation}`;
+      option.textContent = appText(key, fallback);
+      filter.appendChild(option);
+    });
+    filter.value = Array.from(filter.options).some(
+      (option) => option.value === selected,
+    )
+      ? selected
+      : "all";
+  };
+
+  const matchesWorkingNeedFilter = (contact, filter) => {
+    const designation = normalizeWorkingDesignation(
+      contact.workingNeedDesignation,
+    );
+    if (filter === "working") return Boolean(designation);
+    if (filter.startsWith("designation:")) {
+      return designation === filter.slice("designation:".length);
+    }
+    if (filter.startsWith("[")) {
+      try {
+        const [type, country] = JSON.parse(filter);
+        return type === "country" && designation === country;
+      } catch (error) {
+        console.error("Invalid Working Need Greater filter selection:", error);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const renderContacts = () => {
     updateCopyNotice();
+    updateWorkingNeedFilterOptions();
+    populateMapLocationOptions();
+    if (document.body.classList.contains("map-view-active")) {
+      populateMapGeographicFilters();
+    }
     const listContainer = document.getElementById("contacts-list");
     const searchTerm = document
       .getElementById("search-input")
       .value.toLowerCase();
     const filterUrgency = document.getElementById("filter-urgency").value;
+    const filterWorkingNeed = document.getElementById(
+      "filter-working-need",
+    ).value;
     const filterCity = document.getElementById("filter-city").value;
     const filterRegion = document.getElementById("filter-region").value;
     const filterArea = document.getElementById("filter-area").value;
@@ -6599,6 +7415,7 @@ const initializeApp = async () => {
       const areaMatch = !filterArea || c.area === filterArea;
       return (
         textMatch &&
+        matchesWorkingNeedFilter(c, filterWorkingNeed) &&
         urgencyMatch &&
         cityMatch &&
         regionMatch &&
@@ -6688,7 +7505,11 @@ const initializeApp = async () => {
       const navigateLabel = appText("contacts.navigate", `Navigate to ${fullName}`, { name: fullName });
       const shareLabel = appText("contacts.share", `Share ${fullName}`, { name: fullName });
       const addVisit = escapeHtml(appText("contacts.addVisit", "Add a visit"));
+      if (contact.workingNeedDesignation) {
+        card.classList.add("has-working-need-marker");
+      }
       card.innerHTML = `
+                ${contact.workingNeedDesignation ? `<small class="working-need-marker" aria-label="${escapeHtml(appText("contacts.workingNeedMarker", `Working designation: ${contact.workingNeedDesignation}`, { designation: contact.workingNeedDesignation }))}">${escapeHtml(contact.workingNeedDesignation)}</small>` : ""}
                 <strong><span class="contact-number" title="${escapeHtml(appText("contacts.mapNumber", "Matches the number on the map pin"))}">${cardIndex + 1}.</span> ${escapeHtml(contact.firstName)} ${escapeHtml(contact.lastName)}</strong><br>
                 <small class="contact-record-id">${escapeHtml(appText("contacts.id", `Contact ID: ${contact.id}`, { id: contact.id }))}</small><br>
                 <small>${escapeHtml(getFormattedContactAddress(contact) || appText("contacts.noAddress", "No address provided"))}</small><br>
@@ -6724,6 +7545,113 @@ const initializeApp = async () => {
       });
     });
   };
+
+  const filtersBar = document.getElementById("filters-bar");
+  const contactFilterControls = document.getElementById(
+    "contact-filter-controls",
+  );
+  const mapFilterControlSlot = document.getElementById(
+    "map-filter-control-slot",
+  );
+  const mapChangeViewDialog = document.getElementById(
+    "map-change-view-dialog",
+  );
+  const setMapFilterPlacement = (inMapView) => {
+    const changeViewButton = document.getElementById("btn-map-change-view");
+    if (inMapView) {
+      document.body.classList.add("map-view-active");
+      mapFilterControlSlot.appendChild(contactFilterControls);
+      changeViewButton.hidden = false;
+      populateMapLocationOptions();
+      populateMapGeographicFilters();
+      updateMapChangeViewIndicator();
+      return;
+    }
+    if (mapChangeViewDialog.open) mapChangeViewDialog.close();
+    document.body.classList.remove("map-view-active");
+    filtersBar.appendChild(contactFilterControls);
+    changeViewButton.hidden = true;
+    populateDropdowns();
+  };
+  let mapViewSnapshot = null;
+  const openMapChangeView = () => {
+    populateMapLocationOptions();
+    populateMapGeographicFilters();
+    mapViewSnapshot = {
+      location: selectedMapLocation,
+      locationIsDefault: mapLocationIsDefault,
+      workingNeed: document.getElementById("filter-working-need").value,
+      urgency: document.getElementById("filter-urgency").value,
+      city: document.getElementById("filter-city").value,
+      region: document.getElementById("filter-region").value,
+      area: document.getElementById("filter-area").value,
+      sort: document.getElementById("sort-select").value,
+    };
+    mapChangeViewDialog.showModal();
+    mapLocationSelect.focus();
+  };
+  const cancelMapChangeView = () => {
+    if (!mapViewSnapshot) return;
+    selectedMapLocation = mapViewSnapshot.location;
+    mapLocationIsDefault = mapViewSnapshot.locationIsDefault;
+    mapLocationSelect.value = selectedMapLocation;
+    document.getElementById("filter-working-need").value =
+      mapViewSnapshot.workingNeed;
+    document.getElementById("filter-urgency").value =
+      mapViewSnapshot.urgency;
+    document.getElementById("filter-city").value = mapViewSnapshot.city;
+    document.getElementById("filter-region").value = mapViewSnapshot.region;
+    document.getElementById("filter-area").value = mapViewSnapshot.area;
+    document.getElementById("sort-select").value = mapViewSnapshot.sort;
+    mapViewSnapshot = null;
+    populateMapGeographicFilters();
+    renderContacts();
+    updateMapChangeViewIndicator();
+  };
+  document
+    .getElementById("btn-map-change-view")
+    .addEventListener("click", openMapChangeView);
+  mapLocationSelect.addEventListener("change", () => {
+    selectedMapLocation = mapLocationSelect.value;
+    mapLocationIsDefault = false;
+    populateMapGeographicFilters();
+    renderContacts();
+    updateMapChangeViewIndicator();
+  });
+  document
+    .getElementById("map-change-view-apply")
+    .addEventListener("click", () => {
+      mapViewSnapshot = null;
+      mapChangeViewDialog.close();
+      updateMapChangeViewIndicator();
+    });
+  document
+    .getElementById("map-change-view-cancel")
+    .addEventListener("click", () => {
+      cancelMapChangeView();
+      mapChangeViewDialog.close();
+    });
+  document
+    .getElementById("map-change-view-reset")
+    .addEventListener("click", () => {
+      mapLocationIsDefault = true;
+      selectedMapLocation = getMapDefaultLocation();
+      mapLocationSelect.value = selectedMapLocation;
+      document.getElementById("filter-working-need").value = "all";
+      document.getElementById("filter-urgency").value = "";
+      document.getElementById("filter-city").value = "";
+      document.getElementById("filter-region").value = "";
+      document.getElementById("filter-area").value = "";
+      document.getElementById("sort-select").value = "chronological-desc";
+      populateMapGeographicFilters();
+      renderContacts();
+      updateMapChangeViewIndicator();
+    });
+  mapChangeViewDialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    cancelMapChangeView();
+    mapChangeViewDialog.close();
+  });
 
   const getSortedVisitNotes = (contact) =>
     [...(contact.notesHistory || [])].sort((a, b) => {
@@ -6773,15 +7701,15 @@ const initializeApp = async () => {
 
   const printContactEntry = (contact) => {
     const latestNote = getSortedVisitNotes(contact)[0];
-    const streetAddress =
-      normalizeStreetName(getStreetAddress(contact)) ||
+    const formattedAddress =
+      getFormattedContactAddress(contact) ||
       appText("print.noStreet", "No street address recorded");
     const fullName = `${contact.firstName} ${contact.lastName}`.trim();
     return `
       <article class="print-contact-entry">
         <h3>${escapeHtml(fullName)}</h3>
         <p class="print-contact-id">${escapeHtml(appText("contacts.id", `Contact ID: ${contact.id}`, { id: contact.id }))}</p>
-        <p class="print-contact-address">${escapeHtml(streetAddress)}</p>
+        <p class="print-contact-address">${escapeHtml(formattedAddress)}</p>
         ${contact.phone ? `<p>${escapeHtml(appText("contacts.phoneValue", `Phone: ${contact.phone}`, { value: contact.phone }))}</p>` : ""}
         ${contact.email ? `<p>${escapeHtml(appText("contacts.emailValue", `Email: ${contact.email}`, { value: contact.email }))}</p>` : ""}
         <div class="print-latest-note">
@@ -6912,9 +7840,10 @@ const initializeApp = async () => {
   // Prints the same numbered list the map pins use, then any contacts
   // that have no pin.
   const printMapList = async (detail) => {
-    const precisePins = visibleContacts.filter(hasContactCoordinates);
+    const mapContacts = getVisibleMapContacts();
+    const precisePins = mapContacts.filter(hasContactCoordinates);
     const approximateCityPins = new Map();
-    visibleContacts.forEach((contact) => {
+    mapContacts.forEach((contact) => {
       if (hasContactCoordinates(contact) || !contact.city) return;
       const query = getCityPinQuery(contact);
       if (!cityPinCoordinates.get(query)) return;
@@ -6934,14 +7863,14 @@ const initializeApp = async () => {
     const approximateContacts = new Set(
       [...approximateCityPins.values()].flatMap((group) => group.contacts),
     );
-    const unpinned = visibleContacts.filter(
+    const unpinned = mapContacts.filter(
       (contact) =>
         !hasContactCoordinates(contact) && !approximateContacts.has(contact),
     );
     const entry = (contact, number, approximateCity = "") => {
       const name = `${contact.firstName} ${contact.lastName}`.trim();
       const address =
-        normalizeStreetName(getStreetAddress(contact)) ||
+        getFormattedContactAddress(contact) ||
         (approximateCity
           ? appText("print.approximateCity", `Approximate city location: ${approximateCity}`, { city: approximateCity })
           : "") ||
@@ -6995,7 +7924,7 @@ const initializeApp = async () => {
 
   const mapPrintDialog = document.getElementById("map-print-dialog");
   const requestMapPrint = async () => {
-    if (!visibleContacts.length) {
+    if (!getVisibleMapContacts().length) {
       await NRVDialogs.alert(appText("print.noContacts", "There are no contacts to print."));
       return;
     }
@@ -7080,12 +8009,9 @@ const initializeApp = async () => {
     const notes = getSortedVisitNotes(contact);
     const selectedNotes = includeAllNotes ? notes : notes.slice(0, 1);
     const fullName = `${contact.firstName} ${contact.lastName}`.trim();
-    const streetAddress =
-      normalizeStreetName(getStreetAddress(contact)) ||
+    const formattedAddress =
+      getFormattedContactAddress(contact) ||
       "No street address recorded";
-    const cityState = [contact.city, contact.state, contact.country]
-      .filter(Boolean)
-      .join(", ");
     const location = getContactLocationSummary(contact);
     const notesMarkup = selectedNotes.length
       ? selectedNotes
@@ -7108,8 +8034,7 @@ const initializeApp = async () => {
       `
         <article class="print-single-contact">
           <h2>${escapeHtml(fullName)}</h2>
-          <p>${escapeHtml(streetAddress)}</p>
-          ${cityState ? `<p>${escapeHtml(cityState)}</p>` : ""}
+          <p>${escapeHtml(formattedAddress)}</p>
           ${contact.phone ? `<p>Phone: ${escapeHtml(contact.phone)}</p>` : ""}
           ${contact.email ? `<p>Email: ${escapeHtml(contact.email)}</p>` : ""}
           <p class="print-single-location">${escapeHtml(location)}</p>
@@ -7127,6 +8052,8 @@ const initializeApp = async () => {
   const renderMapMarkers = () => {
     if (!map) return;
     const renderGeneration = ++cityPinRenderGeneration;
+    const mapContacts = getVisibleMapContacts();
+    const mapLocationLabel = getMapLocationLabel();
     mapMarkers.forEach((marker) => map.removeLayer(marker));
     mapMarkers = [];
     mapContactPoints = [];
@@ -7166,7 +8093,7 @@ const initializeApp = async () => {
         </section>`;
     };
 
-    visibleContacts.forEach((contact, contactIndex) => {
+    mapContacts.forEach((contact, contactIndex) => {
       const lat = Number(contact.lat);
       const lng = Number(contact.lng);
       const contactNumber = contactIndex + 1;
@@ -7236,7 +8163,13 @@ const initializeApp = async () => {
     });
 
     mapContactPoints = [...exactPoints];
-    const home = getHomePoint();
+    const homeContact = {
+      country: settings.me?.country || settings.country,
+      state: settings.me?.state || "",
+    };
+    const home = isContactInMapLocation(homeContact)
+      ? getHomePoint()
+      : null;
     if (home) {
       const me = settings.me;
       homeMarker = L.marker(home, {
@@ -7329,7 +8262,7 @@ const initializeApp = async () => {
         fitMapToContactPoints();
         const locatedCityPins = locatedCityPoints.length;
         const unlocatedContacts =
-          visibleContacts.length - exactPoints.length - locatedCityContacts;
+          mapContacts.length - exactPoints.length - locatedCityContacts;
         const pinCount = exactPoints.length + locatedCityPins;
         if (pinCount > 0) {
           lastDefaultCityCenterQuery = null;
@@ -7348,12 +8281,16 @@ const initializeApp = async () => {
         }
       };
       if (currentViewId === "map-view") renderCityPins();
-    } else if (visibleContacts.length > 0 && exactPoints.length === 0) {
+    } else if (mapContacts.length > 0 && exactPoints.length === 0) {
       mapStatus.textContent =
-        appText("map.contactsWithoutLocation", `${visibleContacts.length} matching contact${visibleContacts.length === 1 ? " has" : "s have"} no saved coordinates or city. Add a city or use Find Address or City Pin to locate a contact.`, { count: visibleContacts.length });
-    } else if (visibleContacts.length === 0) {
+        appText("map.contactsWithoutLocation", `${mapContacts.length} matching contact${mapContacts.length === 1 ? " has" : "s have"} no saved coordinates or city. Add a city or use Find Address or City Pin to locate a contact.`, { count: mapContacts.length });
+    } else if (mapContacts.length === 0) {
       mapStatus.textContent =
-        appText("map.noMatchingContacts", "No matching contacts to show. Change the search or filters, or add map coordinates to a contact.");
+        appText(
+          "map.scopeNoPins",
+          `No contact pins to show for ${mapLocationLabel}.`,
+          { location: mapLocationLabel },
+        );
     }
 
     if (currentViewId === "map-view" && mapMarkers.length === 0 && !homeMarker) {
@@ -7420,9 +8357,18 @@ const initializeApp = async () => {
     document.getElementById("contact-lastname").value = contact.lastName || "";
     document.getElementById("contact-email").value = contact.email || "";
     phoneInput.value = contact.phone || "";
-    document.getElementById("contact-address").value = normalizeStreetName(
-      getStreetAddress(contact),
+    activeWorkingNeedDesignation = normalizeWorkingDesignation(
+      contact.workingNeedDesignation,
     );
+    updateContactAddressingProfile(
+      contact.addressingCountry || settings.addressingCountry,
+    );
+    document.getElementById("contact-address").value = normalizeStreetForAddressing(
+      getStreetAddress(contact),
+      contact.addressingCountry || settings.addressingCountry,
+    );
+    document.getElementById("contact-postal-code").value =
+      contact.postalCode || "";
     contactCountrySelect.value =
       contact.country || settings.country;
     contactCountrySelect.dataset.selectedCountry = contactCountrySelect.value;
@@ -7628,28 +8574,50 @@ const initializeApp = async () => {
 
   document
     .getElementById("search-input")
-    .addEventListener("input", renderContacts);
+    .addEventListener("input", () => {
+      renderContacts();
+      updateMapChangeViewIndicator();
+    });
+  document
+    .getElementById("filter-working-need")
+    .addEventListener("change", () => {
+      renderContacts();
+      updateMapChangeViewIndicator();
+    });
   document
     .getElementById("filter-urgency")
-    .addEventListener("change", renderContacts);
+    .addEventListener("change", () => {
+      renderContacts();
+      updateMapChangeViewIndicator();
+    });
   document
     .getElementById("filter-city")
     .addEventListener("change", () => {
       populateDropdowns();
+      populateMapGeographicFilters();
       renderContacts();
+      updateMapChangeViewIndicator();
     });
   document
     .getElementById("filter-region")
     .addEventListener("change", () => {
       populateDropdowns();
+      populateMapGeographicFilters();
       renderContacts();
+      updateMapChangeViewIndicator();
     });
   document
     .getElementById("filter-area")
-    .addEventListener("change", renderContacts);
+    .addEventListener("change", () => {
+      renderContacts();
+      updateMapChangeViewIndicator();
+    });
   document
     .getElementById("sort-select")
-    .addEventListener("change", renderContacts);
+    .addEventListener("change", () => {
+      renderContacts();
+      updateMapChangeViewIndicator();
+    });
 
   const buildBackup = async (encrypt = Boolean(encryptionKey)) => {
     const useKey = encrypt && encryptionKey;
@@ -7835,7 +8803,11 @@ const initializeApp = async () => {
     exportSelectionNumbers.disabled = useAll;
     if (useAll) exportSelectionNumbers.value = "";
     document.getElementById("export-selection-all-label").textContent =
-      `All contacts shown (${exportContactsInView.length})`;
+      appText(
+        "export.allShownCount",
+        `All filtered contacts (${exportContactsInView.length})`,
+        { count: exportContactsInView.length },
+      );
 
     const selection = getExportSelection();
     exportSelectionStatus.textContent = selection.error
@@ -7843,6 +8815,19 @@ const initializeApp = async () => {
       : `${selection.contacts.length} contact${
           selection.contacts.length === 1 ? "" : "s"
         } selected.`;
+    document.getElementById("export-selection-scope").textContent =
+      selection.error
+        ? ""
+        : appText(
+            useAll ? "export.filteredScope" : "export.selectedScope",
+            useAll
+              ? `Exporting ${selection.contacts.length} filtered contacts.`
+              : `Exporting ${selection.contacts.length} selected contacts from ${exportContactsInView.length} filtered contacts.`,
+            {
+              count: selection.contacts.length,
+              total: exportContactsInView.length,
+            },
+          );
     exportSelectionFileButton.disabled =
       Boolean(selection.error) || selection.contacts.length === 0;
 
@@ -8349,9 +9334,12 @@ const initializeApp = async () => {
     contacts = restored.contacts;
     resetContactSignatures();
     settings.country = normalizeCountry(settings.country);
+    settings.addressingCountry = normalizeCountry(settings.addressingCountry);
+    updateAddressingProfile(settings.addressingCountry);
     settings.state = normalizeLocationState(settings.country, settings.state);
     populateCountryOptions();
     populateMeForm();
+    savedDetailsState = captureDetailsState();
     document.getElementById("setting-state").value = settings.state;
     document.getElementById("setting-default-city").value =
       settings.defaultCity || "";
@@ -8599,6 +9587,7 @@ const initializeApp = async () => {
     settings = merged.settings;
     contacts = merged.contacts;
     resetContactSignatures();
+    updateAddressingProfile(settings.addressingCountry);
     populateMeForm();
     document.getElementById("setting-state").value = settings.state || "";
     document.getElementById("setting-default-city").value =

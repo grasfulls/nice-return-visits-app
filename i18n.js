@@ -33,6 +33,11 @@
     return isSupported(code) ? code : null;
   }
 
+  function setLanguage(code) {
+    if (!isSupported(code)) throw new Error(`Unsupported language: ${code}`);
+    root.localStorage.setItem(STORAGE_KEY, code);
+  }
+
   async function loadCatalog(code) {
     if (catalogs[code]) return catalogs[code];
     const entry = LANGUAGES.find((l) => l.code === code);
@@ -132,6 +137,7 @@
     t,
     apply,
     init,
+    setLanguage,
     getLanguage: () => current,
     // Test hook: supplies a catalog without fetching.
     _setCatalog: (code, catalog) => {

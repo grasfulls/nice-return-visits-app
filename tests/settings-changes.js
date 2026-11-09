@@ -17,14 +17,17 @@ const fields = Object.fromEntries(
 );
 const settingState = { id: "setting-state", value: "WA" };
 const settingCity = { id: "setting-default-city", value: "Seattle" };
+const addressingCountry = { id: "settings-address-country", value: "United States" };
 const elements = {
   "setting-state": settingState,
   "setting-default-city": settingCity,
+  "settings-address-country": addressingCountry,
   "defaults-your-details-section": {},
   "your-details-section": {},
 };
 const settings = {
   country: "United States",
+  addressingCountry: "United States",
   state: "WA",
   defaultCity: "Seattle",
   cities: ["Seattle"],
@@ -50,6 +53,7 @@ const context = {
     return Object.fromEntries(Object.entries(fields).map(([key, input]) => [key, input.value.trim()]));
   },
   normalizeLocationState: (country, value) => value.trim(),
+  normalizeCountry: (country) => country,
   toTitleCase: (value) => value.trim(),
   addCity: (city) => settings.cities.push(city),
   saveSettings: async () => {
@@ -57,6 +61,7 @@ const context = {
     saves += 1;
   },
   showStorageError() {},
+  updateAddressingProfile() {},
   appText: (key, fallback) => fallback,
   alert() {},
   describeSettingsField: (input) => input.id,
@@ -85,7 +90,9 @@ async function main() {
   fields.postalCode.value = "98102";
   assert.strictEqual(findPendingDetailsEdit().input, fields.postalCode);
   settingCity.value = "Tacoma";
+  addressingCountry.value = "Japan";
   assert.strictEqual(await saveDefaultsAndDetails(), true);
+  assert.strictEqual(settings.addressingCountry, "Japan");
   assert.strictEqual(settings.me.postalCode, "98102");
   assert.strictEqual(settings.me.city, "Seattle");
   assert.strictEqual(settings.defaultCity, "Tacoma");

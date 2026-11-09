@@ -20,16 +20,18 @@ const declaration = (name) => {
 };
 
 const context = {
-  DEFAULT_COUNTRIES: ["Canada", "Mexico", "Peru", "United States"],
+  DEFAULT_COUNTRIES: ["Canada", "Japan", "Mexico", "Peru", "United States"],
   DEFAULT_SETTINGS: {
     country: "United States",
-    countries: ["Canada", "Mexico", "Peru", "United States"],
+    addressingCountry: "United States",
+    countries: ["Canada", "Japan", "Mexico", "Peru", "United States"],
     cities: [],
     regions: [],
     areas: [],
   },
-  SCHEMA_VERSION: 5,
+  SCHEMA_VERSION: 7,
   US_STATE_ABBREVIATIONS: { california: "CA", washington: "WA" },
+  selectedAddressingCountry: "United States",
   NewerDataVersionError: class NewerDataVersionError extends Error {},
   encryptValue: async (value) => value,
   getContactLastActivity: () => "2026-01-01T00:00:00.000Z",
@@ -42,16 +44,19 @@ const declarations = [
   "normalizeUsState",
   "normalizeCountry",
   "normalizeLocationState",
+  "normalizeStreetForAddressing",
   "updateAddressLabels",
   "getStreetAddress",
   "getFormattedContactAddress",
   "displayCountry",
+  "normalizeWorkingNeedGreater",
+  "normalizeWorkingDesignation",
   "normalizeTransferredContact",
   "normalizeRegionData",
   "decryptBackup",
 ].map(declaration).join("\n");
 vm.runInNewContext(
-  `${declarations}\nthis.addressHelpers = { normalizeCountry, getFormattedContactAddress, displayCountry, normalizeTransferredContact, normalizeRegionData, decryptBackup, updateAddressLabels };`,
+  `${declarations}\nthis.addressHelpers = { normalizeCountry, normalizeLocationState, getFormattedContactAddress, displayCountry, normalizeTransferredContact, normalizeRegionData, decryptBackup, updateAddressLabels };`,
   context,
 );
 const helpers = context.addressHelpers;
@@ -70,6 +75,8 @@ const addElement = (id, value = "") => {
   return element;
 };
 [
+  "contact-address-label",
+  "me-address-label",
   "contact-state-label",
   "contact-city-label",
   "contact-region-label",
@@ -131,12 +138,15 @@ const normalized = helpers.normalizeRegionData(
   [usContact, peruContact],
 );
 
-assert.strictEqual(normalized.settings.schemaVersion, 5);
+assert.strictEqual(normalized.settings.schemaVersion, 7);
+assert.strictEqual(normalized.settings.addressingCountry, "United States");
 assert.strictEqual(normalized.contacts[0].country, "United States");
 assert.strictEqual(normalized.contacts[0].state, "WA");
 assert.strictEqual(normalized.contacts[0].city, "Seattle");
 assert.deepStrictEqual(normalized.contacts[0].notesHistory, usContact.notesHistory);
 assert.strictEqual(normalized.contacts[0].postalCode, "");
+assert.strictEqual(normalized.contacts[0].addressingCountry, "United States");
+assert.strictEqual(normalized.contacts[0].workingNeedDesignation, undefined);
 assert.strictEqual(normalized.contacts[1].country, "Peru");
 assert.strictEqual(normalized.contacts[1].state, "Lima");
 assert.strictEqual(normalized.contacts[1].city, "Miraflores");
@@ -145,6 +155,11 @@ assert.strictEqual(normalized.contacts[1].area, "Miraflores");
 assert.strictEqual(normalized.contacts[1].postalCode, "15074");
 assert.deepStrictEqual(normalized.contacts[1].notesHistory, peruContact.notesHistory);
 assert(normalized.settings.countries.includes("Peru"));
+assert.deepStrictEqual(JSON.parse(JSON.stringify(normalized.settings.workingNeedGreater)), {
+  enabled: false,
+  designation: "",
+  country: "",
+});
 console.log("PASS  normalization preserves US contacts and adds Peru postal data without deriving country from language");
 
 assert.strictEqual(
@@ -156,18 +171,149 @@ assert.strictEqual(
   "Av. Arequipa 123, Miraflores, Lima, Miraflores, Lima, 15074, Peru",
 );
 assert.strictEqual(
-  helpers.normalizeTransferredContact({
-    ...peruContact,
-    areaAssignments: [{ name: "Miraflores", region: "Lima", city: "Miraflores" }],
-  }).postalCode,
-  "15074",
+  helpers.getFormattedContactAddress(normalized.contacts[1], "Japan"),
+  "〒15074, Lima, Miraflores, Lima, Miraflores, Av. Arequipa 123, Peru",
 );
+assert.strictEqual(
+  helpers.getFormattedContactAddress(
+    {
+      country: "Japan",
+      state: "Tokyo",
+      city: "Chiyoda",
+      region: "Kanda",
+      area: "2-chome",
+      streetAddress: "1 chome 2-ban",
+      postalCode: "100-0001",
+    },
+    "Japan",
+  ),
+  "〒100-0001, Tokyo, Chiyoda, Kanda, 2-chome, 1 chome 2-ban, Japan",
+);
+const transferredPeruContact = helpers.normalizeTransferredContact({
+  ...peruContact,
+  addressingCountry: "Japan",
+  workingNeedDesignation: "SW",
+  areaAssignments: [{ name: "Miraflores", region: "Lima", city: "Miraflores" }],
+});
+assert.strictEqual(transferredPeruContact.postalCode, "15074");
+assert.strictEqual(transferredPeruContact.addressingCountry, "Japan");
+assert.strictEqual(transferredPeruContact.workingNeedDesignation, "SW");
 console.log("PASS  formatted and transferred addresses retain locality, region, district, and postal code");
+const japaneseAddress = helpers.normalizeRegionData(
+  {
+    schemaVersion: 5,
+    country: "Peru",
+    addressingCountry: "Japan",
+    countries: ["Peru", "Japan"],
+    cities: ["Miraflores"],
+    regions: [],
+    areas: [],
+  },
+  [peruContact],
+);
+assert.strictEqual(japaneseAddress.settings.addressingCountry, "Japan");
+assert.strictEqual(japaneseAddress.contacts[0].country, "Peru");
+assert.strictEqual(japaneseAddress.contacts[0].postalCode, "15074");
+assert.strictEqual(japaneseAddress.contacts[0].streetAddress, "Av. Arequipa 123");
+assert.strictEqual(japaneseAddress.contacts[0].addressingCountry, "Japan");
+assert.deepStrictEqual(japaneseAddress.contacts[0].notesHistory, peruContact.notesHistory);
+assert.strictEqual(helpers.normalizeCountry("jp"), "Japan");
+assert.strictEqual(helpers.normalizeLocationState("Japan", "Tokyo"), "Tokyo");
+assert.strictEqual(
+  helpers.normalizeRegionData(
+    {
+      country: "Peru",
+      countries: ["Peru"],
+      cities: [],
+      regions: [],
+      areas: [],
+    },
+    [],
+  ).settings.addressingCountry,
+  "United States",
+);
+console.log("PASS  Country Addressing is independently persisted and changing it does not convert contacts");
+
+const workingNeedData = helpers.normalizeRegionData(
+  {
+    schemaVersion: 6,
+    country: "United States",
+    addressingCountry: "United States",
+    workingNeedGreater: {
+      enabled: true,
+      designation: "country",
+      country: "Peru",
+    },
+    countries: ["United States"],
+    cities: ["Seattle"],
+    regions: [],
+    areas: [],
+  },
+  [
+    {
+      ...usContact,
+      addressingCountry: "United States",
+      workingNeedDesignation: "Peru",
+    },
+    {
+      ...usContact,
+      id: 3,
+      addressingCountry: "United States",
+      workingNeedDesignation: "U",
+    },
+    {
+      ...usContact,
+      id: 4,
+      addressingCountry: "United States",
+      workingNeedDesignation: "SW",
+    },
+    {
+      ...usContact,
+      id: 5,
+      addressingCountry: "United States",
+    },
+  ],
+);
+assert.strictEqual(workingNeedData.settings.workingNeedGreater.enabled, true);
+assert.strictEqual(workingNeedData.settings.workingNeedGreater.country, "Peru");
+assert(workingNeedData.settings.countries.includes("Peru"));
+assert.deepStrictEqual(
+  workingNeedData.contacts.map((contact) => contact.workingNeedDesignation),
+  ["Peru", "U", "SW", undefined],
+);
+assert.strictEqual(
+  helpers.getFormattedContactAddress(workingNeedData.contacts[0]),
+  "123 Main St, Seattle, WA, United States",
+  "individual address schemes remain independent of Working Need Greater",
+);
+assert.strictEqual(workingNeedData.contacts[0].country, "United States");
+console.log("PASS  Working Need Greater configuration and per-contact markers normalize without changing home address data");
+
+const invalidWorkingNeed = helpers.normalizeRegionData(
+  {
+    country: "United States",
+    addressingCountry: "Japan",
+    workingNeedGreater: {
+      enabled: true,
+      designation: "country",
+      country: "",
+    },
+    countries: ["United States"],
+    cities: [],
+    regions: [],
+    areas: [],
+  },
+  [],
+);
+assert.strictEqual(invalidWorkingNeed.settings.workingNeedGreater.enabled, false);
+assert.strictEqual(invalidWorkingNeed.settings.addressingCountry, "Japan");
 
 for (const [language, country, label] of [
   ["en", "Peru", "Peru"],
+  ["en", "Japan", "Japan"],
   ["es", "United States", "Estados Unidos"],
   ["es", "Peru", "Perú"],
+  ["es", "Japan", "Japón"],
 ]) {
   context.appText = (key, fallback) => catalogs[language][key] || fallback;
   assert.strictEqual(helpers.displayCountry(country), label);
@@ -190,13 +336,20 @@ context.appText = (key, fallback) => catalogs.es[key] || fallback;
 helpers.updateAddressLabels("contact", "United States");
 assert.strictEqual(elements.get("contact-state-label").textContent, "Estado / provincia:");
 assert.strictEqual(elements.get("contact-city-label").textContent, "Ciudad (obligatoria):");
-console.log("PASS  address terminology follows country and interface language without changing stored values");
+helpers.updateAddressLabels("contact", "Japan");
+assert.strictEqual(elements.get("contact-state-label").textContent, "Prefectura:");
+assert.strictEqual(elements.get("contact-city-label").textContent, "Ciudad / distrito (obligatorio):");
+assert.strictEqual(elements.get("contact-address-label").textContent, "Calle / edificio:");
+console.log("PASS  address terminology is localized independently of language-neutral contact data");
 
 assert(source.includes('citySelect.disabled = !hasCountry;'));
 assert(source.includes('document.getElementById("me-city").disabled = !hasCountry;'));
-assert(source.includes("const cityQuery = getFormattedContactAddress(locationParts);"));
+assert(source.includes("getFormattedContactAddress(\n      locationParts,\n      selectedContactAddressingCountry,"));
 assert(source.includes("getFormattedContactAddress(contact)"));
-assert(source.includes("const postalCode = getSavedContactFromEditor()?.postalCode || \"\";"));
+assert(source.includes('document.getElementById("contact-postal-code")'));
+assert(source.includes("contact.addressingCountry = selectedContactAddressingCountry;"));
+assert(source.includes("workingNeedPrivacyDialog.showModal();"));
+assert(!source.includes('alert("Privacy Reminder")'));
 assert(source.includes('"contact-address",'));
 assert(source.includes('data-contact-action="edit"'));
 assert(!source.includes('onclick="editContact(${contact.id})"'));
@@ -210,20 +363,47 @@ console.log("PASS  locality is not gated by state and address fields flow throug
       settings: {
         schemaVersion: 4,
         country: "United States",
+        addressingCountry: "Japan",
+        workingNeedGreater: {
+          enabled: true,
+          designation: "country",
+          country: "Peru",
+        },
         countries: ["United States"],
         cities: ["Seattle"],
         regions: [],
         areas: [],
       },
-      contacts: [usContact, peruContact],
+      contacts: [
+        {
+          ...usContact,
+          addressingCountry: "United States",
+          workingNeedDesignation: "Peru",
+        },
+        {
+          ...peruContact,
+          addressingCountry: "Japan",
+          workingNeedDesignation: "U",
+        },
+      ],
     },
     null,
   );
-  assert.strictEqual(restored.settings.schemaVersion, 5);
+  assert.strictEqual(restored.settings.schemaVersion, 7);
+  assert.strictEqual(restored.settings.addressingCountry, "Japan");
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(restored.settings.workingNeedGreater)), {
+    enabled: true,
+    designation: "country",
+    country: "Peru",
+  });
   assert.strictEqual(restored.contacts[0].city, "Seattle");
+  assert.strictEqual(restored.contacts[0].addressingCountry, "United States");
+  assert.strictEqual(restored.contacts[0].workingNeedDesignation, "Peru");
   assert.strictEqual(restored.contacts[0].notesHistory[0].text, "Existing visit");
   assert.strictEqual(restored.contacts[1].country, "Peru");
   assert.strictEqual(restored.contacts[1].postalCode, "15074");
+  assert.strictEqual(restored.contacts[1].addressingCountry, "Japan");
+  assert.strictEqual(restored.contacts[1].workingNeedDesignation, "U");
   assert.strictEqual(restored.contacts[1].notesHistory[0].text, "Peru visit");
   assert.strictEqual(restored.wasLegacyPlaintext, true);
   console.log("PASS  version-1 backup restore preserves contacts and visits with or without postal codes");

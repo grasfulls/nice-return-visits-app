@@ -257,28 +257,52 @@
             placeholder="Search contacts or notes..."
             data-i18n-attr="placeholder:contacts.search"
           />
-          <select id="filter-urgency">
+          <button type="button" id="btn-map-change-view" hidden aria-pressed="false">
+            <span data-i18n="map.changeView">Change View</span>
+            <span id="map-change-view-indicator" class="filter-active-indicator" aria-hidden="true" hidden>•</span>
+          </button>
+          <div id="contact-filter-controls">
+          <select id="filter-working-need" aria-label="Working Need Greater" data-i18n-attr="aria-label:filter.workingNeedLabel">
+            <option value="all" data-i18n="filter.allContacts">All Contacts</option>
+            <option value="working" data-i18n="filter.allWorkingNeed">All Working Need Greater</option>
+          </select>
+          <select id="filter-urgency" aria-label="Urgency" data-i18n-attr="aria-label:filter.urgencyLabel">
             <option value="" data-i18n="filter.allUrgency">All Urgency</option>
             <option value="Normal" data-i18n="filter.normal">Normal (0-7d)</option>
             <option value="Urgent" data-i18n="filter.urgent">Urgent (8-14d)</option>
             <option value="Immediate" data-i18n="filter.immediate">Immediate (&ge; 15d)</option>
           </select>
-          <select id="filter-city">
+          <select id="filter-city" aria-label="Cities" data-i18n-attr="aria-label:filter.cityLabel">
             <option value="" data-i18n="filter.allCities">All Cities</option>
           </select>
-          <select id="filter-region">
+          <select id="filter-region" aria-label="Regions" data-i18n-attr="aria-label:filter.regionLabel">
             <option value="" data-i18n="filter.allRegions">All Regions</option>
           </select>
-          <select id="filter-area">
+          <select id="filter-area" aria-label="Areas" data-i18n-attr="aria-label:filter.areaLabel">
             <option value="" data-i18n="filter.allAreas">All Areas</option>
           </select>
-          <select id="sort-select">
+          <select id="sort-select" aria-label="Chronology" data-i18n-attr="aria-label:filter.chronologyLabel">
             <option value="chronological-desc" data-i18n="sort.newest">Newest First</option>
             <option value="chronological-asc" data-i18n="sort.oldest">Oldest First</option>
             <option value="alphabetical" data-i18n="sort.alphabetical">Alphabetical</option>
           </select>
+          </div>
         </div>
       </header>
+
+      <dialog id="map-change-view-dialog" aria-labelledby="map-change-view-title" aria-describedby="map-change-view-description">
+        <h2 id="map-change-view-title" data-i18n="map.changeView">Change View</h2>
+        <p id="map-change-view-description" data-i18n="map.changeViewDescription">Choose a map location and filters. Apply to update the map, or cancel to keep the current view.</p>
+        <label for="map-location-select" data-i18n="map.locationScope">Map Location</label>
+        <select id="map-location-select"></select>
+        <div id="map-filter-control-slot"></div>
+        <p id="map-change-view-status" role="status" aria-live="polite"></p>
+        <div class="restore-dialog-actions">
+          <button type="button" id="map-change-view-reset" data-i18n="map.resetView">Reset</button>
+          <button type="button" id="map-change-view-cancel" data-i18n="common.cancel">Cancel</button>
+          <button type="button" id="map-change-view-apply" data-i18n="map.applyView">Apply</button>
+        </div>
+      </dialog>
 
       <main>
         <!-- Contacts View -->
@@ -408,11 +432,36 @@
         <div id="settings-view" class="view">
           <div class="settings-container">
             <h2 data-i18n="settings.title">Settings</h2>
+            <details class="settings-section" id="preferences-section">
+              <summary data-i18n="settings.preferences">Preferences</summary>
+              <label for="settings-language" data-i18n="language.label">Language</label>
+              <select id="settings-language">
+                <option value="en">English</option>
+                <option value="es">Español</option>
+              </select>
+              <label for="settings-working-need-enabled" data-i18n="workingNeed.label">Working Need Greater</label>
+              <div class="working-need-toggle">
+                <input type="checkbox" id="settings-working-need-enabled" />
+                <label for="settings-working-need-enabled" data-i18n="workingNeed.onOff">Enable Working Need Greater</label>
+              </div>
+              <label for="settings-working-need-designation" data-i18n="workingNeed.designation">Working designation</label>
+              <select id="settings-working-need-designation">
+                <option value="" data-i18n="workingNeed.chooseDesignation">Choose a designation</option>
+                <option value="country" data-i18n="workingNeed.country">Country</option>
+                <option value="unassigned" data-i18n="workingNeed.unassigned">Unassigned</option>
+                <option value="seldomWorked" data-i18n="workingNeed.seldomWorked">Seldom Worked</option>
+              </select>
+              <label for="settings-working-need-country" data-i18n="workingNeed.countryName">Working country</label>
+              <select id="settings-working-need-country"></select>
+              <p id="working-need-status" role="status" aria-live="polite"></p>
+            </details>
             <details class="settings-section" id="defaults-your-details-section">
               <summary data-i18n="settings.defaultsDetails">Defaults &amp; Your Details</summary>
               <details class="settings-section" id="defaults-section">
               <summary data-i18n="settings.defaults">Defaults</summary>
               <form id="settings-form">
+                <label for="settings-address-country" data-i18n="addressing.label">Country Addressing</label>
+                <select id="settings-address-country"></select>
                 <label for="me-country" data-i18n="contacts.country">Country:</label>
                 <select id="me-country"></select>
                 <div id="new-me-country-container" hidden>
@@ -441,7 +490,7 @@
               <form id="me-form">
                 <label for="me-name" data-i18n="settings.name">Name:</label>
                 <input type="text" id="me-name" autocomplete="name" enterkeyhint="next" />
-                <label for="me-street" data-i18n="contacts.address">Street Address:</label>
+                <label id="me-address-label" for="me-street" data-i18n="contacts.address">Street Address:</label>
                 <input type="text" id="me-street" autocomplete="street-address" />
                 <label id="me-city-label" for="me-city" data-i18n="location.cityLabel">City:</label>
                 <input type="text" id="me-city" list="me-city-options" placeholder="Choose or enter a city" data-i18n-attr="placeholder:location.cityPlaceholder" autocomplete="off" disabled />
@@ -1021,6 +1070,13 @@
         </section>
         <section id="setup-wizard-step-1" class="setup-wizard-step">
           <h2 tabindex="-1" data-i18n="setup.welcome">Welcome to Nice Return Visits</h2>
+          <label for="setup-language" data-i18n="language.label">Language</label>
+          <select id="setup-language">
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
+          <label for="setup-address-country" data-i18n="addressing.label">Country Addressing</label>
+          <select id="setup-address-country"></select>
           <p data-i18n="setup.locationIntro">
             Before adding contacts, you can set default location details and
             optional information about yourself. These choices help prepare
@@ -1123,9 +1179,13 @@
       </form>
     </dialog>
 
-    <dialog id="export-selection-dialog">
+    <dialog
+      id="export-selection-dialog"
+      aria-labelledby="export-selection-title"
+      aria-describedby="export-selection-scope"
+    >
       <form id="export-selection-form">
-        <h2 data-i18n="export.contacts">Export Contacts</h2>
+        <h2 id="export-selection-title" data-i18n="export.contacts">Export Contacts</h2>
         <p data-i18n="export.numberExplanation">
           Contact numbers match the current list and map pins. Filtering or
           sorting can change them.
@@ -1163,6 +1223,7 @@
           />
         </fieldset>
         <p id="export-selection-status" role="status" aria-live="polite"></p>
+        <p id="export-selection-scope" role="status" aria-live="polite"></p>
         <p data-i18n="export.largeSelection">
           Large selections may exceed SMS, email, or WhatsApp limits. Exporting
           a file is better for large lists.
@@ -1321,8 +1382,12 @@
             <label for="contact-lastname" data-i18n="contacts.lastName">Last Name (optional):</label>
             <input type="text" id="contact-lastname" />
 
-            <label for="contact-address" data-i18n="contacts.address">Street Address:</label>
+            <div id="contact-address-fields">
+            <div class="address-field-group" data-address-field="street">
+            <label id="contact-address-label" for="contact-address" data-i18n="contacts.address">Street Address:</label>
             <input type="text" id="contact-address" autocapitalize="words" />
+            </div>
+            <div class="address-field-group" data-address-field="city">
             <label id="contact-city-label" for="contact-city-select" data-i18n="contacts.city">City (required):</label>
             <select id="contact-city-select" required disabled>
               <option value="" data-i18n="location.chooseCity">Choose city</option>
@@ -1338,10 +1403,14 @@
                 <button type="button" id="btn-cancel-new-contact-city" data-i18n="common.cancel">Cancel</button>
               </div>
             </div>
+            </div>
 
+            <div class="address-field-group" data-address-field="state">
             <label id="contact-state-label" for="contact-state" data-i18n="contacts.state">State / Province:</label>
             <input type="text" id="contact-state" placeholder="State or province" data-i18n-attr="placeholder:location.statePlaceholder" disabled />
+            </div>
 
+            <div class="address-field-group" data-address-field="country">
             <label for="contact-country" data-i18n="contacts.country">Country:</label>
             <select id="contact-country"></select>
             <div id="new-contact-country-container" hidden>
@@ -1352,7 +1421,9 @@
                 <button type="button" id="btn-cancel-new-contact-country" data-i18n="common.cancel">Cancel</button>
               </div>
             </div>
+            </div>
 
+            <div class="address-field-group" data-address-field="region">
             <label id="contact-region-label" for="contact-region-select" data-i18n="contacts.region">Region (optional):</label>
             <select id="contact-region-select" disabled>
               <option value="" data-i18n="common.none">None</option>
@@ -1378,7 +1449,9 @@
                 </button>
               </div>
             </div>
+            </div>
 
+            <div class="address-field-group" data-address-field="area">
             <label id="contact-area-label" for="contact-area-select" data-i18n="contacts.area">Area (optional):</label>
             <select id="contact-area-select" disabled>
               <option value="" data-i18n="common.none">None</option>
@@ -1402,6 +1475,18 @@
                 <button type="button" id="btn-cancel-new-contact-area" data-i18n="common.cancel">
                   Cancel
                 </button>
+              </div>
+              </div>
+            </div>
+
+            <div class="address-field-group" data-address-field="addressing">
+              <label for="contact-addressing-country" data-i18n="contacts.addressingCountry">Country Addressing for this contact</label>
+              <select id="contact-addressing-country"></select>
+            </div>
+
+            <div class="address-field-group" data-address-field="postal">
+                <label for="contact-postal-code" data-i18n="contacts.postalCode">Postal code (optional):</label>
+                <input type="text" id="contact-postal-code" autocomplete="postal-code" />
               </div>
             </div>
 
@@ -1651,6 +1736,24 @@
       <p data-i18n="update.none">You already have the latest version of Nice Return Visits.</p>
       <div class="restore-dialog-actions">
         <button type="button" id="btn-ok-no-update" data-i18n="common.ok">OK</button>
+      </div>
+    </dialog>
+
+    <dialog
+      id="working-need-privacy-dialog"
+      aria-labelledby="working-need-privacy-title"
+      aria-describedby="working-need-privacy-message"
+    >
+      <p class="nrv-message-brand">Nice Return Visits</p>
+      <h2 id="working-need-privacy-title" data-i18n="workingNeed.privacyTitle">Privacy Reminder</h2>
+      <p id="working-need-privacy-message" data-i18n="workingNeed.privacyMessage">
+        Privacy and personal-data requirements vary by country. Before recording personal information, make sure you understand the requirements that apply where you are working.
+      </p>
+      <p><strong data-i18n="workingNeed.privacyControl">NRV provides the controls.</strong></p>
+      <p><strong data-i18n="workingNeed.privacyChoice">You determine what is appropriate to collect.</strong></p>
+      <div class="restore-dialog-actions">
+        <button type="button" id="working-need-privacy-cancel" data-i18n="common.cancel">Cancel</button>
+        <button type="button" id="working-need-privacy-continue" data-i18n="common.continue">Continue</button>
       </div>
     </dialog>
 

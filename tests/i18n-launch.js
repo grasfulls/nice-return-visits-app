@@ -74,10 +74,19 @@ async function main() {
   }
 
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-  assert(!html.includes("data-language-selector"));
-  assert(!/id="(?:launch|unlock|browser-install|settings|setup)-language"/.test(html));
+  assert(html.includes('id="setup-language"'), "setup offers a language preference");
+  assert(html.includes('id="settings-language"'), "Settings offers a language preference");
+  assert(html.includes('id="setup-address-country"'), "setup offers Country Addressing");
+  assert(html.includes('id="settings-address-country"'), "Settings offers Country Addressing");
   assert(!source.includes("data-language-selector"));
-  console.log("PASS  no in-app language selectors remain");
+  console.log("PASS  language and Country Addressing preferences are separate in setup and Settings");
+
+  const selectable = makeApp("", "en");
+  await selectable.window.NRVI18n.init();
+  selectable.window.NRVI18n.setLanguage("es");
+  assert.strictEqual(selectable.values.get("nrv_language"), "es");
+  assert.throws(() => selectable.window.NRVI18n.setLanguage("fr"), /Unsupported language/);
+  console.log("PASS  language preference saves independently and rejects unsupported languages");
 
   const websiteLink = html.match(/<a\s+href="([^"]+)"\s+data-i18n="([^"]+)"\s+data-i18n-attr="([^"]+)"[^>]*>\s*([^<]+?)\s*<\/a>/g)
     .find((link) => link.includes('data-i18n="launch.websiteLink"'));

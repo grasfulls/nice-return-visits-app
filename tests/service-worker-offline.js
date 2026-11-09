@@ -24,7 +24,7 @@ const cache = {
 const caches = {
   async open() { return cache; },
   async match(request) { return entries.get(normalize(request)); },
-  async keys() { return ["return-visits-shell-v195", "unrelated-cache"]; },
+  async keys() { return ["return-visits-shell-v195", "return-visits-shell-v196", "unrelated-cache"]; },
   async delete(name) { deletedCaches.push(name); return true; },
 };
 const self = {
@@ -50,8 +50,8 @@ async function main() {
   let activation;
   handlers.activate({ waitUntil(promise) { activation = promise; } });
   await activation;
-  assert.deepStrictEqual(deletedCaches, ["return-visits-shell-v195"]);
-  console.log("PASS  service-worker update removes the previous PDF-containing cache");
+  assert.deepStrictEqual(deletedCaches, ["return-visits-shell-v195", "return-visits-shell-v196"]);
+  console.log("PASS  service-worker update removes previous shell caches");
   async function offline(relativePath, mode = "cors") {
     let response;
     handlers.fetch({

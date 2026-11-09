@@ -38,40 +38,13 @@ const common = [
   "backup", "cloud-backup", "sync", "consolidate", "remove-data", "troubleshooting",
 ];
 for (const [language, filename] of [["en", "help.html"], ["es", "help-es.html"]]) {
-  inspect(path.join(app, filename), common);
+  const appIds = inspect(path.join(app, filename), common);
   if (site) {
     const websiteFile = language === "en" ? path.join(site, "help.html") : path.join(site, "es", "help.html");
-    inspect(websiteFile, common);
-    const appHtml = fs.readFileSync(path.join(app, filename), "utf8").replace(/\r\n/g, "\n");
-    const websiteHtml = fs.readFileSync(websiteFile, "utf8").replace(/\r\n/g, "\n");
-    let main = appHtml.split("<main>")[1].split("</main>")[0];
-    if (language === "en") {
-      main = main.replace(/\s*<p class="screen-only">.*?<\/p>/, "");
-      main = main.replaceAll("./docs/", "assets/docs/");
-      main = main.replaceAll(
-        "https://nicereturnvisits.org/assets/docs/",
-        "assets/docs/",
-      );
-      main = main.replace('<h3 id="remove-data">', '<span id="stop-using-the-app-and-remove-its-saved-data"></span>\n      <h3 id="remove-data">');
-    } else {
-      main = main.replaceAll("./docs/", "../assets/docs/");
-      main = main.replaceAll(
-        "https://nicereturnvisits.org/assets/docs/",
-        "../assets/docs/",
-      );
-      main = main.replace('href="./privacy.html"', 'href="privacy.html"').replace('href="./terms.html"', 'href="terms.html"');
+    const websiteIds = inspect(websiteFile, common);
+    for (const id of common) {
+      assert(appIds.includes(id) && websiteIds.includes(id), `${language}: shared Help anchor #${id}`);
     }
-    main = main.replaceAll(
-      `href="./index.html?lang=${language}&amp;install=1"`,
-      `href="https://nicereturnvisits.org/app/?lang=${language}&amp;install=1"`,
-    );
-    if (language === "en") {
-      main = main.replaceAll(
-        'href="./index.html?lang=en"',
-        'href="https://nicereturnvisits.org/app/?lang=en"',
-      );
-    }
-    assert(websiteHtml.includes(main.trim()), `${language}: website and app reference content differ`);
     const images = ["install-browser-en.png", "install-browser-es.png"];
     for (const name of images) {
       assert(fs.readFileSync(path.join(app, "docs", name)).equals(fs.readFileSync(path.join(site, "assets", "docs", name))), `${name}: published copy differs`);

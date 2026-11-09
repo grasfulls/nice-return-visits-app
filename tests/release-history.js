@@ -49,9 +49,9 @@ if (site) {
   for (const language of ["en", "es"]) {
     const page = fs.readFileSync(path.join(site, language === "en" ? "" : "es", "version-history.html"), "utf8");
     for (const line of generator.siteLines(history, language)) assert(page.includes(line));
-    assert(page.includes('class="home-page"'));
-    assert(page.includes('class="site-header site-header-standard"'));
-    assert(page.includes('class="content"'));
+    assert(page.includes('<body class="site-shell">'));
+    assert(page.includes('<header class="site-header">'));
+    assert(page.includes('<main class="site-main content">'));
     assert(page.includes("assets/css/styles.css"));
     assert(page.includes("assets/js/language-menu.js"));
     assert(page.includes(language === "en" ? "es/version-history.html" : "../version-history.html"));
