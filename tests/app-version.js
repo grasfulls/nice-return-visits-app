@@ -36,7 +36,7 @@ const catalogs = Object.fromEntries(["en", "es"].map((language) => [
 for (const language of ["en", "es"]) i18n._setCatalog(language, catalogs[language]);
 
 async function main() {
-  assert.strictEqual(api.APP_VERSION, "0.9.0");
+  assert.strictEqual(api.APP_VERSION, "0.9.5");
   for (const invalid of ["1.0", "1.2.3.4", "01.2.3", "1.-1.0", "1.2.3-beta", "1.2.3\n", "", null, 123]) {
     assert.throws(() => api.parseAppVersion(invalid));
   }
@@ -54,6 +54,8 @@ async function main() {
   assert.throws(() => release.metadataFor("0.09.0"));
   const metadata = fs.readFileSync(path.join(root, "version.json"), "utf8");
   release.checkMetadata(metadata, version);
+  assert(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('id="app-version-badge"'));
+  assert(source.includes("versionBadge.textContent = `v${APP_VERSION}`"));
   assert.throws(() => release.checkMetadata('{"version":"1.0.0"}', version));
   assert.throws(() => release.checkMetadata("not json", version));
   assert.throws(() => release.checkMetadata('{"version":"0.9.0","extra":true}', version));
@@ -88,7 +90,7 @@ async function main() {
   let dialogs = 0;
   let reloads = 0;
   let updateCalls = 0;
-  let deployed = "0.9.0";
+  let deployed = "0.9.5";
   let worker = null;
   let available = false;
   let block = "";
@@ -142,7 +144,7 @@ async function main() {
   await check();
   assert.strictEqual(status.textContent, catalogs.en["update.versionCheckFailed"]);
   assert(!button.disabled);
-  deployed = "0.9.0";
+  deployed = "0.9.5";
   worker = { state: "activated" };
   await check();
   assert.strictEqual(reloads, 1, "same version does not suppress worker update");

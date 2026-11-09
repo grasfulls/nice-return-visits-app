@@ -17,7 +17,7 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
-const APP_VERSION = "0.9.0";
+const APP_VERSION = "0.9.5";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const parseAppVersion = (version) => {
@@ -278,9 +278,121 @@ const locationTypeDisplay = (type) => ({
 
 // Bump on any change to the stored data shape, and add a migration in
 // normalizeRegionData. Version 3 added country; version 5 added postal codes.
-// Version 6 added the independent address-formatting country preference.
-const SCHEMA_VERSION = 7;
+// Version 6 added independent addressing; version 7 added working designations;
+// version 8 adds goals, milestones, and occurrence history.
+const SCHEMA_VERSION = 8;
 const EPOCH_TIMESTAMP = "1970-01-01T00:00:00.000Z";
+const GOAL_PATHS = {
+  beginMinistry: {
+    nameKey: "goals.path.beginMinistry",
+    icon: "🌱",
+    type: "target",
+    items: [
+      "participateAspect",
+      "startConversationDoor",
+      "shareThought",
+      "participateAgain",
+      "chooseRegularGoal",
+    ],
+  },
+  participate: {
+    nameKey: "goals.path.participate",
+    icon: "📅",
+    type: "recurring",
+    items: ["chooseRhythm", "planAttainable", "recordSession"],
+  },
+  auxiliary: {
+    nameKey: "goals.path.auxiliary",
+    icon: "🌅",
+    type: "target",
+    items: ["learnAuxiliary", "choosePeriod", "planSchedule", "reviewProgress"],
+  },
+  regular: {
+    nameKey: "goals.path.regular",
+    icon: "🌄",
+    type: "target",
+    items: ["learnRegular", "planSustainable", "reviewProgress"],
+  },
+  returnVisits: {
+    nameKey: "goals.path.returnVisits",
+    icon: "↩️",
+    type: "target",
+    items: ["planFollowUp", "prepareQuestion", "recordOutcome", "reviewStudy"],
+  },
+  informal: {
+    nameKey: "goals.path.informal",
+    icon: "💬",
+    type: "recurring",
+    items: ["noticeOpportunity", "prepareConversation", "reflectConversation"],
+  },
+  skills: {
+    nameKey: "goals.path.skills",
+    icon: "📖",
+    type: "target",
+    items: ["chooseSkill", "practiceSkill", "reflectSkill"],
+  },
+  needGreater: {
+    nameKey: "goals.path.needGreater",
+    icon: "🧭",
+    type: "repeatable",
+    items: ["learnNeedGreater", "considerCircumstances", "planPracticalSteps"],
+  },
+  unassigned: {
+    nameKey: "goals.path.unassigned",
+    icon: "🗺️",
+    type: "repeatable",
+    items: ["chooseTerritory", "planSessions", "recordCompletion"],
+  },
+  seldomWorked: {
+    nameKey: "goals.path.seldomWorked",
+    icon: "🗺️",
+    type: "repeatable",
+    selectable: false,
+    items: ["chooseTerritory", "planSessions", "recordCompletion"],
+  },
+};
+const GOAL_ITEM_KEYS = {
+  chooseRhythm: "goals.item.chooseRhythm",
+  planAttainable: "goals.item.planAttainable",
+  recordSession: "goals.item.recordSession",
+  learnAuxiliary: "goals.item.learnAuxiliary",
+  choosePeriod: "goals.item.choosePeriod",
+  planSchedule: "goals.item.planSchedule",
+  reviewProgress: "goals.item.reviewProgress",
+  learnRegular: "goals.item.learnRegular",
+  planSustainable: "goals.item.planSustainable",
+  planFollowUp: "goals.item.planFollowUp",
+  prepareQuestion: "goals.item.prepareQuestion",
+  recordOutcome: "goals.item.recordOutcome",
+  reviewStudy: "goals.item.reviewStudy",
+  noticeOpportunity: "goals.item.noticeOpportunity",
+  prepareConversation: "goals.item.prepareConversation",
+  reflectConversation: "goals.item.reflectConversation",
+  chooseSkill: "goals.item.chooseSkill",
+  practiceSkill: "goals.item.practiceSkill",
+  reflectSkill: "goals.item.reflectSkill",
+  learnNeedGreater: "goals.item.learnNeedGreater",
+  considerCircumstances: "goals.item.considerCircumstances",
+  planPracticalSteps: "goals.item.planPracticalSteps",
+  chooseTerritory: "goals.item.chooseTerritory",
+  planSessions: "goals.item.planSessions",
+  recordCompletion: "goals.item.recordCompletion",
+  adjustedStep: "goals.adjustedStep",
+  participateAspect: "goals.item.participateAspect",
+  startConversationDoor: "goals.item.startConversationDoor",
+  shareThought: "goals.item.shareThought",
+  participateAgain: "goals.item.participateAgain",
+  chooseRegularGoal: "goals.item.chooseRegularGoal",
+};
+const GOAL_METHODS = {
+  doorToDoor: "goals.method.doorToDoor",
+  letterWriting: "goals.method.letterWriting",
+  telephone: "goals.method.telephone",
+  public: "goals.method.public",
+  smpw: "goals.method.smpw",
+  informal: "goals.method.informal",
+  other: "goals.method.other",
+};
 
 class NewerDataVersionError extends Error {
   constructor() {
@@ -1489,6 +1601,216 @@ const normalizeTimeTracking = (value) => {
   };
 };
 
+const normalizeGoalsAndMilestones = (value) => {
+  const source = value && typeof value === "object" ? value : {};
+  const allowedTypes = new Set(["recurring", "target", "repeatable", "custom"]);
+  const allowedStatuses = new Set([
+    "active",
+    "paused",
+    "review",
+    "achieved",
+  ]);
+  const goals = (Array.isArray(source.goals) ? source.goals : [])
+    .filter((goal) => goal && goal.id !== undefined)
+    .map((goal) => {
+      const items = (Array.isArray(goal.items) ? goal.items : [])
+        .filter((item) => item && item.id !== undefined)
+        .slice(0, 100)
+        .map((item) => ({
+          id: String(item.id),
+          ...(typeof item.key === "string" &&
+          Object.hasOwn(GOAL_ITEM_KEYS, item.key)
+            ? { key: item.key }
+            : {}),
+          ...(typeof item.customText === "string" && item.customText.trim()
+            ? { customText: item.customText.trim().slice(0, 240) }
+            : {}),
+          ...(typeof item.durationDay === "string" &&
+          ["mon", "tue", "wed", "thu", "fri", "sat", "sun"].includes(
+            item.durationDay,
+          )
+            ? { durationDay: item.durationDay }
+            : {}),
+          ...(item.key === "participateAspect"
+            ? {
+                selectedMethods: Array.isArray(item.selectedMethods)
+                  ? [...new Set(
+                      item.selectedMethods.filter((method) =>
+                        Object.hasOwn(GOAL_METHODS, method),
+                      ),
+                    )]
+                  : [],
+                ...(typeof item.methodOtherText === "string" &&
+                item.methodOtherText.trim()
+                  ? { methodOtherText: item.methodOtherText.trim().slice(0, 240) }
+                  : {}),
+              }
+            : {}),
+          ...(item.key === "adjustedStep"
+            ? {
+                number: Math.min(
+                  100,
+                  Math.max(1, Math.round(Number(item.number) || 1)),
+                ),
+              }
+            : {}),
+          completed: item.completed === true,
+          completedAt:
+            item.completed === true &&
+            typeof item.completedAt === "string" &&
+            !Number.isNaN(Date.parse(item.completedAt))
+              ? item.completedAt
+              : null,
+          durationMinutes: Math.min(
+            1440,
+            Math.max(0, Math.round(Number(item.durationMinutes) || 0)),
+          ),
+        }));
+      const status = allowedStatuses.has(goal.status)
+        ? goal.status
+        : "active";
+      const completedCount = items.filter((item) => item.completed).length;
+      const normalizedStatus =
+        items.length > 0 && completedCount === items.length
+          ? "achieved"
+          : status === "achieved"
+            ? "review"
+            : status;
+      const dayDurations = {};
+      for (const day of ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]) {
+        const minutes = Math.min(
+          1440,
+          Math.max(0, Math.round(Number(goal.dayDurations?.[day]) || 0)),
+        );
+        if (minutes) dayDurations[day] = minutes;
+      }
+      return {
+        id: String(goal.id),
+        pathId:
+          typeof goal.pathId === "string" &&
+          (Object.hasOwn(GOAL_PATHS, goal.pathId) || goal.pathId === "custom")
+            ? goal.pathId
+            : "custom",
+        pathName:
+          typeof goal.pathName === "string"
+            ? goal.pathName.trim().slice(0, 120)
+            : "",
+        type: allowedTypes.has(goal.type) ? goal.type : "target",
+        status: normalizedStatus,
+        frequency: goal.frequency === "monthly" ? "monthly" : "weekly",
+        periodDays: Math.min(
+          3660,
+          Math.max(0, Math.round(Number(goal.periodDays) || 0)),
+        ),
+        periodEndsAt:
+          typeof goal.periodEndsAt === "string" &&
+          !Number.isNaN(Date.parse(goal.periodEndsAt))
+            ? goal.periodEndsAt
+            : null,
+        durationMinutes: Math.min(
+          1440,
+          Math.max(0, Math.round(Number(goal.durationMinutes) || 0)),
+        ),
+        dayDurations,
+        items,
+        createdAt:
+          typeof goal.createdAt === "string" &&
+          !Number.isNaN(Date.parse(goal.createdAt))
+            ? goal.createdAt
+            : EPOCH_TIMESTAMP,
+        updatedAt:
+          typeof goal.updatedAt === "string" &&
+          !Number.isNaN(Date.parse(goal.updatedAt))
+            ? goal.updatedAt
+            : EPOCH_TIMESTAMP,
+        ...(normalizedStatus === "achieved"
+          ? {
+              achievedAt:
+                typeof goal.achievedAt === "string" &&
+                !Number.isNaN(Date.parse(goal.achievedAt))
+                  ? goal.achievedAt
+                  : items[items.length - 1]?.completedAt ||
+                    goal.updatedAt ||
+                    EPOCH_TIMESTAMP,
+            }
+          : {}),
+        ...(typeof goal.periodEndedAt === "string" &&
+        !Number.isNaN(Date.parse(goal.periodEndedAt))
+          ? { periodEndedAt: goal.periodEndedAt }
+          : {}),
+        ...(normalizedStatus === "paused"
+          ? {
+              pausedFromStatus:
+                goal.pausedFromStatus === "review" ? "review" : "active",
+              pausedRemainingMs: Math.max(
+                0,
+                Math.round(Number(goal.pausedRemainingMs) || 0),
+              ),
+            }
+          : {}),
+      };
+    });
+  const latest = source.latestAcknowledgement;
+  const latestAcknowledgement =
+    latest &&
+    typeof latest === "object" &&
+    typeof latest.id === "string" &&
+    typeof latest.at === "string" &&
+    !Number.isNaN(Date.parse(latest.at))
+      ? {
+          id: latest.id,
+          goalId: String(latest.goalId || ""),
+          kind: latest.kind === "goal" ? "goal" : "milestone",
+          pathId:
+            typeof latest.pathId === "string" &&
+            (Object.hasOwn(GOAL_PATHS, latest.pathId) ||
+              latest.pathId === "custom")
+              ? latest.pathId
+              : "custom",
+          pathName:
+            typeof latest.pathName === "string"
+              ? latest.pathName.trim().slice(0, 120)
+              : "",
+          itemKey:
+            typeof latest.itemKey === "string" &&
+            Object.hasOwn(GOAL_ITEM_KEYS, latest.itemKey)
+              ? latest.itemKey
+              : "",
+          itemText:
+            typeof latest.itemText === "string"
+              ? latest.itemText.trim().slice(0, 240)
+              : "",
+          count: Math.max(0, Math.round(Number(latest.count) || 0)),
+          total: Math.max(0, Math.round(Number(latest.total) || 0)),
+          dismissed: latest.dismissed === true,
+          at: latest.at,
+        }
+      : null;
+  return {
+    encouragementEnabled: source.encouragementEnabled !== false,
+    goals,
+    deletedGoalIds: Array.isArray(source.deletedGoalIds)
+      ? [
+          ...new Set(
+            source.deletedGoalIds.filter((id) => typeof id === "string"),
+          ),
+        ]
+      : [],
+    latestAcknowledgement,
+  };
+};
+
+const getGoalProgress = (goal) => {
+  const total = goal.items.length;
+  const completed = goal.items.filter((item) => item.completed).length;
+  return {
+    completed,
+    count: completed,
+    total,
+    percent: total ? Math.floor((completed / total) * 100) : 0,
+  };
+};
+
 const normalizeRegionData = (settings, contacts) => {
   if ((Number(settings.schemaVersion) || 1) > SCHEMA_VERSION) {
     throw new NewerDataVersionError();
@@ -1663,6 +1985,9 @@ const normalizeRegionData = (settings, contacts) => {
 
   normalizedSettings.schemaVersion = SCHEMA_VERSION;
   normalizedSettings.timeTracking = normalizeTimeTracking(settings.timeTracking);
+  normalizedSettings.goalsAndMilestones = normalizeGoalsAndMilestones(
+    settings.goalsAndMilestones,
+  );
   normalizedSettings.country = defaultCountry;
   normalizedSettings.addressingCountry = addressingCountry;
   normalizedSettings.workingNeedGreater = workingNeedGreater;
@@ -5123,12 +5448,930 @@ const initializeApp = async () => {
     );
   };
 
+  const goalsData = () => settings.goalsAndMilestones;
+  const goalDrafts = new Map();
+  const goalId = () =>
+    `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  const cloneGoalData = () => JSON.parse(JSON.stringify(goalsData()));
+  const getGoalPathName = (goal) =>
+    goal.pathId === "custom"
+      ? goal.pathName || appText("goals.path.custom", "Create My Own Path")
+      : appText(
+          GOAL_PATHS[goal.pathId]?.nameKey || "goals.path.custom",
+          goal.pathName || "Custom path",
+        );
+  const getGoalItemTitle = (item) => {
+    if (item.customText) return item.customText;
+    if (item.key === "participateAspect") {
+      const methods = (item.selectedMethods || []).map((method) =>
+        appText(GOAL_METHODS[method], method),
+      );
+      if (item.methodOtherText) methods.push(item.methodOtherText);
+      const title = appText(GOAL_ITEM_KEYS[item.key], item.key);
+      return methods.length
+        ? `${title} — ${methods.join(", ")}`
+        : title;
+    }
+    if (item.key === "durationTarget") {
+      return appText("goals.durationTargetStep", "Duration target: {minutes} minutes", {
+        minutes: item.durationMinutes,
+      });
+    }
+    if (item.key === "durationDay") {
+      const dayName = appText(
+        `goals.day.${item.durationDay}`,
+        item.durationDay,
+      );
+      return appText(
+        "goals.dayDurationTargetStep",
+        "{day} duration target: {minutes} minutes",
+        { day: dayName, minutes: item.durationMinutes },
+      );
+    }
+    if (item.key === "adjustedStep") {
+      return appText("goals.adjustedStep", "Additional step {number}", {
+        number: item.number,
+      });
+    }
+    return appText(
+      GOAL_ITEM_KEYS[item.key] || "",
+      item.key || appText("goals.customStep", "Custom step"),
+    );
+  };
+  const getGoalPeriodEnd = (startedAt, frequency, periodDays) => {
+    if (periodDays > 0) {
+      const end = new Date(startedAt);
+      end.setDate(end.getDate() + periodDays);
+      return end.toISOString();
+    }
+    if (!frequency) return null;
+    const end = new Date(startedAt);
+    if (frequency === "monthly") {
+      const day = end.getDate();
+      end.setDate(1);
+      end.setMonth(end.getMonth() + 1);
+      const lastDay = new Date(
+        end.getFullYear(),
+        end.getMonth() + 1,
+        0,
+      ).getDate();
+      end.setDate(Math.min(day, lastDay));
+    } else {
+      end.setDate(end.getDate() + 7);
+    }
+    return end.toISOString();
+  };
+  const newGoalOccurrence = (goal, items = goal.items) => {
+    const now = new Date().toISOString();
+    const durationDays =
+      goal.type === "recurring"
+        ? 0
+        : goal.periodDays;
+    const periodEndsAt = getGoalPeriodEnd(
+      now,
+      goal.type === "recurring" ? goal.frequency : "",
+      durationDays,
+    );
+    return {
+      ...goal,
+      id: goalId(),
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+      periodEndedAt: undefined,
+      achievedAt: undefined,
+      pausedFromStatus: undefined,
+      pausedRemainingMs: undefined,
+      periodEndsAt,
+      items: items.map((item) => ({
+        ...item,
+        completed: false,
+        completedAt: null,
+      })),
+    };
+  };
+  const saveGoalData = async (previous) => {
+    settings.goalsAndMilestones = normalizeGoalsAndMilestones(goalsData());
+    try {
+      await saveSettings();
+      return true;
+    } catch (error) {
+      settings.goalsAndMilestones = previous;
+      await showStorageError("save goals and milestones", error);
+      return false;
+    }
+  };
+  const getGoalEncouragement = (goal, progress) => {
+    if (!goalsData().encouragementEnabled || !progress.completed) return "";
+    const range =
+      progress.completed === 1 && progress.total <= 2 && progress.percent < 100
+        ? "start"
+        : progress.percent >= 100
+        ? "done"
+        : progress.percent >= 75
+          ? "almost"
+          : progress.percent >= 50
+            ? "great"
+            : progress.percent >= 25
+              ? "progress"
+              : "start";
+    const hash = [...`${goal.id}:${progress.completed}`].reduce(
+      (value, character) => value + character.charCodeAt(0),
+      0,
+    );
+    return appText(
+      `goals.encourage.${range}${(hash % 2) + 1}`,
+      range === "done"
+        ? "Goal achieved! Nice work!"
+        : "Good progress! Keep going.",
+    );
+  };
+  const getGoalRecordedMinutes = (goal, item) => {
+    const tracking = settings.timeTracking;
+    if (!tracking?.enabled) return 0;
+    const start = goal.createdAt.slice(0, 10);
+    const end = (goal.periodEndsAt || new Date().toISOString()).slice(0, 10);
+    const dayCodes = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+    return Math.floor(
+      tracking.entries
+        .filter((entry) => {
+          if (entry.date < start || entry.date > end) return false;
+          if (item.key !== "durationDay") return true;
+          const day = dayCodes[new Date(`${entry.date}T12:00:00`).getDay()];
+          return day === item.durationDay;
+        })
+        .reduce((sum, entry) => sum + Number(entry.seconds || 0), 0) / 60,
+    );
+  };
+  const renderGoalPathOptions = () => {
+    const container = document.getElementById("goals-path-options");
+    container.innerHTML = Object.entries(GOAL_PATHS)
+      .filter(([_id, path]) => path.selectable !== false)
+      .map(
+        ([id, path]) => `
+          <label class="goals-path-option">
+            <input type="checkbox" data-goal-path-choice="${id}">
+            <span class="goals-path-icon" aria-hidden="true">${path.icon}</span>
+            <span>${escapeHtml(appText(path.nameKey, id))}</span>
+          </label>`,
+      )
+      .join("") +
+      `<label class="goals-path-option">
+        <input type="checkbox" data-goal-path-choice="custom">
+        <span class="goals-path-icon" aria-hidden="true">🧭</span>
+        <span>${escapeHtml(appText("goals.path.custom", "Create My Own Path"))}</span>
+      </label>`;
+  };
+  const rememberGoalDrafts = () => {
+    document
+      .querySelectorAll("[data-goal-path-editor]")
+      .forEach((editor) => {
+        const pathId = editor.dataset.goalPathEditor;
+        const existing = goalDrafts.get(pathId) || {};
+        const customSteps = [...editor.querySelectorAll("[data-custom-step]")]
+          .map((input) => ({
+            text: input.value,
+            included: Boolean(
+              editor.querySelector(
+                `[data-custom-step-choice="${input.dataset.customStep}"]`,
+              )?.checked,
+            ),
+          }));
+        const selectedItems = {};
+        editor.querySelectorAll("[data-goal-item-choice]").forEach((input) => {
+          selectedItems[input.dataset.goalItemChoice] = input.checked;
+        });
+        const selectedMethods = [
+          ...editor.querySelectorAll("[data-goal-method-choice]:checked"),
+        ].map((input) => input.dataset.goalMethodChoice);
+        goalDrafts.set(pathId, {
+          ...existing,
+          type: editor.querySelector("[data-goal-type]")?.value || existing.type,
+          frequency:
+            editor.querySelector("[data-goal-frequency]")?.value ||
+            existing.frequency,
+          periodDays:
+            editor.querySelector("[data-goal-period]")?.value ??
+            existing.periodDays,
+          durationMinutes:
+            editor.querySelector("[data-goal-duration]")?.value ??
+            existing.durationMinutes,
+          dayDurations: Object.fromEntries(
+            [...editor.querySelectorAll("[data-goal-day-duration]")].map(
+              (input) => [input.dataset.goalDayDuration, input.value],
+            ),
+          ),
+          selectedItems: {
+            ...(existing.selectedItems || {}),
+            ...selectedItems,
+          },
+          selectedMethods,
+          methodOtherText:
+            editor.querySelector("[data-goal-method-other]")?.value ??
+            existing.methodOtherText ??
+            "",
+          customName:
+            editor.querySelector("[data-custom-path-name]")?.value ||
+            existing.customName ||
+            "",
+          customSteps:
+            editor.querySelectorAll("[data-custom-step]").length
+              ? customSteps
+              : existing.customSteps || [],
+        });
+      });
+  };
+  const renderGoalPathEditors = () => {
+    rememberGoalDrafts();
+    const selected = [
+      ...document.querySelectorAll("[data-goal-path-choice]:checked"),
+    ].map((input) => input.dataset.goalPathChoice);
+    const editors = document.getElementById("goals-path-editors");
+    editors.innerHTML = selected
+      .map((pathId) => {
+        const definition = GOAL_PATHS[pathId];
+        const draft = goalDrafts.get(pathId) || {};
+        const type = draft.type || (definition?.type ?? "custom");
+        const itemMarkup = (key) => {
+          const checked =
+            draft.selectedItems?.[key] !== undefined
+              ? draft.selectedItems[key]
+              : true;
+          const methodOptions =
+            key === "participateAspect"
+              ? `<fieldset class="goals-method-picker" data-goal-methods-for="${key}" ${checked ? "" : "hidden"}>
+                  <legend>${escapeHtml(appText("goals.methodPrompt", "Choose any applicable method(s)"))}</legend>
+                  ${Object.entries(GOAL_METHODS)
+                    .map(
+                      ([method, translationKey]) => `
+                        <label class="goals-method-option">
+                          <input type="checkbox" data-goal-method-choice="${method}" ${draft.selectedMethods?.includes(method) ? "checked" : ""}>
+                          <span>${escapeHtml(appText(translationKey, method))}</span>
+                        </label>`,
+                    )
+                    .join("")}
+                  <label class="goals-method-custom">
+                    <span>${escapeHtml(appText("goals.methodOtherDetail", "Describe another method (optional)"))}</span>
+                    <input type="text" maxlength="240" data-goal-method-other value="${escapeHtml(draft.methodOtherText || "")}">
+                  </label>
+                </fieldset>`
+              : "";
+          return `<div class="goals-milestone-option">
+            <label class="goals-step-option">
+            <input type="checkbox" data-goal-item-choice="${escapeHtml(key)}" ${checked ? "checked" : ""}>
+            <span>${escapeHtml(appText(GOAL_ITEM_KEYS[key], key))}</span>
+            </label>${methodOptions}</div>`;
+        };
+        const customName = draft.customName || "";
+        const customSteps = draft.customSteps || [];
+        const stepsMarkup =
+          pathId === "custom"
+            ? `<label>${escapeHtml(appText("goals.path.customName", "Name your path"))}
+                <input type="text" maxlength="120" data-custom-path-name value="${escapeHtml(customName)}">
+              </label>
+              <fieldset class="goals-custom-steps">
+                <legend>${escapeHtml(appText("goals.customSteps", "Add one suggested step per line"))}</legend>
+                ${Array.from({ length: 6 }, (_unused, index) => {
+                  const step = customSteps[index] || {};
+                  return `<div class="goals-step-option">
+                    <label>
+                      <input type="checkbox" data-custom-step-choice="${index}" ${step.included ? "checked" : ""}>
+                      <span>${escapeHtml(appText("goals.includeStep", "Include this step"))}</span>
+                    </label>
+                    <input type="text" maxlength="240" data-custom-step="${index}" aria-label="${escapeHtml(appText("goals.customStepNumber", "Custom step {number}", { number: index + 1 }))}" value="${escapeHtml(step.text || "")}">
+                  </div>`;
+                }).join("")}
+              </fieldset>`
+            : definition.items.map(itemMarkup).join("");
+        const days = [
+          ["mon", "Monday"],
+          ["tue", "Tuesday"],
+          ["wed", "Wednesday"],
+          ["thu", "Thursday"],
+          ["fri", "Friday"],
+          ["sat", "Saturday"],
+          ["sun", "Sunday"],
+        ];
+        return `<section class="goals-path-editor" data-goal-path-editor="${pathId}">
+          <h3>${escapeHtml(appText(definition?.nameKey || "goals.path.custom", customName || "Create My Own Path"))}</h3>
+          ${stepsMarkup}
+          <label>${escapeHtml(appText("goals.goalType", "Goal type"))}
+            <select data-goal-type aria-label="${escapeHtml(appText("goals.goalType", "Goal type"))}">
+              ${["recurring", "target", "repeatable", "custom"].map((choice) =>
+                `<option value="${choice}" ${type === choice ? "selected" : ""}>${escapeHtml(appText(`goals.type.${choice}`, choice))}</option>`,
+              ).join("")}
+            </select>
+          </label>
+          <div class="goals-frequency-field" ${type !== "recurring" ? "hidden" : ""}>
+            <label>${escapeHtml(appText("goals.frequency", "Repeat every"))}
+              <select data-goal-frequency aria-label="${escapeHtml(appText("goals.frequency", "Repeat every"))}">
+                <option value="weekly" ${(draft.frequency || "weekly") === "weekly" ? "selected" : ""}>${escapeHtml(appText("goals.frequency.weekly", "Week"))}</option>
+                <option value="monthly" ${draft.frequency === "monthly" ? "selected" : ""}>${escapeHtml(appText("goals.frequency.monthly", "Month"))}</option>
+              </select>
+            </label>
+          </div>
+          <label class="goals-period-field" ${type === "recurring" ? "hidden" : ""}>${escapeHtml(appText("goals.periodDays", "Goal period in days (optional)"))}
+            <input type="number" min="1" max="3660" inputmode="numeric" data-goal-period value="${escapeHtml(draft.periodDays || "")}">
+          </label>
+          <label>${escapeHtml(appText("goals.duration", "Optional duration target in minutes"))}
+            <input type="number" min="1" max="1440" inputmode="numeric" data-goal-duration value="${escapeHtml(draft.durationMinutes || "")}">
+          </label>
+          <details class="goals-day-duration">
+            <summary>${escapeHtml(appText("goals.durationByDay", "Optional duration targets by day"))}</summary>
+            ${days.map(([day, fallback]) => `<label>${escapeHtml(appText(`goals.durationForDay`, "{day} duration target in minutes", { day: appText(`goals.day.${day}`, fallback) }))}<input type="number" min="1" max="1440" inputmode="numeric" data-goal-day-duration="${day}" value="${escapeHtml(draft.dayDurations?.[day] || "")}"></label>`).join("")}
+          </details>
+        </section>`;
+      })
+      .join("");
+    const hasPath = selected.length > 0;
+    document.getElementById("btn-create-goals").disabled = !hasPath;
+  };
+  const renderGoalAcknowledgement = () => {
+    const notice = document.getElementById("goals-latest-notice");
+    const acknowledgement = goalsData().latestAcknowledgement;
+    notice.hidden = !acknowledgement || acknowledgement.dismissed;
+    if (notice.hidden) return;
+    const goal =
+      goalsData().goals.find(
+        (item) => item.id === acknowledgement.goalId,
+      ) || {
+        pathId: acknowledgement.pathId,
+        pathName: acknowledgement.pathName,
+      };
+    const pathName = getGoalPathName(goal);
+    document.getElementById("goals-latest-title").textContent =
+      appText(
+        acknowledgement.kind === "goal"
+          ? "goals.goalAchieved"
+          : "goals.milestoneReached",
+        acknowledgement.kind === "goal" ? "Goal achieved" : "Milestone reached",
+      );
+    document.getElementById("goals-latest-message").textContent =
+      acknowledgement.kind === "goal"
+        ? appText("goals.achievementGoal", "You achieved your {goal} goal.", {
+            goal: pathName,
+          })
+        : appText(
+            "goals.achievementMilestone",
+            "You've completed {count} steps on your {path} path.",
+            { count: acknowledgement.count, path: pathName },
+          );
+  };
+  const renderGoalCard = (goal, group) => {
+    const pathName = getGoalPathName(goal);
+    const progress = getGoalProgress(goal);
+    const isReview = group === "review";
+    const isAchieved = group === "history";
+    const periodText =
+      goal.periodEndsAt && !isAchieved
+        ? appText(
+            "goals.periodUntil",
+            "Period through {date}",
+            { date: new Date(goal.periodEndsAt).toLocaleDateString(document.documentElement.lang || undefined) },
+          )
+        : "";
+    const itemList = goal.items
+      .map((item) => {
+        const title = getGoalItemTitle(item);
+        const recordedMinutes =
+          !item.completed &&
+          item.durationMinutes &&
+          settings.timeTracking?.enabled
+            ? getGoalRecordedMinutes(goal, item)
+            : 0;
+        return `<li class="goals-step ${item.completed ? "completed" : ""}">
+          <div><span class="goals-step-title">${escapeHtml(title)}</span>
+          ${item.completedAt ? `<small>${escapeHtml(new Date(item.completedAt).toLocaleDateString(document.documentElement.lang || undefined))}</small>` : ""}
+          ${recordedMinutes ? `<small>${escapeHtml(appText("goals.timeSuggestion", "{minutes} minutes recorded in Time in Service. Review the entries and mark this step complete if appropriate.", { minutes: recordedMinutes }))}</small>` : ""}
+          ${item.durationMinutes && !settings.timeTracking?.enabled ? `<small>${escapeHtml(appText("goals.timeNotTracked", "Time in Service tracking is off. You can still mark this step complete yourself."))}</small>` : ""}
+          </div>
+          ${!item.completed && group === "active" ? `<button type="button" id="goal-item-${escapeHtml(goal.id)}-${escapeHtml(item.id)}" data-goal-action="complete" data-goal-id="${escapeHtml(goal.id)}" data-goal-item-id="${escapeHtml(item.id)}">${escapeHtml(appText("goals.markComplete", "Mark complete"))}</button>` : item.completed ? `<span class="goals-complete-mark" aria-label="${escapeHtml(appText("goals.completed", "Completed"))}">✓</span>` : ""}
+        </li>`;
+      })
+      .join("");
+    const statusMessage =
+      progress.completed
+        ? appText(
+            goal.status === "achieved"
+              ? "goals.progressAchieved"
+              : "goals.progress",
+            goal.status === "achieved"
+              ? "{count} of {total} completed! Goal achieved!"
+              : "{count} of {total} completed!",
+            progress,
+          )
+        : appText("goals.stepsCount", "{count} steps", {
+            count: progress.total,
+            total: progress.total,
+          });
+    const encouragement = getGoalEncouragement(goal, progress);
+    const reviewActions = isReview
+      ? `<p>${escapeHtml(appText("goals.periodEnded", "This goal period has concluded."))}</p>
+        ${encouragement ? `<p class="goals-encouragement">${escapeHtml(encouragement)}</p>` : ""}
+        <p>${escapeHtml(appText("goals.continueQuestion", "Would you like to continue?"))}</p>
+        <div class="goals-card-actions">
+          <button type="button" data-goal-action="try-again" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("goals.tryAgain", "Try Again"))}</button>
+          <button type="button" data-goal-action="adjust-open" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("goals.adjust", "Adjust Goal"))}</button>
+          <button type="button" data-goal-action="pause" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("goals.pause", "Pause for Now"))}</button>
+        </div>
+        <div class="goals-adjust-form" data-goal-adjust-form="${escapeHtml(goal.id)}" hidden>
+          <label>${escapeHtml(appText("goals.newTarget", "New number of steps"))}
+            <input type="number" min="1" max="100" value="${Math.max(1, progress.total)}" data-goal-new-target="${escapeHtml(goal.id)}">
+          </label>
+          <button type="button" data-goal-action="adjust-save" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("goals.saveAdjustment", "Save adjusted goal"))}</button>
+        </div>`
+      : "";
+    const actions = isAchieved
+      ? `<button type="button" data-goal-action="set-again" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("goals.setAgain", "Set Again"))}</button>`
+      : group === "paused"
+        ? `<button type="button" data-goal-action="resume" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("goals.resume", "Resume"))}</button>
+           <button type="button" data-goal-action="remove" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("goals.remove", "Remove Goal"))}</button>`
+        : group === "active"
+          ? `<button type="button" data-goal-action="pause" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("goals.pause", "Pause for Now"))}</button>
+             <button type="button" data-goal-action="remove" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("goals.remove", "Remove Goal"))}</button>`
+          : "";
+    return `<article class="goal-card" data-goal-card="${escapeHtml(goal.id)}">
+      <header class="goal-card-header">
+        <span class="goal-card-icon" aria-hidden="true">${GOAL_PATHS[goal.pathId]?.icon || "🧭"}</span>
+        <h4>${escapeHtml(pathName)}</h4>
+      </header>
+      <p class="goal-progress" role="status" aria-live="polite" tabindex="-1">${escapeHtml(statusMessage)}</p>
+      ${encouragement && !isReview ? `<p class="goals-encouragement">${escapeHtml(encouragement)}</p>` : ""}
+      ${periodText ? `<p class="goal-period">${escapeHtml(periodText)}</p>` : ""}
+      <ol class="goals-step-list">${itemList}</ol>
+      ${reviewActions}
+      ${actions ? `<div class="goals-card-actions">${actions}</div>` : ""}
+    </article>`;
+  };
+  const renderGoalsView = async () => {
+    const expired = goalsData().goals.filter(
+      (goal) =>
+        goal.status === "active" &&
+        goal.periodEndsAt &&
+        Date.parse(goal.periodEndsAt) <= Date.now() &&
+        getGoalProgress(goal).completed < goal.items.length,
+    );
+    if (expired.length) {
+      const previous = cloneGoalData();
+      const now = new Date().toISOString();
+      expired.forEach((goal) => {
+        goal.status = "review";
+        goal.periodEndedAt = now;
+        goal.updatedAt = now;
+      });
+      await saveGoalData(previous);
+    }
+    const groups = {
+      active: document.getElementById("goals-active-list"),
+      paused: document.getElementById("goals-paused-list"),
+      review: document.getElementById("goals-review-list"),
+      history: document.getElementById("goals-history-list"),
+    };
+    Object.entries(groups).forEach(([group, container]) => {
+      const goals = goalsData()
+        .goals.filter((goal) =>
+          group === "history"
+            ? goal.status === "achieved"
+            : goal.status === group,
+        )
+        .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+      container.innerHTML = goals.length
+        ? goals.map((goal) => renderGoalCard(goal, group)).join("")
+        : `<p class="goals-empty">${escapeHtml(appText("goals.noGoals", "No goals here yet."))}</p>`;
+    });
+    renderGoalAcknowledgement();
+  };
+  const readGoalDraft = (pathId) => {
+    const editor = document.querySelector(
+      `[data-goal-path-editor="${pathId}"]`,
+    );
+    if (!editor) return null;
+    const definition = GOAL_PATHS[pathId];
+    const type = editor.querySelector("[data-goal-type]").value;
+    let pathName = "";
+    let items = [];
+    if (pathId === "custom") {
+      pathName = editor.querySelector("[data-custom-path-name]").value.trim();
+      const customSteps = [...editor.querySelectorAll("[data-custom-step]")]
+        .filter(
+          (input) =>
+            editor.querySelector(
+              `[data-custom-step-choice="${input.dataset.customStep}"]`,
+            ).checked && input.value.trim(),
+        )
+        .map((input) => ({
+          id: `step-${input.dataset.customStep}`,
+          customText: input.value.trim(),
+          completed: false,
+          completedAt: null,
+          durationMinutes: 0,
+        }));
+      items = customSteps;
+    } else {
+      items = definition.items
+        .filter((key) =>
+          editor.querySelector(`[data-goal-item-choice="${key}"]`).checked,
+        )
+        .map((key) => {
+          const item = {
+            id: key,
+            key,
+            completed: false,
+            completedAt: null,
+            durationMinutes: 0,
+          };
+          if (key === "participateAspect") {
+            item.selectedMethods = [
+              ...editor.querySelectorAll("[data-goal-method-choice]:checked"),
+            ].map((input) => input.dataset.goalMethodChoice);
+            item.methodOtherText =
+              editor.querySelector("[data-goal-method-other]")?.value.trim() ||
+              "";
+          }
+          return item;
+        });
+    }
+    const durationMinutes = Math.round(
+      Number(editor.querySelector("[data-goal-duration]").value) || 0,
+    );
+    if (durationMinutes) {
+      items.push({
+        id: "duration-target",
+        key: "durationTarget",
+        completed: false,
+        completedAt: null,
+        durationMinutes,
+      });
+    }
+    const dayDurations = {};
+    editor.querySelectorAll("[data-goal-day-duration]").forEach((input) => {
+      const minutes = Math.round(Number(input.value) || 0);
+      if (!minutes) return;
+      const day = input.dataset.goalDayDuration;
+      dayDurations[day] = minutes;
+      items.push({
+        id: `duration-${day}`,
+        key: "durationDay",
+        durationDay: day,
+        completed: false,
+        completedAt: null,
+        durationMinutes: minutes,
+      });
+    });
+    const frequency =
+      editor.querySelector("[data-goal-frequency]")?.value || "weekly";
+    const enteredPeriodDays = Math.min(
+      3660,
+      Math.max(0, Math.round(Number(editor.querySelector("[data-goal-period]").value) || 0)),
+    );
+    const periodDays =
+      type === "recurring"
+        ? frequency === "monthly"
+          ? 0
+          : 0
+        : enteredPeriodDays;
+    return {
+      pathId,
+      pathName,
+      type,
+      frequency,
+      periodDays,
+      durationMinutes,
+      dayDurations,
+      items,
+    };
+  };
+  const addSelectedGoals = async () => {
+    const selected = [
+      ...document.querySelectorAll("[data-goal-path-choice]:checked"),
+    ].map((input) => input.dataset.goalPathChoice);
+    if (!selected.length) {
+      document.getElementById("goals-status").textContent = appText(
+        "goals.selectPath",
+        "Choose at least one path.",
+      );
+      return;
+    }
+    const invalidField = selected
+      .map((pathId) =>
+        document
+          .querySelector(`[data-goal-path-editor="${pathId}"]`)
+          ?.querySelector('input[type="number"]:invalid'),
+      )
+      .find(Boolean);
+    if (invalidField) {
+      invalidField.reportValidity();
+      invalidField.focus();
+      return;
+    }
+    const drafts = selected.map(readGoalDraft);
+    const invalid = drafts.find((draft) => {
+      if (draft.pathId === "custom" && !draft.pathName) return "name";
+      if (draft.pathId === "custom" && !draft.items.some((item) => item.customText)) return "step";
+      if (!draft.items.length) return "item";
+      return "";
+    });
+    if (invalid) {
+      document.getElementById("goals-status").textContent = appText(
+        invalid.pathId === "custom" && !invalid.pathName
+          ? "goals.customNameRequired"
+          : invalid.pathId === "custom"
+            ? "goals.customStepRequired"
+            : "goals.selectStep",
+        invalid.pathId === "custom" && !invalid.pathName
+          ? "Enter a name for your custom path."
+          : invalid.pathId === "custom"
+            ? "Add at least one step to your custom path."
+            : "Include at least one step or duration target for each path.",
+      );
+      return;
+    }
+    const previous = cloneGoalData();
+    const now = new Date().toISOString();
+    drafts.forEach((draft) => {
+      const editor = document.querySelector(
+        `[data-goal-path-editor="${draft.pathId}"]`,
+      );
+      const frequency = draft.frequency;
+      const recurringDays =
+        draft.type === "recurring"
+          ? frequency === "monthly"
+            ? 30
+            : 7
+          : draft.periodDays;
+      const periodDays = recurringDays;
+      const goal = {
+        id: goalId(),
+        pathId: draft.pathId,
+        pathName: draft.pathName,
+        type: draft.type,
+        status: "active",
+        frequency,
+        periodDays,
+        periodEndsAt: getGoalPeriodEnd(
+          now,
+          draft.type === "recurring" ? frequency : "",
+          draft.type === "recurring" ? 0 : periodDays,
+        ),
+        durationMinutes: draft.durationMinutes,
+        dayDurations: draft.dayDurations,
+        createdAt: now,
+        updatedAt: now,
+        items: draft.items,
+      };
+      settings.goalsAndMilestones.goals.unshift(goal);
+    });
+    if (!(await saveGoalData(previous))) return;
+    document
+      .querySelectorAll("[data-goal-path-choice]")
+      .forEach((input) => (input.checked = false));
+    goalDrafts.clear();
+    renderGoalPathEditors();
+    document.getElementById("goals-status").textContent = "";
+    await renderGoalsView();
+  };
+  const completeGoalItem = async (goal, item) => {
+    const previous = cloneGoalData();
+    item.completed = true;
+    item.completedAt = new Date().toISOString();
+    goal.updatedAt = item.completedAt;
+    const progress = getGoalProgress(goal);
+    const achieved = progress.total > 0 && progress.completed === progress.total;
+    if (achieved) {
+      goal.status = "achieved";
+      goal.achievedAt = item.completedAt;
+    }
+    settings.goalsAndMilestones.latestAcknowledgement = {
+      id: goalId(),
+      goalId: goal.id,
+      kind: achieved ? "goal" : "milestone",
+      pathId: goal.pathId,
+      pathName: goal.pathName,
+      itemKey: item.key || "",
+      itemText: item.customText || "",
+      count: progress.completed,
+      total: progress.total,
+      dismissed: false,
+      at: item.completedAt,
+    };
+    if (!(await saveGoalData(previous))) return false;
+    return true;
+  };
+  const handleGoalAction = async (event) => {
+    const button = event.target.closest("[data-goal-action]");
+    if (!button) return;
+    const action = button.dataset.goalAction;
+    const goal = goalsData().goals.find(
+      (entry) => entry.id === button.dataset.goalId,
+    );
+    if (!goal) return;
+    if (action === "adjust-open") {
+      const form = document.querySelector(
+        `[data-goal-adjust-form="${goal.id}"]`,
+      );
+      form.hidden = false;
+      form.querySelector("input").focus();
+      return;
+    }
+    if (action === "remove") {
+      if (
+        !await NRVDialogs.confirm(
+          appText(
+            "goals.removeConfirm",
+            "Remove this goal and its current progress? Completed achievements remain in history.",
+          ),
+        )
+      ) {
+        button.focus();
+        return;
+      }
+    }
+    const previous = cloneGoalData();
+    const now = new Date().toISOString();
+    if (action === "complete") {
+      const item = goal.items.find(
+        (entry) => entry.id === button.dataset.goalItemId,
+      );
+      if (!item || item.completed) return;
+      if (!(await completeGoalItem(goal, item))) return;
+    } else if (action === "pause") {
+      goal.pausedFromStatus = goal.status;
+      goal.status = "paused";
+      goal.updatedAt = now;
+      if (goal.pausedFromStatus === "active" && goal.periodEndsAt) {
+        goal.pausedRemainingMs = Math.max(
+          0,
+          Date.parse(goal.periodEndsAt) - Date.now(),
+        );
+      }
+    } else if (action === "resume") {
+      goal.status =
+        goal.pausedFromStatus === "review" ? "review" : "active";
+      goal.updatedAt = now;
+      if (goal.status === "active") {
+        const remainingMs = Math.max(
+          0,
+          Number(goal.pausedRemainingMs) || 0,
+        );
+        goal.periodEndsAt = goal.periodEndsAt
+          ? new Date(Date.now() + remainingMs).toISOString()
+          : getGoalPeriodEnd(
+              now,
+              goal.type === "recurring" ? goal.frequency : "",
+              goal.type === "recurring" ? 0 : goal.periodDays,
+            );
+      }
+      delete goal.pausedFromStatus;
+      delete goal.pausedRemainingMs;
+    } else if (action === "try-again" || action === "set-again") {
+      const next = newGoalOccurrence(goal);
+      delete next.achievedAt;
+      delete next.periodEndedAt;
+      settings.goalsAndMilestones.goals.unshift(next);
+    } else if (action === "adjust-save") {
+      const targetInput = document.querySelector(
+        `[data-goal-new-target="${goal.id}"]`,
+      );
+      if (!targetInput.checkValidity()) {
+        targetInput.reportValidity();
+        targetInput.focus();
+        return;
+      }
+      const target = Math.min(
+        100,
+        Math.max(
+          1,
+          Math.round(Number(targetInput.value)),
+        ),
+      );
+      const adjustedItems = goal.items
+        .filter((item) => item.key !== "durationTarget" && item.key !== "durationDay")
+        .slice(0, target);
+      while (adjustedItems.length < target) {
+        adjustedItems.push({
+          id: `adjusted-step-${adjustedItems.length + 1}`,
+          key: "adjustedStep",
+          number: adjustedItems.length + 1,
+          completed: false,
+          completedAt: null,
+          durationMinutes: 0,
+        });
+      }
+      const next = newGoalOccurrence(goal, adjustedItems);
+      next.durationMinutes = 0;
+      next.dayDurations = {};
+      delete next.achievedAt;
+      delete next.periodEndedAt;
+      settings.goalsAndMilestones.goals.unshift(next);
+      document.getElementById("goals-status").textContent = appText(
+        "goals.adjustedNotice",
+        "A new goal occurrence was created. Previous progress remains in history.",
+      );
+    } else if (action === "remove") {
+      settings.goalsAndMilestones.deletedGoalIds.push(goal.id);
+      settings.goalsAndMilestones.goals =
+        settings.goalsAndMilestones.goals.filter(
+          (entry) => entry.id !== goal.id,
+        );
+    } else {
+      return;
+    }
+    if (action !== "complete" && !(await saveGoalData(previous))) return;
+    const focusId = button.id;
+    await renderGoalsView();
+    if (focusId && document.getElementById(focusId)) {
+      document.getElementById(focusId).focus();
+    } else {
+      const progressStatus = document.querySelector(
+        `[data-goal-card="${goal.id}"] .goal-progress`,
+      );
+      if (progressStatus) progressStatus.focus();
+      else document.getElementById("goals-active-title").focus();
+    }
+  };
+  renderGoalPathOptions();
+  renderGoalPathEditors();
+  document
+    .getElementById("goals-path-options")
+    .addEventListener("change", renderGoalPathEditors);
+  document
+    .getElementById("goals-path-editors")
+    .addEventListener("input", (event) => {
+      if (event.target.matches("[data-custom-step]")) {
+        const editor = event.target.closest("[data-goal-path-editor]");
+        const choice = editor.querySelector(
+          `[data-custom-step-choice="${event.target.dataset.customStep}"]`,
+        );
+        if (event.target.value.trim()) choice.checked = true;
+      }
+    });
+  document
+    .getElementById("goals-path-editors")
+    .addEventListener("change", (event) => {
+      const editor = event.target.closest("[data-goal-path-editor]");
+      if (editor && event.target.matches("[data-goal-item-choice]")) {
+        const methodPicker = editor.querySelector(
+          `[data-goal-methods-for="${event.target.dataset.goalItemChoice}"]`,
+        );
+        if (methodPicker) methodPicker.hidden = !event.target.checked;
+      }
+      if (
+        editor &&
+        event.target.matches("[data-goal-type]")
+      ) {
+        const frequency = editor.querySelector(".goals-frequency-field");
+        const period = editor.querySelector(".goals-period-field");
+        frequency.hidden = event.target.value !== "recurring";
+        period.hidden = event.target.value === "recurring";
+      }
+    });
+  document
+    .getElementById("btn-create-goals")
+    .addEventListener("click", addSelectedGoals);
+  ["goals-active-list", "goals-paused-list", "goals-review-list", "goals-history-list"]
+    .forEach((id) =>
+      document
+        .getElementById(id)
+        .addEventListener("click", handleGoalAction),
+    );
+  document
+    .getElementById("settings-goals-encouragement")
+    .addEventListener("change", async (event) => {
+      const previous = cloneGoalData();
+      settings.goalsAndMilestones.encouragementEnabled = event.target.checked;
+      if (!(await saveGoalData(previous))) {
+        event.target.checked =
+          settings.goalsAndMilestones.encouragementEnabled;
+        return;
+      }
+      await renderGoalsView();
+    });
+  document
+    .getElementById("btn-dismiss-goals-notice")
+    .addEventListener("click", async () => {
+      const previous = cloneGoalData();
+      if (settings.goalsAndMilestones.latestAcknowledgement) {
+        settings.goalsAndMilestones.latestAcknowledgement.dismissed = true;
+      }
+      if (await saveGoalData(previous)) renderGoalAcknowledgement();
+    });
+  document
+    .getElementById("btn-view-goals")
+    .addEventListener("click", () => {
+      document
+        .querySelector('#bottom-nav .nav-btn[data-view="goals-view"]')
+        ?.click();
+    });
+  document.getElementById("settings-goals-encouragement").checked =
+    goalsData().encouragementEnabled;
+
   // Navigation & Dynamic Footer
   let currentViewId = "contacts-view";
   const navButtonsConfig = [
     { id: "contacts-view", icon: "👥" },
     { id: "map-view", icon: "map" },
     { id: "time-view", icon: "⏱️" },
+    { id: "goals-view", icon: "🧭" },
     { id: "settings-view", icon: "⚙️" },
   ];
 
@@ -5171,6 +6414,7 @@ const initializeApp = async () => {
       "contacts-view": appText("view.contacts", "Contacts"),
       "map-view": appText("view.map", "Map"),
       "time-view": appText("view.time", "Time"),
+      "goals-view": appText("goals.title", "Goals & Milestones"),
       "settings-view": appText("settings.title", "Settings"),
     };
     const contactModal = document.getElementById("contact-modal");
@@ -5183,6 +6427,16 @@ const initializeApp = async () => {
         : names[currentViewId] || appText("view.contacts", "Contacts");
     const h1 = document.getElementById("app-title");
     if (h1) h1.textContent = `NRV - ${name}`;
+    const versionBadge = document.getElementById("app-version-badge");
+    if (versionBadge) {
+      versionBadge.textContent = `v${APP_VERSION}`;
+      versionBadge.setAttribute(
+        "aria-label",
+        appText("app.versionLabel", "Version {version}", {
+          version: APP_VERSION,
+        }),
+      );
+    }
   };
 
   const setupNextStepsDialog = document.getElementById(
@@ -5259,6 +6513,7 @@ const initializeApp = async () => {
       "contacts-view": appText("view.contacts", "Contacts"),
       "map-view": appText("view.map", "Map"),
       "time-view": appText("view.time", "Time"),
+      "goals-view": appText("goals.title", "Goals & Milestones"),
       "settings-view": appText("settings.title", "Settings"),
     };
     document.title = `NRV - ${pageNames[currentViewId] || appText("view.contacts", "Contacts")}`;
@@ -5308,9 +6563,12 @@ const initializeApp = async () => {
           "contacts-view": appText("view.contacts", "Contacts"),
           "map-view": appText("view.map", "Map"),
           "time-view": appText("view.time", "Time"),
+          "goals-view": appText("goals.title", "Goals & Milestones"),
           "settings-view": appText("settings.title", "Settings"),
         };
         btn.setAttribute("aria-label", navLabels[btnConfig.id]);
+        btn.title = navLabels[btnConfig.id];
+        btn.dataset.view = btnConfig.id;
         if (btnConfig.id === "map-view") btn.title = navLabels[btnConfig.id];
         if (btnConfig.id === "time-view" && timeTracking.runningSince) {
           btn.title = "Time — timer running";
@@ -5359,6 +6617,8 @@ const initializeApp = async () => {
           }
 
           if (currentViewId === "time-view") renderTimeView();
+          if (currentViewId === "goals-view") await renderGoalsView();
+          if (currentViewId === "contacts-view") renderGoalAcknowledgement();
 
           if (currentViewId === "contacts-view" && previousViewId !== "settings-view") {
             showSetupNextStepsIfReady();
@@ -7373,6 +8633,7 @@ const initializeApp = async () => {
 
   const renderContacts = () => {
     updateCopyNotice();
+    renderGoalAcknowledgement();
     updateWorkingNeedFilterOptions();
     populateMapLocationOptions();
     if (document.body.classList.contains("map-view-active")) {

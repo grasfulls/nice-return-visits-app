@@ -127,6 +127,41 @@ check(i18n.t("location.areaAdded", { name: "Centro", city: "Lima" }) ===
   i18n.t("location.deleteBlocked", { type: "region", count: 2 }) ===
   "Cannot delete this region while it has 2 assigned contacts. Reassign those contacts first.",
   "English dynamic messages retain existing wording and location values");
+check(
+  i18n.t("goals.stepsCount", { count: 1 }) === "1 step" &&
+    i18n.t("goals.stepsCount", { count: 4 }) === "4 steps" &&
+    i18n.t("goals.progress", { count: 1, total: 4 }) ===
+      "1 of 4 completed!" &&
+    i18n.t("goals.achievementMilestone", { count: 1, path: "Custom" }) ===
+      "You completed 1 step on your Custom path.",
+  "English goal counts and milestones use correct singular and plural forms",
+);
+check(
+  i18n.t("goals.path.beginMinistry") === "Begin Participating in the Ministry" &&
+    i18n.t("goals.item.startConversationDoor") ===
+      "Start a conversation at a door" &&
+    i18n.t("goals.method.smpw") ===
+      "Special Metropolitan Public Witnessing (SMPW)",
+  "English introductory ministry path uses the specified milestones and terminology",
+);
+i18n._setCurrent("es");
+check(
+  i18n.t("goals.stepsCount", { count: 1 }) === "1 paso" &&
+    i18n.t("goals.stepsCount", { count: 4 }) === "4 pasos" &&
+    i18n.t("goals.progress", { count: 1, total: 4 }) ===
+      "¡1 de 4 completado!" &&
+    i18n.t("goals.achievementMilestone", { count: 1, path: "Personal" }) ===
+      "Completaste 1 paso de tu camino Personal.",
+  "Spanish goal counts and milestones use correct singular and plural forms",
+);
+check(
+  i18n.t("goals.path.beginMinistry") ===
+    "Comenzar a participar en el ministerio" &&
+    i18n.t("goals.method.smpw") ===
+      "Special Metropolitan Public Witnessing (SMPW)",
+  "Spanish introductory path is localized and retains the SMPW terminology",
+);
+i18n._setCurrent("en");
 
 const appSource = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const mapControlsHandler = appSource.match(/const localizeMapControls = [\s\S]*?\r?\n};/);

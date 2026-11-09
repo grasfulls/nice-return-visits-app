@@ -59,6 +59,97 @@
     return merged;
   };
 
+  const mergeGoal = (local, remote) => {
+    const remoteWins = time(remote.updatedAt) > time(local.updatedAt);
+    const winner = remoteWins ? remote : local;
+    const items = unionBy(
+      [winner.items, remoteWins ? local.items : remote.items],
+      (item) => String(item.id),
+    ).map((item) => {
+      const localItem = (local.items || []).find(
+        (candidate) => String(candidate.id) === String(item.id),
+      );
+      const remoteItem = (remote.items || []).find(
+        (candidate) => String(candidate.id) === String(item.id),
+      );
+      const completedItem =
+        localItem?.completed && remoteItem?.completed
+          ? {
+              ...(time(localItem.completedAt) <= time(remoteItem.completedAt)
+                ? localItem
+                : remoteItem),
+            }
+          : localItem?.completed
+            ? localItem
+            : remoteItem?.completed
+              ? remoteItem
+              : item;
+      return {
+        ...item,
+        ...completedItem,
+        completed: Boolean(localItem?.completed || remoteItem?.completed),
+      };
+    });
+    const achieved = items.length > 0 && items.every((item) => item.completed);
+    const merged = {
+      ...winner,
+      items,
+      status: achieved ? "achieved" : winner.status,
+      updatedAt: new Date(
+        Math.max(time(local.updatedAt), time(remote.updatedAt)),
+      ).toISOString(),
+    };
+    if (achieved) {
+      const completionDates = items
+        .map((item) => time(item.completedAt))
+        .filter(Boolean);
+      merged.achievedAt = new Date(
+        Math.max(...completionDates, time(local.achievedAt), time(remote.achievedAt)),
+      ).toISOString();
+    }
+    return merged;
+  };
+
+  const mergeGoalsAndMilestones = (local, remote, base) => {
+    const localGoals = local.goalsAndMilestones || {};
+    const remoteGoals = remote.goalsAndMilestones || {};
+    const baseGoals = base.goalsAndMilestones || {};
+    const deletedGoalIds = unionBy(
+      [localGoals.deletedGoalIds, remoteGoals.deletedGoalIds],
+      (id) => String(id),
+    );
+    const deleted = new Set(deletedGoalIds.map(String));
+    const goals = unionBy(
+      [baseGoals.goals, base === local ? remoteGoals.goals : localGoals.goals],
+      (goal) => String(goal.id),
+    ).filter((goal) => !deleted.has(String(goal.id)))
+      .map((goal) => {
+        const localGoal = (localGoals.goals || []).find(
+          (candidate) => String(candidate.id) === String(goal.id),
+        );
+        const remoteGoal = (remoteGoals.goals || []).find(
+          (candidate) => String(candidate.id) === String(goal.id),
+        );
+        return localGoal && remoteGoal
+          ? mergeGoal(localGoal, remoteGoal)
+          : goal;
+      });
+    const acknowledgements = [
+      localGoals.latestAcknowledgement,
+      remoteGoals.latestAcknowledgement,
+    ].filter(Boolean);
+    const latestAcknowledgement = acknowledgements.sort(
+      (a, b) => time(b.at) - time(a.at),
+    )[0] || null;
+    return {
+      ...baseGoals,
+      encouragementEnabled: baseGoals.encouragementEnabled !== false,
+      goals,
+      deletedGoalIds,
+      latestAcknowledgement,
+    };
+  };
+
   // settings: scalar values come from this device when it has unsent changes,
   // otherwise from Dropbox. Location lists are combined.
   const mergeData = (local, remote, { localDirty = false } = {}) => {
@@ -116,6 +207,11 @@
       (item) => JSON.stringify([item.city, item.name]),
     );
     settings.deletedContacts = tombstones;
+    settings.goalsAndMilestones = mergeGoalsAndMilestones(
+      localSettings,
+      remoteSettings,
+      base,
+    );
 
     const localTime = localSettings.timeTracking || {};
     const remoteTime = remoteSettings.timeTracking || {};
@@ -141,7 +237,7 @@
     return { settings, contacts: kept };
   };
 
-  const api = { mergeData, mergeContact };
+  const api = { mergeData, mergeContact, mergeGoal, mergeGoalsAndMilestones };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.RVMerge = api;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.9.5",
+    "en": {
+      "title": "Development release",
+      "changes": [
+        "Choose interface language and Country Addressing independently, including per-contact countries.",
+        "Organize Working Need Greater contacts, focus the map, filter results, and export only the contacts shown.",
+        "Create personal ministry goals, choose methods and milestones, track progress, and preserve achievements."
+      ]
+    },
+    "es": {
+      "title": "Versión en desarrollo",
+      "changes": [
+        "Elige por separado el idioma de la interfaz y el formato de direcciones según el país, incluso para cada contacto.",
+        "Organiza los contactos del territorio donde hay más necesidad, centra el mapa, filtra resultados y exporta solo los contactos mostrados.",
+        "Crea metas personales para el ministerio, elige métodos e hitos, registra el progreso y conserva los logros."
+      ]
+    }
+  },
+  {
     "version": "0.9.0",
     "en": {
       "title": "Development release",

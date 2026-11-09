@@ -139,9 +139,9 @@
           <aside id="first-use-notice" class="first-use-notice">
             <strong data-i18n="unlock.firstUse.heading">First-time use</strong>
             <p data-i18n="unlock.firstUse.body">
-              Use the NRV Home Screen icon as your working copy. Before adding
-              contacts, you can fill in Defaults &amp; Your Details and add
-              any Cities, Regions, and Areas you need.
+              Start where you are: use personal ministry goals or Time in
+              Service, and add contacts or return visits when they are useful.
+              NRV can stay simple; choose which information and features to use.
             </p>
             <small data-i18n="unlock.firstUse.free">
               Nice Return Visits is free to use, with no app fees or subscription.
@@ -243,6 +243,7 @@
     <div id="app-container" inert aria-hidden="true">
       <header>
         <h1 id="app-title">NRV - Contacts</h1>
+        <span id="app-version-badge"></span>
         <img
           class="app-header-logo"
           src="./icons/header-watermark.png"
@@ -356,6 +357,16 @@
               hidden
             />
           </div>
+          <aside id="goals-latest-notice" class="goals-latest-notice" role="status" hidden>
+            <div>
+              <strong id="goals-latest-title"></strong>
+              <span id="goals-latest-message"></span>
+            </div>
+            <div class="goals-latest-actions">
+              <button type="button" id="btn-view-goals" data-i18n="goals.view">View Goals</button>
+              <button type="button" id="btn-dismiss-goals-notice" data-i18n="goals.dismiss">Dismiss</button>
+            </div>
+          </aside>
           <div id="contacts-list"></div>
         </div>
 
@@ -363,9 +374,9 @@
           <form method="dialog">
             <h2 data-i18n="setup.ready">You're ready to get started</h2>
             <p data-i18n="setup.savedDefaults">
-              You can add or change Defaults, Your Details and Cities, Regions
-              &amp; Areas in Settings whenever you like, or add your first
-              contact now.
+              Start where you are: use personal ministry goals or Time in
+              Service, and add contacts or return visits when they are useful.
+              NRV can stay simple; choose which information and features to use.
             </p>
             <div class="restore-dialog-actions setup-next-steps-actions">
               <button type="button" id="btn-setup-add-first-contact" data-i18n="setup.addFirst">
@@ -375,7 +386,7 @@
                 Add more details or places
               </button>
               <button type="submit" id="btn-setup-continue-later" data-i18n="setup.continueContacts">
-                Continue to Contacts
+                Continue to NRV
               </button>
             </div>
           </form>
@@ -428,6 +439,41 @@
           </div>
         </div>
 
+        <div id="goals-view" class="view">
+          <div class="goals-container">
+            <h2 data-i18n="goals.title">Goals &amp; Milestones</h2>
+            <section class="goals-reminder" aria-labelledby="goals-reminder-title">
+              <h3 id="goals-reminder-title" data-i18n="goals.reminderTitle">Choose goals that fit your circumstances.</h3>
+              <p data-i18n="goals.reminderText">Ministry goals can be encouraging when they are reasonable and attainable. Select only the goals and steps that are appropriate for you. You may change, pause, or remove a goal at any time.</p>
+              <p data-i18n="goals.reminderDisclaimer">NRV provides planning tools and suggested goal paths. It does not determine what goals are appropriate for you or evaluate your circumstances.</p>
+            </section>
+            <p class="goals-private-note" data-i18n="goals.privateNote">These goals are private planning tools. NRV does not compare people or determine official service status or qualifications.</p>
+            <fieldset class="goals-path-picker">
+              <legend data-i18n="goals.choosePaths">Choose one or more paths</legend>
+              <div id="goals-path-options"></div>
+            </fieldset>
+            <div id="goals-path-editors"></div>
+            <button type="button" id="btn-create-goals" disabled data-i18n="goals.addSelected">Add selected goals</button>
+            <p id="goals-status" role="status" aria-live="polite"></p>
+            <section id="goals-active-section" aria-labelledby="goals-active-title">
+              <h3 id="goals-active-title" tabindex="-1" data-i18n="goals.active">In progress</h3>
+              <div id="goals-active-list"></div>
+            </section>
+            <section id="goals-paused-section" aria-labelledby="goals-paused-title">
+              <h3 id="goals-paused-title" data-i18n="goals.paused">Paused for now</h3>
+              <div id="goals-paused-list"></div>
+            </section>
+            <section id="goals-review-section" aria-labelledby="goals-review-title">
+              <h3 id="goals-review-title" data-i18n="goals.review">Would you like to continue?</h3>
+              <div id="goals-review-list"></div>
+            </section>
+            <section id="goals-history-section" aria-labelledby="goals-history-title">
+              <h3 id="goals-history-title" data-i18n="goals.history">Achievement history</h3>
+              <div id="goals-history-list"></div>
+            </section>
+          </div>
+        </div>
+
         <!-- Settings View -->
         <div id="settings-view" class="view">
           <div class="settings-container">
@@ -439,6 +485,10 @@
                 <option value="en">English</option>
                 <option value="es">Español</option>
               </select>
+              <label class="checkbox-row">
+                <input type="checkbox" id="settings-goals-encouragement" />
+                <span data-i18n="goals.encouragementToggle">Encouragement messages</span>
+              </label>
               <label for="settings-working-need-enabled" data-i18n="workingNeed.label">Working Need Greater</label>
               <div class="working-need-toggle">
                 <input type="checkbox" id="settings-working-need-enabled" />
@@ -1012,9 +1062,9 @@
                 <!-- release-notes:start -->
                 <p data-i18n="release.current.title">Development release</p>
                 <ul>
-                  <li data-i18n="release.current.change1">Choose a saved city or add one while editing a contact.</li>
-                  <li data-i18n="release.current.change2">Place and adjust contact map pins, with cross-street search when needed.</li>
-                  <li data-i18n="release.current.change3">See your current NRV version and check for updates in Settings.</li>
+                  <li data-i18n="release.current.change1">Choose interface language and Country Addressing independently, including per-contact countries.</li>
+                  <li data-i18n="release.current.change2">Organize Working Need Greater contacts, focus the map, filter results, and export only the contacts shown.</li>
+                  <li data-i18n="release.current.change3">Create personal ministry goals, choose methods and milestones, track progress, and preserve achievements.</li>
                 </ul>
                 <!-- release-notes:end -->
               </details>
@@ -1078,9 +1128,9 @@
           <label for="setup-address-country" data-i18n="addressing.label">Country Addressing</label>
           <select id="setup-address-country"></select>
           <p data-i18n="setup.locationIntro">
-            Before adding contacts, you can set default location details and
-            optional information about yourself. These choices help prepare
-            contact forms and can be changed later in Settings.
+            You can set default location details and optional information
+            about yourself whenever you like. These choices prepare contact
+            forms and can be changed later in Settings.
           </p>
           <p data-i18n="setup.localData">
             Your setup and contacts stay on this device unless you choose an

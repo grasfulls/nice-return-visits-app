@@ -29,17 +29,25 @@ const context = {
     regions: [],
     areas: [],
   },
-  SCHEMA_VERSION: 7,
+  SCHEMA_VERSION: 8,
+  EPOCH_TIMESTAMP: "1970-01-01T00:00:00.000Z",
   US_STATE_ABBREVIATIONS: { california: "CA", washington: "WA" },
   selectedAddressingCountry: "United States",
   NewerDataVersionError: class NewerDataVersionError extends Error {},
   encryptValue: async (value) => value,
+  decryptValue: async (value) => value,
+  deriveEncryptionKey: async () => ({ key: true }),
+  resolvePassphrase: async (value) => value,
+  base64ToBytes: () => new Uint8Array(16),
   getContactLastActivity: () => "2026-01-01T00:00:00.000Z",
   normalizeTimeTracking: (value) => value || {},
   normalizeStreetName: (value) => value,
   appText: (key, fallback) => catalogs.en[key] || fallback,
 };
 const declarations = [
+  "GOAL_PATHS",
+  "GOAL_ITEM_KEYS",
+  "GOAL_METHODS",
   "toTitleCase",
   "normalizeUsState",
   "normalizeCountry",
@@ -52,6 +60,7 @@ const declarations = [
   "normalizeWorkingNeedGreater",
   "normalizeWorkingDesignation",
   "normalizeTransferredContact",
+  "normalizeGoalsAndMilestones",
   "normalizeRegionData",
   "decryptBackup",
 ].map(declaration).join("\n");
@@ -138,7 +147,16 @@ const normalized = helpers.normalizeRegionData(
   [usContact, peruContact],
 );
 
-assert.strictEqual(normalized.settings.schemaVersion, 7);
+assert.strictEqual(normalized.settings.schemaVersion, 8);
+assert.deepStrictEqual(
+  JSON.parse(JSON.stringify(normalized.settings.goalsAndMilestones)),
+  {
+    encouragementEnabled: true,
+    goals: [],
+    deletedGoalIds: [],
+    latestAcknowledgement: null,
+  },
+);
 assert.strictEqual(normalized.settings.addressingCountry, "United States");
 assert.strictEqual(normalized.contacts[0].country, "United States");
 assert.strictEqual(normalized.contacts[0].state, "WA");
@@ -362,6 +380,30 @@ console.log("PASS  locality is not gated by state and address fields flow throug
       version: 1,
       settings: {
         schemaVersion: 4,
+        goalsAndMilestones: {
+          encouragementEnabled: false,
+          goals: [{
+            id: "goal-restore",
+            pathId: "custom",
+            pathName: "Personal plan",
+            type: "target",
+            status: "paused",
+            pausedFromStatus: "review",
+            pausedRemainingMs: 1200,
+            periodEndedAt: "2026-03-01T00:00:00.000Z",
+            items: [{
+              id: "step-1",
+              customText: "Review progress",
+              completed: true,
+              completedAt: "2026-02-28T00:00:00.000Z",
+            }, {
+              id: "step-2",
+              customText: "Plan next step",
+              completed: false,
+            }],
+          }],
+          deletedGoalIds: ["removed-goal"],
+        },
         country: "United States",
         addressingCountry: "Japan",
         workingNeedGreater: {
@@ -389,7 +431,20 @@ console.log("PASS  locality is not gated by state and address fields flow throug
     },
     null,
   );
-  assert.strictEqual(restored.settings.schemaVersion, 7);
+  assert.strictEqual(restored.settings.schemaVersion, 8);
+  assert.strictEqual(
+    restored.settings.goalsAndMilestones.encouragementEnabled,
+    false,
+  );
+  assert.strictEqual(restored.settings.goalsAndMilestones.goals[0].status, "paused");
+  assert.strictEqual(
+    restored.settings.goalsAndMilestones.goals[0].pausedFromStatus,
+    "review",
+  );
+  assert.deepStrictEqual(
+    JSON.parse(JSON.stringify(restored.settings.goalsAndMilestones.deletedGoalIds)),
+    ["removed-goal"],
+  );
   assert.strictEqual(restored.settings.addressingCountry, "Japan");
   assert.deepStrictEqual(JSON.parse(JSON.stringify(restored.settings.workingNeedGreater)), {
     enabled: true,
@@ -407,6 +462,76 @@ console.log("PASS  locality is not gated by state and address fields flow throug
   assert.strictEqual(restored.contacts[1].notesHistory[0].text, "Peru visit");
   assert.strictEqual(restored.wasLegacyPlaintext, true);
   console.log("PASS  version-1 backup restore preserves contacts and visits with or without postal codes");
+
+  const encryptedRestore = await helpers.decryptBackup(
+    {
+      format: "return-visits-encrypted-backup",
+      version: 1,
+      encryption: {
+        version: 1,
+        algorithm: "AES-GCM",
+        keyDerivation: "PBKDF2-SHA-256",
+        iterations: 310000,
+        salt: "AAAAAAAAAAAAAAAAAAAAAA==",
+      },
+      data: {
+        settings: {
+          schemaVersion: 8,
+          cities: [],
+          areas: [],
+          regions: [],
+          countries: ["Peru"],
+          goalsAndMilestones: {
+            encouragementEnabled: false,
+            deletedGoalIds: ["removed-goal"],
+            goals: [{
+              id: "encrypted-goal",
+              pathId: "beginMinistry",
+              type: "target",
+              status: "active",
+              items: [
+                {
+                  id: "participateAspect",
+                  key: "participateAspect",
+                  selectedMethods: ["doorToDoor", "smpw"],
+                  methodOtherText: "Community table",
+                  completed: true,
+                },
+                { id: "startConversationDoor", key: "startConversationDoor", completed: false },
+              ],
+            }],
+          },
+        },
+        contacts: [],
+      },
+    },
+    "backup-password",
+  );
+  assert.strictEqual(encryptedRestore.wasLegacyPlaintext, false);
+  assert.strictEqual(encryptedRestore.settings.goalsAndMilestones.goals[0].id, "encrypted-goal");
+  assert.deepStrictEqual(
+    JSON.parse(JSON.stringify(encryptedRestore.settings.goalsAndMilestones.deletedGoalIds)),
+    ["removed-goal"],
+  );
+  assert.strictEqual(
+    encryptedRestore.settings.goalsAndMilestones.goals[0].items[0].completed,
+    true,
+  );
+  assert.deepStrictEqual(
+    JSON.parse(
+      JSON.stringify(
+        encryptedRestore.settings.goalsAndMilestones.goals[0].items[0]
+          .selectedMethods,
+      ),
+    ),
+    ["doorToDoor", "smpw"],
+  );
+  assert.strictEqual(
+    encryptedRestore.settings.goalsAndMilestones.goals[0].items[0]
+      .methodOtherText,
+    "Community table",
+  );
+  console.log("PASS  encrypted backup restore preserves goal progress and removal markers");
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;

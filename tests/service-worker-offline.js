@@ -24,7 +24,7 @@ const cache = {
 const caches = {
   async open() { return cache; },
   async match(request) { return entries.get(normalize(request)); },
-  async keys() { return ["return-visits-shell-v195", "return-visits-shell-v196", "unrelated-cache"]; },
+  async keys() { return ["return-visits-shell-v195", "return-visits-shell-v196", "return-visits-shell-v199", "unrelated-cache"]; },
   async delete(name) { deletedCaches.push(name); return true; },
 };
 const self = {
@@ -50,7 +50,7 @@ async function main() {
   let activation;
   handlers.activate({ waitUntil(promise) { activation = promise; } });
   await activation;
-  assert.deepStrictEqual(deletedCaches, ["return-visits-shell-v195", "return-visits-shell-v196"]);
+  assert.deepStrictEqual(deletedCaches, ["return-visits-shell-v195", "return-visits-shell-v196", "return-visits-shell-v199"]);
   console.log("PASS  service-worker update removes previous shell caches");
   async function offline(relativePath, mode = "cors") {
     let response;
@@ -65,6 +65,7 @@ async function main() {
     const response = await offline(`./locales/${lang}.json`);
     const catalog = JSON.parse(response.body);
     assert(catalog["contacts.add"]);
+    assert(catalog["goals.path.beginMinistry"]);
     console.log(`PASS  ${lang} catalog is available offline`);
     const shell = await offline(`./?lang=${lang}`, "navigate");
     assert(shell.body.includes('src="i18n.js"'));
@@ -77,6 +78,8 @@ async function main() {
     assert((await offline(file)).body.length > 0);
     console.log(`PASS  ${file} is available offline`);
   }
+  assert((await offline("./merge.js")).body.includes("mergeGoalsAndMilestones"));
+  console.log("PASS  Goals merge logic is cached for offline operation");
   assert((await offline("./nrv-dialog.js")).body.length > 0);
   console.log("PASS  ./nrv-dialog.js is available offline");
   for (const file of ["./docs/install-browser-en.png", "./docs/install-browser-es.png"]) {
