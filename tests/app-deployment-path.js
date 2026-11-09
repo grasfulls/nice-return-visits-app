@@ -127,7 +127,7 @@ async function routeInstallQuery() {
   assert.strictEqual(finalUrl.searchParams.get("lang"), "es");
   assert.strictEqual(finalUrl.searchParams.has("install"), false);
   assert.strictEqual(launchChoiceShown, 1);
-  assert.strictEqual(installGuideShown, 1);
+  assert.strictEqual(installGuideShown, 0, "direct install offers the native prompt before manual guidance");
 }
 
 routeInstallQuery()
