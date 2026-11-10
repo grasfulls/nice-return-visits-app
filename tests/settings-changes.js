@@ -30,9 +30,9 @@ const settings = {
   addressingCountry: "United States",
   state: "WA",
   defaultCity: "Seattle",
-  cities: ["Seattle"],
-  regions: ["North"],
-  areas: ["Central"],
+  cities: [{ name: "Seattle", country: "United States" }],
+  regions: [{ name: "North", country: "United States" }],
+  areas: [{ name: "Central", country: "United States" }],
   me: {
     name: "Test", country: "United States", state: "WA", city: "Seattle",
     region: "North", area: "Central", street: "", postalCode: "98101", lat: "", lng: "",
@@ -55,7 +55,19 @@ const context = {
   normalizeLocationState: (country, value) => value.trim(),
   normalizeCountry: (country) => country,
   toTitleCase: (value) => value.trim(),
-  addCity: (city) => settings.cities.push(city),
+  hasLocation: (list, country, name) =>
+    list.some(
+      (item) =>
+        item.country === country &&
+        item.name.toLowerCase() === String(name || "").toLowerCase(),
+    ),
+  findLocation: (list, country, name) =>
+    list.find(
+      (item) =>
+        item.country === country &&
+        item.name.toLowerCase() === String(name || "").toLowerCase(),
+    )?.name || "",
+  addCity: (city, country) => settings.cities.push({ name: city, country }),
   saveSettings: async () => {
     if (failSave) throw new Error("storage failure");
     saves += 1;
@@ -113,7 +125,7 @@ async function main() {
   assert.strictEqual(await saveDefaultsAndDetails(), false);
   assert.strictEqual(settings.me.postalCode, "98102", "failed save restores stored details");
   assert.strictEqual(settings.defaultCity, "Tacoma", "failed save restores defaults");
-  assert(!settings.cities.includes("Olympia"), "failed save rolls back added cities");
+  assert(!settings.cities.some((city) => city.name === "Olympia"), "failed save rolls back added cities");
   assert(findPendingDetailsEdit(), "failed save keeps edits dirty for retry");
   assert.strictEqual(saves, 2);
   console.log("PASS  saved postal codes, dropdown changes, independent defaults, and failed-save rollback");

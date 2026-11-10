@@ -770,9 +770,12 @@
   "setup.continueToContacts": "continúa a Contactos",
   "setup.continuePunctuation": ".",
   "location.howTitle": "Cómo funcionan las ubicaciones:",
-  "location.howText": "Las ciudades, regiones y áreas son tres listas independientes y reutilizables. Las regiones son partes grandes de la localidad (por ejemplo, norte, sur, este y oeste) y las áreas son barrios más pequeños. Se agregan al introducirlas para ti o para un contacto; usa la opción + Agregar nueva de cada campo para agregar una.",
+  "location.howText": "Las ciudades, regiones y áreas son tres listas independientes y reutilizables, y cada país mantiene sus propias listas. Las regiones son partes grandes de la localidad (por ejemplo, norte, sur, este y oeste) y las áreas son barrios más pequeños. Se agregan al introducirlas para ti o para un contacto; usa la opción + Agregar nueva de cada campo para agregar una.",
   "location.regionInstructions": "También puedes agregar una región al agregar un contacto. Elige + Agregar región en la lista de regiones del contacto. Una región se guarda una sola vez y puede usarse con cualquier ciudad.",
-  "location.manageNote": "Cada ciudad, región y área aparece una sola vez. Editar cambia el nombre de una entrada en todas partes donde se usa. No se puede eliminar una entrada mientras la use un contacto. Las listas son independientes: un contacto puede tener una ciudad, una región, un área o cualquier combinación.",
+  "location.manageNote": "Cada ciudad, región y área aparece una sola vez para el país elegido. Editar cambia el nombre de una entrada en todas partes donde se usa. No se puede eliminar una entrada mientras la use un contacto. Las listas son independientes: un contacto puede tener una ciudad, una región, un área o cualquier combinación.",
+  "location.locationCountry": "País",
+  "location.locationCountryLabel": "País de estas listas",
+  "contacts.countryChangeConfirm": "Al cambiar el país se borran las opciones de ciudad, región y área de este contacto para el nuevo país. ¿Continuar?",
   "location.contactCityNote": "Selecciona una ciudad guardada o elige + Agregar ciudad para añadir una aquí.",
   "location.addCityOption": "+ Agregar ciudad",
   "location.newCity": "Nombre de la nueva ciudad:",
@@ -1159,6 +1162,7 @@
   "map.zoomIn": "Acercar",
   "map.zoomOut": "Alejar",
   "map.closePopup": "Cerrar ventana emergente",
-  "release.current.title": "Ciudades, regiones y áreas independientes",
-  "release.current.change1": "Las regiones y áreas ahora se guardan una sola vez como listas independientes y reutilizables, sin necesidad de una ciudad, y cualquier contacto puede usar juntas cualquier ciudad, región y área guardadas."
+  "release.current.title": "Ubicaciones por país y actualizaciones confiables",
+  "release.current.change1": "Cada país ahora mantiene sus propias listas independientes de ciudades, regiones y áreas, de modo que las entradas de un país nunca se ofrecen para los contactos de otro país.",
+  "release.current.change2": "El aviso de actualización ahora comprueba la compilación real y ya no se repite después de actualizar."
 }

@@ -21,13 +21,17 @@ const node = (id) => {
   return nodes.get(id);
 };
 const citySelect = node("contact-city-select");
-const settings = { cities: ["Toronto"] };
+const COUNTRY = "Canada";
+const settings = { country: COUNTRY, cities: [{ name: "Toronto", country: COUNTRY }] };
+const cityNames = () => settings.cities.map((city) => city.name);
 let saved = 0;
 let fail = false;
 let errorReported = false;
 let message = "";
+const contactCountrySelect = { value: COUNTRY };
 const context = {
   citySelect, settings, document: { getElementById: node },
+  contactCountrySelect,
   contactRegionSelect: node("contact-region-select"),
   contactAreaSelect: node("contact-area-select"),
   dropdownHelpers: { populateContactRegionArea(region, area) {
@@ -35,8 +39,18 @@ const context = {
     node("contact-area-select").value = area;
   } },
   toTitleCase: (text) => text.replace(/\b\w/g, (letter) => letter.toUpperCase()),
-  addCity: (city) => settings.cities.push(city),
-  rollbackNewCity: (city) => { settings.cities = settings.cities.filter((item) => item !== city); },
+  findLocation: (list, country, name) =>
+    list.find(
+      (item) =>
+        item.country === country &&
+        item.name.toLowerCase() === String(name || "").toLowerCase(),
+    )?.name || "",
+  addCity: (city, country) => settings.cities.push({ name: city, country }),
+  rollbackNewCity: (city, country) => {
+    settings.cities = settings.cities.filter(
+      (item) => !(item.name === city && item.country === country),
+    );
+  },
   saveSettings: async () => { saved += 1; if (fail) throw new Error("storage"); },
   populateDropdowns() {},
   showStorageError() { errorReported = true; },
@@ -72,7 +86,7 @@ async function main() {
   node("btn-save-new-contact-city").listeners.click();
   assert.strictEqual(await context.pending(), true);
   assert.strictEqual(citySelect.value, "Ottawa");
-  assert(settings.cities.includes("Ottawa"));
+  assert(cityNames().includes("Ottawa"));
   assert.strictEqual(saved, 1);
   assert.strictEqual(node("new-contact-city-container").hidden, true);
 
@@ -91,7 +105,7 @@ async function main() {
   node("btn-save-new-contact-city").listeners.click();
   assert.strictEqual(await context.pending(), false);
   assert(errorReported);
-  assert(!settings.cities.includes("Kingston"));
+  assert(!cityNames().includes("Kingston"));
   assert.strictEqual(node("new-contact-city-container").hidden, false);
   fail = false;
   node("btn-save-new-contact-city").listeners.click();
@@ -107,7 +121,7 @@ async function main() {
   citySelect.value = "Toronto";
   assert.strictEqual(await pending, true);
   assert.strictEqual(citySelect.value, "Toronto");
-  assert(settings.cities.includes("London"));
+  assert(cityNames().includes("London"));
   console.log("PASS  contact city selection, adding, cancellation, duplicates, storage failure and session changes");
 }
 

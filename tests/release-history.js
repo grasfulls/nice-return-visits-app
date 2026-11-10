@@ -12,7 +12,7 @@ const history = JSON.parse(fs.readFileSync(path.join(root, "release-history.json
 const version = canonicalVersion(fs.readFileSync(path.join(root, "app.js"), "utf8"));
 generator.validateHistory(history, version);
 assert.strictEqual(history[0].version, version);
-assert.strictEqual(history[0].version, "0.9.56");
+assert.strictEqual(history[0].version, "0.9.57");
 assert(!/important/i.test(history[0].en.title));
 assert(!/important/i.test(history[0].es.title));
 assert.throws(() => generator.validateHistory([], version));

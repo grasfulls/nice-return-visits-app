@@ -1,6 +1,8 @@
-﻿// Run with: node tests/independent-locations.js
+// Run with: node tests/independent-locations.js
 // Protects the settled requirement that Cities, Regions, and Areas are three
-// independent reusable lists, not a City -> Region -> Area hierarchy.
+// independent reusable lists scoped by Country: no City -> Region,
+// City -> Area, or Region -> Area dependency, and one country's entries are
+// never offered for another country's contacts.
 const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
@@ -17,26 +19,25 @@ const sameList = (actual, expected, message) =>
     message,
   );
 const source = fs.readFileSync(path.join(root, "app.js"), "utf8");
-const index = fs.readFileSync(path.join(root, "locales", "..", "index.html"), "utf8");
+const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const catalogs = Object.fromEntries(["en", "es"].map((language) => [
   language,
   JSON.parse(fs.readFileSync(path.join(root, "locales", `${language}.json`), "utf8")),
 ]));
 
-// --- The UI no longer requires a City before a Region or an Area. ---
+// --- No City/Region prerequisites anywhere; the lists are country-scoped. ---
 assert(!source.includes("Choose a city before adding a region"));
 assert(!source.includes("Choose a city before adding an area"));
-assert(!source.includes("Choose a city for this area first"));
-assert(!source.includes("Enter a region name after choosing a city"));
-assert(!source.includes("Enter an area name after choosing a city"));
-assert(!index.includes("setting-region-city"), "settings Add Region has no city selector");
-assert(!index.includes("setting-area-city"), "settings Add Area has no city selector");
-["en", "es"].forEach((language) => {
-  const flat = JSON.stringify(catalogs[language]);
-  assert(!flat.includes("location.chooseCityRegion"), `${language}: no city-first region key`);
-  assert(!flat.includes("location.chooseCityArea"), `${language}: no city-first area key`);
-});
-console.log("PASS  a Region or Area can be added without selecting a City");
+assert(index.includes('id="setting-location-country"'), "settings lists have a country selector");
+assert(!index.includes("setting-region-city"), "no per-region city selector");
+assert(!index.includes("setting-area-city"), "no per-area city selector");
+assert(source.includes("locationNamesFor(settings.regions, contactCountry())"),
+  "contact region options come from the contact country's list");
+assert(source.includes("locationNamesFor(settings.areas, contactCountry())"),
+  "contact area options come from the contact country's list");
+assert(source.includes("locationNamesFor(settings.cities, contactCountry())"),
+  "contact city options come from the contact country's list");
+console.log("PASS  Regions and Areas need no City, and all three lists are offered per Country");
 
 // --- Extract normalizeRegionData with its real dependencies. ---
 const declaration = (name) => {
@@ -57,7 +58,7 @@ const context = {
     regions: [],
     areas: [],
   },
-  SCHEMA_VERSION: 9,
+  SCHEMA_VERSION: 10,
   US_STATE_ABBREVIATIONS: { california: "CA", washington: "WA" },
   NewerDataVersionError: class NewerDataVersionError extends Error {},
   getContactLastActivity: () => "2026-01-01T00:00:00.000Z",
@@ -85,130 +86,169 @@ vm.runInNewContext(
   context,
 );
 const normalize = context.normalizeRegionData;
+const US = "United States";
+const JP = "Japan";
 const baseSettings = (overrides) => ({
-  schemaVersion: 8,
-  country: "United States",
-  addressingCountry: "United States",
-  countries: ["United States"],
+  schemaVersion: 9,
+  country: US,
+  addressingCountry: US,
+  countries: [US, JP],
   state: "CA",
   defaultCity: "Auburn",
-  cities: ["Auburn", "Lincoln"],
+  cities: [],
   regions: [],
   areas: [],
   ...overrides,
 });
-const contactIn = (id, city, region, area) => ({
+const contactIn = (id, country, city, region, area) => ({
   id,
   firstName: `First${id}`,
   lastName: "Test",
-  country: "United States",
+  country,
   city,
   region,
   area,
   streetAddress: "",
   postalCode: "",
 });
+const entries = (list, country) =>
+  list.filter((item) => item.country === country).map((item) => item.name);
 
-// --- City-linked {name, city} records migrate to deduplicated name lists. ---
-const migrated = normalize(
+// --- Country-scoped lists: contacts attach entries to their own country. ---
+const scoped = normalize(
   baseSettings({
+    cities: [
+      { name: "Auburn", country: US },
+      { name: "Lincoln", country: US },
+      { name: "Chiyoda", country: JP },
+    ],
+    regions: [
+      { name: "North", country: US },
+      { name: "Kanda", country: JP },
+    ],
+    areas: [
+      { name: "Old Town", country: US },
+      { name: "2-chome", country: JP },
+    ],
+  }),
+  [
+    contactIn(1, US, "Auburn", "North", "Old Town"),
+    contactIn(2, US, "Lincoln", "North", "Old Town"),
+    contactIn(3, JP, "Chiyoda", "Kanda", "2-chome"),
+  ],
+);
+sameList(entries(scoped.settings.regions, US), ["North"]);
+sameList(entries(scoped.settings.regions, JP), ["Kanda"]);
+sameList(entries(scoped.settings.areas, US), ["Old Town"]);
+sameList(entries(scoped.settings.areas, JP), ["2-chome"]);
+sameList(entries(scoped.settings.cities, JP), ["Chiyoda"]);
+assert.strictEqual(scoped.contacts[0].region, "North");
+assert.strictEqual(scoped.contacts[1].region, "North",
+  "the same Region serves contacts in different Cities of one country");
+assert.strictEqual(scoped.contacts[1].area, "Old Town",
+  "the same Area serves contacts in different Cities of one country");
+assert.strictEqual(scoped.contacts[2].region, "Kanda");
+assert.strictEqual(
+  normalize(scoped.settings, scoped.contacts).contacts[2].region,
+  "Kanda",
+  "a Japan contact never falls back to United States entries",
+);
+console.log("PASS  each country keeps its own independent City, Region and Area lists");
+
+// --- v0.9.56 flat string lists migrate by contact evidence, else Default Country. ---
+const fromFlat = normalize(
+  baseSettings({
+    cities: ["Auburn", "Chiyoda"],
+    regions: ["North", "Kanda", "Orphan Region"],
+    areas: ["Old Town", "Orphan Area"],
+  }),
+  [
+    contactIn(4, US, "Auburn", "North", "Old Town"),
+    contactIn(5, JP, "Chiyoda", "Kanda", ""),
+  ],
+);
+sameList(entries(fromFlat.settings.regions, US), ["North", "Orphan Region"],
+  "an unprovable entry goes to the Default Country, never discarded");
+sameList(entries(fromFlat.settings.regions, JP), ["Kanda"]);
+sameList(entries(fromFlat.settings.areas, US), ["Old Town", "Orphan Area"]);
+sameList(entries(fromFlat.settings.cities, JP), ["Chiyoda"]);
+assert.strictEqual(fromFlat.contacts[1].region, "Kanda");
+console.log("PASS  v0.9.56 flat lists migrate by contact country with Option A fallback");
+
+// --- Older {name, city} pairs and legacy strings migrate without loss. ---
+const fromPairs = normalize(
+  baseSettings({
+    cities: ["Auburn", "Lincoln"],
     regions: [
       { name: "North", city: "Auburn" },
       { name: "North", city: "Lincoln" },
       { name: "South", city: "Auburn" },
     ],
-    areas: [
-      { name: "Old Town", city: "Auburn" },
-      { name: "Old Town", city: "Lincoln" },
-      { name: "Downtown", city: "Lincoln" },
-    ],
-  }),
-  [
-    contactIn(1, "Auburn", "North", "Old Town"),
-    contactIn(2, "Lincoln", "North", "Old Town"),
-  ],
-);
-sameList(migrated.settings.regions, ["North", "South"]);
-sameList(migrated.settings.areas, ["Old Town", "Downtown"]);
-console.log("PASS  city-linked region and area records migrate to deduplicated names");
-
-// --- The same Region and Area are reused by contacts in different Cities. ---
-assert.strictEqual(migrated.contacts[0].city, "Auburn");
-assert.strictEqual(migrated.contacts[0].region, "North");
-assert.strictEqual(migrated.contacts[0].area, "Old Town");
-assert.strictEqual(migrated.contacts[1].city, "Lincoln");
-assert.strictEqual(migrated.contacts[1].region, "North");
-assert.strictEqual(migrated.contacts[1].area, "Old Town");
-console.log("PASS  contacts in different cities reuse the same saved Region and Area");
-
-// --- Normalization retains any Region/Area in the global lists; nothing is blanked. ---
-const retained = normalize(
-  baseSettings({ regions: ["North"], areas: ["Old Town"] }),
-  [contactIn(3, "Lincoln", "North", "Old Town")],
-);
-assert.strictEqual(retained.contacts[0].region, "North");
-assert.strictEqual(retained.contacts[0].area, "Old Town");
-const seeded = normalize(
-  baseSettings({ regions: [], areas: [] }),
-  [contactIn(4, "Auburn", "West", "Riverside")],
-);
-assert(seeded.settings.regions.includes("West"), "contact regions seed the list");
-assert(seeded.settings.areas.includes("Riverside"), "contact areas seed the list");
-assert.strictEqual(seeded.contacts[0].region, "West");
-assert.strictEqual(seeded.contacts[0].area, "Riverside");
-console.log("PASS  normalization keeps every contact Region and Area present in the lists");
-
-// --- Legacy string lists remain supported; migration is repeatable. ---
-const legacy = normalize(
-  baseSettings({ regions: ["North", "South"], areas: ["Old Town"] }),
-  [contactIn(5, "Auburn", "North", "Old Town")],
-);
-sameList(legacy.settings.regions, ["North", "South"]);
-sameList(legacy.settings.areas, ["Old Town"]);
-const again = normalize(legacy.settings, legacy.contacts);
-sameList(again.settings.regions, legacy.settings.regions, "repeat migration adds no duplicates");
-sameList(again.settings.areas, legacy.settings.areas);
-sameList(again.contacts[0].region, "North");
-const mixed = normalize(
-  baseSettings({
-    regions: ["North", { name: "north", city: "Lincoln" }],
     areas: [{ name: "Old Town", region: "North" }, "old town"],
   }),
-  [],
+  [contactIn(6, US, "Auburn", "North", "Old Town")],
 );
-sameList(mixed.settings.regions, ["North"]);
-sameList(mixed.settings.areas, ["Old Town"]);
-console.log("PASS  legacy string lists and mixed records migrate without duplicates");
+sameList(entries(fromPairs.settings.regions, US), ["North", "South"]);
+sameList(entries(fromPairs.settings.areas, US), ["Old Town"]);
+assert.strictEqual(fromPairs.contacts[0].region, "North");
+assert.strictEqual(fromPairs.contacts[0].area, "Old Town");
+const again = normalize(fromPairs.settings, fromPairs.contacts);
+sameList(again.settings.regions, fromPairs.settings.regions,
+  "repeat migration adds no duplicates");
+sameList(again.settings.areas, fromPairs.settings.areas);
+sameList(again.settings.cities, fromPairs.settings.cities);
+console.log("PASS  legacy city-linked and string records migrate once, idempotently");
 
-// --- Backup round-trip: normalized output restores unchanged. ---
-const roundTrip = normalize(migrated.settings, migrated.contacts);
-sameList(roundTrip.settings.regions, migrated.settings.regions);
-sameList(roundTrip.settings.areas, migrated.settings.areas);
+// --- Backup-style round trip preserves lists and contact selections. ---
+const roundTrip = normalize(scoped.settings, scoped.contacts);
+sameList(roundTrip.settings.regions, scoped.settings.regions);
+sameList(roundTrip.settings.areas, scoped.settings.areas);
+sameList(roundTrip.settings.cities, scoped.settings.cities);
 sameList(
-  roundTrip.contacts.map((contact) => [contact.city, contact.region, contact.area]),
-  migrated.contacts.map((contact) => [contact.city, contact.region, contact.area]),
+  roundTrip.contacts.map((contact) => [contact.country, contact.city, contact.region, contact.area]),
+  scoped.contacts.map((contact) => [contact.country, contact.city, contact.region, contact.area]),
 );
-console.log("PASS  backup-style normalization round-trips the independent lists");
+console.log("PASS  backup-style normalization round-trips the country-scoped lists");
 
-// --- Merge preserves the independent lists, including mixed legacy data. ---
+// --- Merge unions by (country, name) and keeps legacy records for migration. ---
 const mergedData = merge.mergeData(
   {
-    settings: { ...migrated.settings, regions: ["North"], areas: ["Old Town"] },
+    settings: {
+      ...scoped.settings,
+      regions: [{ name: "North", country: US }],
+      areas: [{ name: "Old Town", country: US }],
+    },
     contacts: [],
   },
   {
     settings: {
-      ...migrated.settings,
-      regions: ["South", { name: "north", city: "Lincoln" }],
-      areas: ["Downtown"],
+      ...scoped.settings,
+      regions: [
+        { name: "north", country: US },
+        { name: "Kanda", country: JP },
+        "Legacy String",
+      ],
+      areas: [{ name: "Downtown", country: US }],
     },
     contacts: [],
   },
   { localDirty: true },
 );
-sameList(mergedData.settings.regions, ["North", "South"]);
-sameList(mergedData.settings.areas, ["Old Town", "Downtown"]);
-console.log("PASS  merge unions regions and areas by name without city pairs");
+sameList(
+  mergedData.settings.regions.filter((item) => item.country === US).map((item) => item.name),
+  ["North"],
+);
+sameList(
+  mergedData.settings.regions.filter((item) => item.country === JP).map((item) => item.name),
+  ["Kanda"],
+);
+assert(mergedData.settings.regions.includes("Legacy String"),
+  "legacy records survive merge for later migration");
+sameList(
+  mergedData.settings.areas.map((item) => item.name),
+  ["Old Town", "Downtown"],
+);
+console.log("PASS  merge unions regions and areas by country and name");
 
 // --- Unsaved-data warning: saved entries are clean, typed text stays protected. ---
 const sectionOf = (start, end) => {
@@ -225,14 +265,20 @@ const makeInput = (id, value) => ({
   closest: () => null,
 });
 const pendingContext = {
-  settings: { cities: ["Auburn"], regions: ["North"], areas: ["Old Town"] },
+  settings: {
+    country: US,
+    cities: [{ name: "Auburn", country: US }],
+    regions: [{ name: "North", country: US }],
+    areas: [{ name: "Old Town", country: US }],
+  },
   meFields: {},
   toTitleCase: (value) =>
     value.trim().replace(/\S+/g, (word) => word[0].toUpperCase() + word.slice(1).toLowerCase()),
   describeSettingsField: (input) => input.id,
   document: {
     querySelectorAll: () => pendingContext.pendingInputs,
-    getElementById: () => ({ value: "" }),
+    getElementById: (id) =>
+      id === "setting-location-country" ? { value: US } : { value: "" },
   },
   pendingInputs: [],
 };
@@ -244,11 +290,12 @@ vm.runInNewContext(
 pendingContext.pendingInputs = [
   makeInput("setting-new-region", "North"),
   makeInput("setting-new-area", "Old Town"),
+  makeInput("setting-new-city", "Auburn"),
 ];
 assert.strictEqual(
   pendingContext.findPendingOtherSettingsEdit(),
   null,
-  "saved Region and Area entries no longer count as unsaved edits",
+  "saved entries for the selected country no longer count as unsaved edits",
 );
 pendingContext.pendingInputs = [makeInput("setting-new-region", "Eastside")];
 assert.strictEqual(
@@ -256,15 +303,28 @@ assert.strictEqual(
   "setting-new-region",
   "genuinely typed but unsaved text still triggers the warning",
 );
-pendingContext.pendingInputs = [makeInput("setting-new-area", "Harbor")];
-assert.strictEqual(
-  pendingContext.findPendingOtherSettingsEdit()?.input.id,
-  "setting-new-area",
-);
 console.log("PASS  unsaved-data warning protects typed text without re-flagging saved entries");
 
-// --- Contact save validates against the flat lists only. ---
-assert(source.includes("(region && !settings.regions.includes(region))"));
-assert(source.includes("(area && !settings.areas.includes(area))"));
+// --- Contact save validates against the contact country's lists only. ---
+assert(source.includes("hasLocation(settings.cities, country, city)"));
+assert(source.includes("hasLocation(settings.regions, country, region)"));
+assert(source.includes("hasLocation(settings.areas, country, area)"));
 assert(!source.includes("belong to the selected city"));
-console.log("PASS  contact save accepts any saved City, Region, and Area combination");
+console.log("PASS  contact save accepts any saved combination within the contact's country");
+
+// --- Changing a contact's country is confirmed; Cancel restores it. ---
+assert(source.includes("confirmContactCountryChange"),
+  "country change asks for confirmation");
+assert(source.includes("contacts.countryChangeConfirm"));
+assert(catalogs.en["contacts.countryChangeConfirm"].includes("Continue?"));
+assert(catalogs.es["contacts.countryChangeConfirm"].includes("¿Continuar?"));
+const changeGuard = sectionOf(
+  "  const handleCountryChange = async (select) => {",
+  "  const saveNewCountry =",
+);
+assert(changeGuard.includes("contactLocationSelectionsExist()"));
+assert(changeGuard.includes("select.value = previousCountry;"),
+  "Cancel restores the previous country");
+assert(changeGuard.includes("resetDependentLocationFields(select)"),
+  "Continue clears the editing form only");
+console.log("PASS  contact country changes are confirmed and cancellable");

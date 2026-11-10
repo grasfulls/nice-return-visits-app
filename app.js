@@ -17,8 +17,8 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
-const APP_VERSION = "0.9.56";
-const APP_BUILD_REVISION = "sha256:71316d1df59e94e5f4d99a0537a821fef8a8f18b4a95fe3ce8f6f3b1866c428d";
+const APP_VERSION = "0.9.57";
+const APP_BUILD_REVISION = "sha256:4d44255e00e962e90323fc8cae7209a99123823cae68e579e45a3523d6906c44";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -309,7 +309,7 @@ const locationTypeDisplay = (type) => ({
 // normalizeRegionData. Version 3 added country; version 5 added postal codes.
 // Version 6 added independent addressing; version 7 added working designations;
 // version 8 adds goals, milestones, and occurrence history.
-const SCHEMA_VERSION = 9;
+const SCHEMA_VERSION = 10;
 const EPOCH_TIMESTAMP = "1970-01-01T00:00:00.000Z";
 const GOAL_PATHS = {
   beginMinistry: {
@@ -2350,76 +2350,126 @@ const normalizeRegionData = (settings, contacts) => {
       ...(workingNeedGreater.country ? [workingNeedGreater.country] : []),
     ]),
   ];
-  const cities = Array.isArray(settings.cities)
-    ? [...new Set(settings.cities.filter((city) => typeof city === "string"))]
-    : [...DEFAULT_SETTINGS.cities];
-  const defaultCity = settings.defaultCity === ""
-    ? ""
-    : cities.includes(settings.defaultCity)
-    ? settings.defaultCity
-    : cities[0] || "";
-  // Cities, Regions and Areas are three independent reusable name lists.
-  // Legacy records may be plain strings, {name, region} areas, or
-  // city-linked {name, city} pairs; every unique name is kept and any city
-  // links are dropped. Running this again on migrated data changes nothing.
-  const regionNames = [];
-  const areaNames = [];
-  const addName = (list, value) => {
+  // Cities, Regions and Areas are three independent reusable name lists, and
+  // each list is scoped by Country: an entry is {name, country}. The lists
+  // never depend on one another. Legacy records may be plain strings
+  // (v0.9.56 and earlier), {name, city} pairs, or {name, region} areas;
+  // every unique name is kept. A legacy entry's country comes from the
+  // contacts (or Your Details) that use it; an entry no contact can vouch
+  // for is assigned to the Default Country rather than discarded. Running
+  // this again on migrated data changes nothing.
+  const cityEntries = [];
+  const regionEntries = [];
+  const areaEntries = [];
+  const addEntry = (list, value, country) => {
     const name = typeof value === "string" ? value.trim() : "";
-    if (!name) return;
-    if (!list.some((item) => item.toLowerCase() === name.toLowerCase())) {
-      list.push(name);
+    const scope = typeof country === "string" ? normalizeCountry(country) : "";
+    if (!name || !scope) return;
+    if (
+      !list.some(
+        (item) =>
+          item.country === scope &&
+          item.name.toLowerCase() === name.toLowerCase(),
+      )
+    ) {
+      list.push({ name, country: scope });
     }
   };
-  const findName = (list, value) =>
+  const findEntryName = (list, country, value) =>
     typeof value === "string"
       ? list.find(
-          (item) => item.toLowerCase() === value.trim().toLowerCase(),
-        ) || ""
+          (item) =>
+            item.country === country &&
+            item.name.toLowerCase() === value.trim().toLowerCase(),
+        )?.name || ""
       : "";
-  (Array.isArray(settings.regions) ? settings.regions : []).forEach((region) =>
-    addName(regionNames, typeof region === "string" ? region : region?.name),
-  );
+  const entryNameOf = (item) =>
+    typeof item === "string" ? item : (item && typeof item === "object" && typeof item.name === "string" ? item.name : "");
   const legacyAreaRegions = new Map();
   (Array.isArray(settings.areas) ? settings.areas : []).forEach((area) => {
-    addName(areaNames, typeof area === "string" ? area : area?.name);
     const legacyRegion =
-      area && typeof area === "object" && area.region !== "Unassigned"
+      area && typeof area === "object" && typeof area.region === "string" &&
+      area.region !== "Unassigned"
         ? area.region
         : "";
-    if (legacyRegion) {
-      addName(regionNames, legacyRegion);
-      if (area.name) legacyAreaRegions.set(area.name, legacyRegion);
-    }
+    if (legacyRegion && area.name) legacyAreaRegions.set(area.name, legacyRegion);
   });
-  if (
-    typeof settings.me?.city === "string" &&
-    settings.me.city &&
-    !cities.includes(settings.me.city)
-  ) {
-    cities.push(settings.me.city);
-  }
-  addName(regionNames, settings.me?.region);
-  addName(areaNames, settings.me?.area);
 
-  contacts.forEach((contact) => {
-    const city = typeof contact.city === "string" ? contact.city : defaultCity;
-    if (city && !cities.includes(city)) cities.push(city);
+  // Pass 1: reliable evidence. Each contact and Your Details attach their
+  // city, region and area to their own country.
+  const meCountry = normalizeCountry(settings.me?.country || defaultCountry);
+  addEntry(cityEntries, settings.me?.city, meCountry);
+  addEntry(regionEntries, settings.me?.region, meCountry);
+  addEntry(areaEntries, settings.me?.area, meCountry);
+  const contactFacts = contacts.map((contact) => {
+    const country = normalizeCountry(contact.country || defaultCountry);
+    const city = typeof contact.city === "string" ? contact.city : "";
     const legacyAreaNames = Array.isArray(contact.areas)
       ? contact.areas
       : contact.area
         ? [contact.area]
         : [];
-    const firstArea =
-      legacyAreaNames.find((area) => typeof area === "string") || "";
-    addName(
-      regionNames,
+    const area = legacyAreaNames.find((name) => typeof name === "string") || "";
+    const region =
       (typeof contact.region === "string" && contact.region) ||
-        legacyAreaRegions.get(firstArea) ||
-        "",
-    );
-    addName(areaNames, firstArea);
+      legacyAreaRegions.get(area) ||
+      "";
+    addEntry(cityEntries, city, country);
+    addEntry(regionEntries, region, country);
+    addEntry(areaEntries, area, country);
+    return { country, city };
   });
+
+  // Pass 2: stored list entries. Explicit countries are kept. A legacy
+  // {name, city} record follows the countries of contacts using that city.
+  // A name already attached to some country in pass 1 is considered placed;
+  // otherwise it goes to the Default Country (approved Option A).
+  const countriesUsingCity = (city) => {
+    const matches = contactFacts
+      .filter((fact) => fact.city && city && fact.city.toLowerCase() === String(city).toLowerCase())
+      .map((fact) => fact.country);
+    return [...new Set(matches)];
+  };
+  const placeLegacyEntry = (list, item) => {
+    const name = entryNameOf(item);
+    if (!name) return;
+    if (item && typeof item === "object" && typeof item.country === "string" && item.country) {
+      addEntry(list, name, item.country);
+      return;
+    }
+    const cityCountries =
+      item && typeof item === "object" && typeof item.city === "string"
+        ? countriesUsingCity(item.city)
+        : [];
+    if (cityCountries.length) {
+      cityCountries.forEach((country) => addEntry(list, name, country));
+      return;
+    }
+    const alreadyPlaced = list.some(
+      (entry) => entry.name.toLowerCase() === name.trim().toLowerCase(),
+    );
+    if (!alreadyPlaced) addEntry(list, name, defaultCountry);
+  };
+  (Array.isArray(settings.cities) ? settings.cities : []).forEach((city) =>
+    placeLegacyEntry(cityEntries, city),
+  );
+  (Array.isArray(settings.regions) ? settings.regions : []).forEach((region) =>
+    placeLegacyEntry(regionEntries, region),
+  );
+  (Array.isArray(settings.areas) ? settings.areas : []).forEach((area) => {
+    placeLegacyEntry(areaEntries, area);
+    const legacyRegion = entryNameOf(area) ? legacyAreaRegions.get(area.name) : "";
+    if (legacyRegion) placeLegacyEntry(regionEntries, { name: legacyRegion, city: area.city });
+  });
+
+  const defaultCountryCities = cityEntries
+    .filter((item) => item.country === defaultCountry)
+    .map((item) => item.name);
+  const defaultCity = settings.defaultCity === ""
+    ? ""
+    : findEntryName(cityEntries, defaultCountry, settings.defaultCity) ||
+      defaultCountryCities[0] ||
+      "";
 
   const normalizedContacts = contacts.map((contact) => {
     const legacyAreaNames = Array.isArray(contact.areas)
@@ -2429,12 +2479,13 @@ const normalizeRegionData = (settings, contacts) => {
         : [];
     const areaName =
       legacyAreaNames.find((area) => typeof area === "string") || "";
+    const country = normalizeCountry(contact.country || defaultCountry);
     const city = typeof contact.city === "string" ? contact.city : defaultCity;
     const candidateRegion =
       (typeof contact.region === "string" && contact.region) ||
       legacyAreaRegions.get(areaName) ||
       "";
-    const region = findName(regionNames, candidateRegion);
+    const region = findEntryName(regionEntries, country, candidateRegion);
     const rest = { ...contact };
     delete rest.areas;
     delete rest.areaAssignments;
@@ -2444,10 +2495,10 @@ const normalizeRegionData = (settings, contacts) => {
     );
     return {
       ...rest,
-      country: normalizeCountry(contact.country || defaultCountry),
+      country,
       city,
       region,
-      area: findName(areaNames, areaName),
+      area: findEntryName(areaEntries, country, areaName),
       streetAddress: getStreetAddress(contact),
       postalCode: typeof contact.postalCode === "string" ? contact.postalCode : "",
       addressingCountry: normalizeCountry(
@@ -2486,10 +2537,10 @@ const normalizeRegionData = (settings, contacts) => {
         (entry) => entry && entry.id !== undefined && entry.deletedAt,
       )
     : [];
-  normalizedSettings.cities = cities;
+  normalizedSettings.cities = cityEntries;
   normalizedSettings.defaultCity = defaultCity;
-  normalizedSettings.regions = regionNames;
-  normalizedSettings.areas = areaNames;
+  normalizedSettings.regions = regionEntries;
+  normalizedSettings.areas = areaEntries;
   return { settings: normalizedSettings, contacts: normalizedContacts };
 };
 
@@ -3267,53 +3318,83 @@ const initializeApp = async () => {
   const compareNames = (a, b) =>
     a.localeCompare(b, undefined, { sensitivity: "base", numeric: true });
   const sortLocations = () => {
-    settings.cities.sort(compareNames);
-    settings.regions.sort(compareNames);
-    settings.areas.sort(compareNames);
+    const byCountryThenName = (a, b) =>
+      compareNames(a.country, b.country) || compareNames(a.name, b.name);
+    settings.cities.sort(byCountryThenName);
+    settings.regions.sort(byCountryThenName);
+    settings.areas.sort(byCountryThenName);
   };
-  const addCity = (cityName) => {
-    settings.cities.push(cityName);
+  const locationNamesFor = (list, country) =>
+    list
+      .filter((item) => item.country === country)
+      .map((item) => item.name);
+  const hasLocation = (list, country, name) =>
+    list.some(
+      (item) =>
+        item.country === country &&
+        item.name.toLowerCase() === String(name || "").toLowerCase(),
+    );
+  const findLocation = (list, country, name) =>
+    list.find(
+      (item) =>
+        item.country === country &&
+        item.name.toLowerCase() === String(name || "").toLowerCase(),
+    )?.name || "";
+  const uniqueLocationNames = (list) =>
+    [...new Set(list.map((item) => item.name))].sort(compareNames);
+  const addCity = (cityName, country) => {
+    settings.cities.push({ name: cityName, country });
   };
-  const rollbackNewCity = (cityName) => {
-    settings.cities = settings.cities.filter((city) => city !== cityName);
+  const rollbackNewCity = (cityName, country) => {
+    settings.cities = settings.cities.filter(
+      (city) => !(city.name === cityName && city.country === country),
+    );
   };
   const populateDropdowns = () => {
     sortLocations();
     const citySelect = document.getElementById("contact-city-select");
     const meCityInput = document.getElementById("me-city");
-    const currentCityVal = citySelect.value;
-    citySelect.innerHTML = '<option value="">Choose city</option>';
-    citySelect.firstElementChild.textContent = appText("location.chooseCity", "Choose city");
-    settings.cities.forEach((city) => {
-      const opt = document.createElement("option");
-      opt.value = city;
-      opt.textContent = city;
-      citySelect.appendChild(opt);
-    });
-    const addCityOpt = document.createElement("option");
-    addCityOpt.value = "__ADD_NEW__";
-    addCityOpt.textContent = appText("location.addCityOption", "+ Add City");
-    citySelect.appendChild(addCityOpt);
-    citySelect.value = currentCityVal;
-    if (citySelect.selectedIndex < 0) citySelect.value = "";
-    const meCityOptions = document.getElementById("me-city-options");
-    const currentMeCity = meCityInput.value;
-    meCityOptions.innerHTML = "";
-    const addMeCityOption = document.createElement("option");
-    addMeCityOption.value = "+ Add New City...";
-    meCityOptions.appendChild(addMeCityOption);
-    settings.cities.forEach((city) => {
-      const option = document.createElement("option");
-      option.value = city;
-      meCityOptions.appendChild(option);
-    });
-    meCityInput.value = currentMeCity;
+    const contactCountry = () =>
+      document.getElementById("contact-country").value;
+    const meCountry = () => document.getElementById("me-country").value;
+    const populateContactCityOptions = (selectedCity = citySelect.value) => {
+      citySelect.innerHTML = '<option value="">Choose city</option>';
+      citySelect.firstElementChild.textContent = appText("location.chooseCity", "Choose city");
+      locationNamesFor(settings.cities, contactCountry()).forEach((city) => {
+        const opt = document.createElement("option");
+        opt.value = city;
+        opt.textContent = city;
+        citySelect.appendChild(opt);
+      });
+      const addCityOpt = document.createElement("option");
+      addCityOpt.value = "__ADD_NEW__";
+      addCityOpt.textContent = appText("location.addCityOption", "+ Add City");
+      citySelect.appendChild(addCityOpt);
+      citySelect.value = selectedCity;
+      if (citySelect.selectedIndex < 0) citySelect.value = "";
+    };
+    populateContactCityOptions();
+    const populateMeCityOptions = () => {
+      const meCityOptions = document.getElementById("me-city-options");
+      const currentMeCity = meCityInput.value;
+      meCityOptions.innerHTML = "";
+      const addMeCityOption = document.createElement("option");
+      addMeCityOption.value = "+ Add New City...";
+      meCityOptions.appendChild(addMeCityOption);
+      locationNamesFor(settings.cities, meCountry()).forEach((city) => {
+        const option = document.createElement("option");
+        option.value = city;
+        meCityOptions.appendChild(option);
+      });
+      meCityInput.value = currentMeCity;
+    };
+    populateMeCityOptions();
 
     const filterCity = document.getElementById("filter-city");
     const currentCityFilter = filterCity.value;
     filterCity.innerHTML = '<option value="">All Cities</option>';
     filterCity.firstElementChild.textContent = appText("filter.allCities", "All Cities");
-    settings.cities.forEach((city) => {
+    uniqueLocationNames(settings.cities).forEach((city) => {
       const opt = document.createElement("option");
       opt.value = city;
       opt.textContent = city;
@@ -3328,7 +3409,7 @@ const initializeApp = async () => {
     const populateMeRegionArea = (selectedRegion = "", selectedArea = "") => {
       meRegion.innerHTML = '<option value="">None</option>';
       meRegion.firstElementChild.textContent = appText("common.none", "None");
-      settings.regions.forEach((region) => {
+      locationNamesFor(settings.regions, meCountry()).forEach((region) => {
         const option = document.createElement("option");
         option.value = region;
         option.textContent = region;
@@ -3344,7 +3425,7 @@ const initializeApp = async () => {
 
       meArea.innerHTML = '<option value="">None</option>';
       meArea.firstElementChild.textContent = appText("common.none", "None");
-      settings.areas.forEach((area) => {
+      locationNamesFor(settings.areas, meCountry()).forEach((area) => {
         const option = document.createElement("option");
         option.value = area;
         option.textContent = area;
@@ -3364,7 +3445,7 @@ const initializeApp = async () => {
     ) => {
       contactRegion.innerHTML = '<option value="">None</option>';
       contactRegion.firstElementChild.textContent = appText("common.none", "None");
-      settings.regions.forEach((region) => {
+      locationNamesFor(settings.regions, contactCountry()).forEach((region) => {
         const option = document.createElement("option");
         option.value = region;
         option.textContent = region;
@@ -3381,7 +3462,7 @@ const initializeApp = async () => {
 
       contactArea.innerHTML = '<option value="">None</option>';
       contactArea.firstElementChild.textContent = appText("common.none", "None");
-      settings.areas.forEach((area) => {
+      locationNamesFor(settings.areas, contactCountry()).forEach((area) => {
         const option = document.createElement("option");
         option.value = area;
         option.textContent = area;
@@ -3404,7 +3485,7 @@ const initializeApp = async () => {
     const currentRegionFilter = filterRegion.value;
     filterRegion.innerHTML = '<option value="">All Regions</option>';
     filterRegion.firstElementChild.textContent = appText("filter.allRegions", "All Regions");
-    settings.regions
+    uniqueLocationNames(settings.regions)
       .forEach((name) => {
         const option = document.createElement("option");
         option.value = name;
@@ -3421,7 +3502,7 @@ const initializeApp = async () => {
     let currentAreaFilter = filterArea.value;
     filterArea.innerHTML = '<option value="">All Areas</option>';
     filterArea.firstElementChild.textContent = appText("filter.allAreas", "All Areas");
-    settings.areas
+    uniqueLocationNames(settings.areas)
       .forEach((name) => {
         const opt = document.createElement("option");
         opt.value = name;
@@ -3439,6 +3520,21 @@ const initializeApp = async () => {
     filterArea.value = currentAreaFilter;
 
     const hierarchyList = document.getElementById("region-area-list");
+    const locationCountrySelect = document.getElementById("setting-location-country");
+    const previousLocationCountry = locationCountrySelect.value;
+    locationCountrySelect.innerHTML = "";
+    settings.countries.forEach((country) => {
+      const option = document.createElement("option");
+      option.value = country;
+      option.textContent = displayCountry(country);
+      locationCountrySelect.appendChild(option);
+    });
+    locationCountrySelect.value = settings.countries.includes(
+      previousLocationCountry,
+    )
+      ? previousLocationCountry
+      : settings.country;
+    const locationCountry = locationCountrySelect.value;
     hierarchyList.innerHTML = "";
     const addHierarchyHeading = (text) => {
       const heading = document.createElement("h4");
@@ -3447,7 +3543,7 @@ const initializeApp = async () => {
       hierarchyList.appendChild(heading);
     };
     const addHierarchyRow = (type, name, className, usedIn) => {
-      const location = { name };
+      const location = { name, country: locationCountry };
       const item = document.createElement("div");
       item.className = className;
       const label = document.createElement("span");
@@ -3488,19 +3584,22 @@ const initializeApp = async () => {
       items.forEach((name) => addHierarchyRow(type, name, className));
     };
 
-    if (settings.cities.length) {
+    const scopedCityNames = locationNamesFor(settings.cities, locationCountry);
+    const scopedRegionNames = locationNamesFor(settings.regions, locationCountry);
+    const scopedAreaNames = locationNamesFor(settings.areas, locationCountry);
+    if (scopedCityNames.length) {
       addHierarchyHeading(appText("location.citiesHeading", "Cities"));
-      settings.cities.forEach((city) =>
+      scopedCityNames.forEach((city) =>
         addHierarchyRow("City", city, "hierarchy-city"),
       );
     }
-    if (settings.regions.length) {
+    if (scopedRegionNames.length) {
       addHierarchyHeading(appText("location.regionsHeading", "Regions"));
-      addNameRows("Region", settings.regions, "hierarchy-region");
+      addNameRows("Region", scopedRegionNames, "hierarchy-region");
     }
-    if (settings.areas.length) {
+    if (scopedAreaNames.length) {
       addHierarchyHeading(appText("location.areasHeading", "Areas"));
-      addNameRows("Area", settings.areas, "hierarchy-area");
+      addNameRows("Area", scopedAreaNames, "hierarchy-area");
     }
 
     const defaultCountryIsPeru = selectedAddressingCountry === "Peru";
@@ -3534,6 +3633,8 @@ const initializeApp = async () => {
     return {
       populateContactRegionArea,
       populateMeRegionArea,
+      populateContactCityOptions,
+      populateMeCityOptions,
     };
   };
   const dropdownHelpers = populateDropdowns();
@@ -3748,6 +3849,7 @@ const initializeApp = async () => {
     const hasCountry = Boolean(contactCountrySelect.value);
     document.getElementById("contact-state").disabled = !hasCountry;
     citySelect.disabled = !hasCountry;
+    dropdownHelpers.populateContactCityOptions();
     dropdownHelpers.populateContactRegionArea(
       contactRegionSelect.value,
       contactAreaSelect.value,
@@ -3758,6 +3860,7 @@ const initializeApp = async () => {
     const hasCountry = Boolean(meCountrySelect.value);
     document.getElementById("me-state").disabled = !hasCountry;
     document.getElementById("me-city").disabled = !hasCountry;
+    dropdownHelpers.populateMeCityOptions();
     dropdownHelpers.populateMeRegionArea(
       document.getElementById("me-region").value,
       document.getElementById("me-area").value,
@@ -3768,6 +3871,11 @@ const initializeApp = async () => {
     if (select === contactCountrySelect) {
       document.getElementById("new-contact-region-container").hidden = true;
       document.getElementById("new-contact-area-container").hidden = true;
+      document.getElementById("new-contact-city-container").hidden = true;
+      citySelect.value = "";
+      lastCommittedContactCity = "";
+      contactRegionSelect.value = "";
+      contactAreaSelect.value = "";
       updateContactLocationFields();
     } else {
       document.getElementById("me-state").value = "";
@@ -3779,6 +3887,21 @@ const initializeApp = async () => {
       updateMeLocationFields();
     }
   };
+  // Changing a contact's country clears the form's city, region, and area
+  // choices because those lists are country-scoped. The user confirms first;
+  // the saved contact record changes only when Save Contact is chosen, and
+  // the master lists are never modified here.
+  const contactLocationSelectionsExist = () =>
+    [citySelect.value, contactRegionSelect.value, contactAreaSelect.value].some(
+      (value) => value && value !== "__ADD_NEW__",
+    );
+  const confirmContactCountryChange = () =>
+    NRVDialogs.confirm(
+      appText(
+        "contacts.countryChangeConfirm",
+        "Changing the country clears this contact's City, Region, and Area choices for the new country. Continue?",
+      ),
+    );
   const getCountryAddFields = (select) =>
     select === contactCountrySelect
       ? {
@@ -3789,7 +3912,7 @@ const initializeApp = async () => {
           container: document.getElementById("new-me-country-container"),
           input: document.getElementById("input-new-me-country"),
         };
-  const handleCountryChange = (select) => {
+  const handleCountryChange = async (select) => {
     const previousCountry = select.dataset.selectedCountry || settings.country;
     const country = select.value;
     if (country === "__ADD_COUNTRY__") {
@@ -3798,13 +3921,23 @@ const initializeApp = async () => {
       container.hidden = false;
       input.value = "";
       input.focus({ preventScroll: select === meCountrySelect });
-      return;
+      return false;
     }
     const { container, input } = getCountryAddFields(select);
     container.hidden = true;
     input.value = "";
+    if (
+      country !== previousCountry &&
+      select === contactCountrySelect &&
+      contactLocationSelectionsExist() &&
+      !(await confirmContactCountryChange())
+    ) {
+      select.value = previousCountry;
+      return false;
+    }
     select.dataset.selectedCountry = country;
     if (country !== previousCountry) resetDependentLocationFields(select);
+    return true;
   };
   const saveNewCountry = async (select) => {
     const { container, input } = getCountryAddFields(select);
@@ -3830,6 +3963,17 @@ const initializeApp = async () => {
       return;
     }
     const previousCountry = select.dataset.selectedCountry || settings.country;
+    if (
+      country !== previousCountry &&
+      select === contactCountrySelect &&
+      contactLocationSelectionsExist() &&
+      !(await confirmContactCountryChange())
+    ) {
+      select.value = previousCountry;
+      container.hidden = true;
+      input.value = "";
+      return;
+    }
     populateCountryOptions();
     select.value = country;
     select.dataset.selectedCountry = country;
@@ -3841,8 +3985,8 @@ const initializeApp = async () => {
     }
   };
   countrySelects.forEach((select) =>
-    select.addEventListener("change", () => {
-      handleCountryChange(select);
+    select.addEventListener("change", async () => {
+      await handleCountryChange(select);
       if (select === contactCountrySelect) {
         updateContactAddressingProfile(select.value);
       } else {
@@ -3893,24 +4037,23 @@ const initializeApp = async () => {
   );
   const saveNewContactCity = async () => {
     const enteredCity = toTitleCase(newContactCityInput.value.trim());
+    const country = contactCountrySelect.value || settings.country;
     if (!enteredCity) {
       await NRVDialogs.alert(appText("location.enterCityError", "Enter a city name."));
       newContactCityInput.focus();
       return false;
     }
-    const existingCity = settings.cities.find(
-      (city) => city.toLowerCase() === enteredCity.toLowerCase(),
-    );
+    const existingCity = findLocation(settings.cities, country, enteredCity);
     const city = existingCity || enteredCity;
     const session = contactEditorSession;
     newContactCityButton.disabled = true;
     newContactCityInput.disabled = true;
     if (!existingCity) {
-      addCity(city);
+      addCity(city, country);
       try {
         await saveSettings();
       } catch (error) {
-        rollbackNewCity(city);
+        rollbackNewCity(city, country);
         await showStorageError("save city", error);
         newContactCityButton.disabled = false;
         newContactCityInput.disabled = false;
@@ -4007,8 +4150,10 @@ const initializeApp = async () => {
       input.focus();
       return;
     }
-    const existingRegion = settings.regions.find(
-      (region) => region.toLowerCase() === name.toLowerCase(),
+    const existingRegion = findLocation(
+      settings.regions,
+      contactCountrySelect.value,
+      name,
     );
     if (existingRegion) {
       dropdownHelpers.populateContactRegionArea(
@@ -4021,7 +4166,7 @@ const initializeApp = async () => {
       return;
     }
 
-    settings.regions.push(name);
+    settings.regions.push({ name, country: contactCountrySelect.value });
     try {
       await saveSettings();
     } catch (error) {
@@ -4053,8 +4198,10 @@ const initializeApp = async () => {
         input.focus();
         return;
       }
-      const existingArea = settings.areas.find(
-        (area) => area.toLowerCase() === name.toLowerCase(),
+      const existingArea = findLocation(
+        settings.areas,
+        contactCountrySelect.value,
+        name,
       );
       if (existingArea) {
         dropdownHelpers.populateContactRegionArea(region, existingArea);
@@ -4063,7 +4210,7 @@ const initializeApp = async () => {
         return;
       }
 
-      settings.areas.push(name);
+      settings.areas.push({ name, country: contactCountrySelect.value });
       try {
         await saveSettings();
       } catch (error) {
@@ -4090,21 +4237,26 @@ const initializeApp = async () => {
     });
 
   // Settings View Buttons
+  const settingLocationCountry = () =>
+    document.getElementById("setting-location-country").value ||
+    settings.country;
+  document
+    .getElementById("setting-location-country")
+    .addEventListener("change", () => populateDropdowns());
   document
     .getElementById("btn-add-setting-city")
     .addEventListener("click", async () => {
       const input = document.getElementById("setting-new-city");
       const val = toTitleCase(input.value);
-      const existingCity = settings.cities.find(
-        (city) => city.toLowerCase() === val.toLowerCase(),
-      );
+      const country = settingLocationCountry();
+      const existingCity = hasLocation(settings.cities, country, val);
       if (val && !existingCity) {
-        addCity(val);
+        addCity(val, country);
         input.value = "";
         try {
           await saveSettings();
         } catch (error) {
-          rollbackNewCity(val);
+          rollbackNewCity(val, country);
           await showStorageError("save settings", error);
           return;
         }
@@ -4137,13 +4289,9 @@ const initializeApp = async () => {
     .addEventListener("click", async () => {
       const input = settingAreaInput;
       const val = toTitleCase(input.value);
-      if (
-        val &&
-        !settings.areas.some(
-          (area) => area.toLowerCase() === val.toLowerCase(),
-        )
-      ) {
-        settings.areas.push(val);
+      const country = settingLocationCountry();
+      if (val && !hasLocation(settings.areas, country, val)) {
+        settings.areas.push({ name: val, country });
         try {
           await saveSettings();
         } catch (error) {
@@ -4167,13 +4315,9 @@ const initializeApp = async () => {
     .addEventListener("click", async () => {
       const input = settingRegionInput;
       const region = toTitleCase(input.value);
-      if (
-        region &&
-        !settings.regions.some(
-          (existing) => existing.toLowerCase() === region.toLowerCase(),
-        )
-      ) {
-        settings.regions.push(region);
+      const country = settingLocationCountry();
+      if (region && !hasLocation(settings.regions, country, region)) {
+        settings.regions.push({ name: region, country });
         try {
           await saveSettings();
         } catch (error) {
@@ -4267,26 +4411,23 @@ const initializeApp = async () => {
       populateDropdowns();
       return true;
     }
-    const existingCity = settings.cities.find(
-      (city) => city.toLowerCase() === enteredCity.toLowerCase(),
+    const existingCity = findLocation(
+      settings.cities,
+      meFields.country.value || settings.country,
+      enteredCity,
     );
     if (existingCity) {
       meFields.city.value = existingCity;
-      if (existingCity !== lastCommittedMeCity) {
-        meFields.region.value = "";
-        meFields.area.value = "";
-      }
       lastCommittedMeCity = existingCity;
       populateDropdowns();
       return true;
     }
-    if (enteredCity !== lastCommittedMeCity) {
-      meFields.region.value = "";
-      meFields.area.value = "";
-    }
     meFields.city.value = enteredCity;
     lastCommittedMeCity = enteredCity;
-    dropdownHelpers.populateMeRegionArea("", "");
+    dropdownHelpers.populateMeRegionArea(
+      meFields.region.value,
+      meFields.area.value,
+    );
     return true;
   };
   meFields.city.addEventListener("change", () => {
@@ -4330,8 +4471,10 @@ const initializeApp = async () => {
         input.focus({ preventScroll: true });
         return;
       }
-      const existing = settings.regions.find(
-        (region) => region.toLowerCase() === name.toLowerCase(),
+      const existing = findLocation(
+        settings.regions,
+        meFields.country.value || settings.country,
+        name,
       );
       if (existing) {
         populateDropdowns();
@@ -4340,7 +4483,10 @@ const initializeApp = async () => {
         await NRVDialogs.alert(appText("location.regionExists", "That region is already in the list."));
         return;
       }
-      settings.regions.push(name);
+      settings.regions.push({
+        name,
+        country: meFields.country.value || settings.country,
+      });
       try {
         await saveSettings();
       } catch (error) {
@@ -4372,8 +4518,10 @@ const initializeApp = async () => {
         input.focus({ preventScroll: true });
         return;
       }
-      const existing = settings.areas.find(
-        (area) => area.toLowerCase() === name.toLowerCase(),
+      const existing = findLocation(
+        settings.areas,
+        meFields.country.value || settings.country,
+        name,
       );
       if (existing) {
         populateDropdowns();
@@ -4382,7 +4530,10 @@ const initializeApp = async () => {
         await NRVDialogs.alert(appText("location.areaExists", "That area is already in the list."));
         return;
       }
-      settings.areas.push(name);
+      settings.areas.push({
+        name,
+        country: meFields.country.value || settings.country,
+      });
       try {
         await saveSettings();
       } catch (error) {
@@ -4524,8 +4675,8 @@ const initializeApp = async () => {
     const me = readMeForm();
     if (
       !me.country ||
-      (me.region && !settings.regions.includes(me.region)) ||
-      (me.area && !settings.areas.includes(me.area))
+      (me.region && !hasLocation(settings.regions, me.country, me.region)) ||
+      (me.area && !hasLocation(settings.areas, me.country, me.area))
     ) {
       await showDetailsValidationError(
         appText("settings.validLocation", "Choose a valid country, city, region, and area."),
@@ -4566,9 +4717,9 @@ const initializeApp = async () => {
       const owner = key === "city" ? me : settings;
       const city = owner[key];
       if (!city) continue;
-      const existing = settings.cities.find((item) => item.toLowerCase() === city.toLowerCase());
+      const existing = findLocation(settings.cities, me.country, city);
       if (existing) owner[key] = existing;
-      else addCity(city);
+      else addCity(city, me.country);
     }
     try {
       await saveSettings();
@@ -4908,22 +5059,27 @@ const initializeApp = async () => {
     }
 
     const previousState = cloneLocationState();
-    if (type === "City") {
-      const duplicate = settings.cities.some(
-        (city) =>
-          city !== location.name && city.toLowerCase() === name.toLowerCase(),
+    const scope = location.country;
+    const renameEntry = (list) =>
+      list.map((item) =>
+        item.country === scope && item.name === location.name
+          ? { ...item, name }
+          : item,
       );
+    const contactInScope = (contact) => contact.country === scope;
+    if (type === "City") {
+      const duplicate = hasLocation(settings.cities, scope, name);
       if (duplicate) {
         await NRVDialogs.alert(appText("location.cityNameExists", "A city with that name already exists."));
         return false;
       }
-      settings.cities = settings.cities.map((city) =>
-        city === location.name ? name : city,
-      );
+      settings.cities = renameEntry(settings.cities);
       settings.defaultCity =
-        settings.defaultCity === location.name ? name : settings.defaultCity;
+        settings.defaultCity === location.name && scope === settings.country
+          ? name
+          : settings.defaultCity;
       contacts = contacts.map((contact) => {
-        if (contact.city !== location.name) return contact;
+        if (!contactInScope(contact) || contact.city !== location.name) return contact;
         const updatedContact = { ...contact, city: name };
         const streetAddress = getStreetAddress(updatedContact);
         return {
@@ -4948,13 +5104,11 @@ const initializeApp = async () => {
         document.getElementById("setting-default-city").value = name;
       }
     } else {
-      // Renames a region or area in its list and everywhere contacts use it.
+      // Renames a region or area in its country's list and on every contact
+      // of that country that uses it.
       const listKey = type === "Region" ? "regions" : "areas";
       const contactField = type === "Region" ? "region" : "area";
-      const duplicate = settings[listKey].some(
-        (item) =>
-          item !== location.name && item.toLowerCase() === name.toLowerCase(),
-      );
+      const duplicate = hasLocation(settings[listKey], scope, name);
       if (duplicate) {
         await NRVDialogs.alert(
           type === "Region"
@@ -4963,11 +5117,9 @@ const initializeApp = async () => {
         );
         return false;
       }
-      settings[listKey] = settings[listKey].map((item) =>
-        item === location.name ? name : item,
-      );
+      settings[listKey] = renameEntry(settings[listKey]);
       contacts = contacts.map((contact) =>
-        contact[contactField] === location.name
+        contactInScope(contact) && contact[contactField] === location.name
           ? { ...contact, [contactField]: name }
           : contact,
       );
@@ -4978,10 +5130,14 @@ const initializeApp = async () => {
 
   const deleteLocation = async (type, location) => {
     const contactField = type === "Region" ? "region" : "area";
-    const assignedContacts =
-      type === "City"
-        ? contacts.filter((contact) => contact.city === location.name)
-        : contacts.filter((contact) => contact[contactField] === location.name);
+    const scope = location.country;
+    const assignedContacts = contacts.filter(
+      (contact) =>
+        contact.country === scope &&
+        (type === "City"
+          ? contact.city === location.name
+          : contact[contactField] === location.name),
+    );
     if (assignedContacts.length) {
       await NRVDialogs.alert(
         appText("location.deleteBlocked", `Cannot delete this ${type.toLowerCase()} while it has ${assignedContacts.length} assigned contact${assignedContacts.length === 1 ? "" : "s"}. Reassign those contacts first.`, { type: locationTypeDisplay(type), count: assignedContacts.length }),
@@ -4997,20 +5153,24 @@ const initializeApp = async () => {
     }
 
     const previousState = cloneLocationState();
-    if (type === "City") {
-      settings.cities = settings.cities.filter(
-        (city) => city !== location.name,
+    const removeEntry = (list) =>
+      list.filter(
+        (item) => !(item.country === scope && item.name === location.name),
       );
-      if (settings.defaultCity === location.name) {
-        settings.defaultCity = settings.cities[0] || "";
+    if (type === "City") {
+      settings.cities = removeEntry(settings.cities);
+      if (
+        settings.defaultCity === location.name &&
+        scope === settings.country
+      ) {
+        settings.defaultCity =
+          locationNamesFor(settings.cities, settings.country)[0] || "";
         document.getElementById("setting-default-city").value =
           settings.defaultCity;
       }
     } else {
       const listKey = type === "Region" ? "regions" : "areas";
-      settings[listKey] = settings[listKey].filter(
-        (item) => item !== location.name,
-      );
+      settings[listKey] = removeEntry(settings[listKey]);
     }
     await persistLocationChanges(previousState);
   };
@@ -8025,23 +8185,37 @@ const initializeApp = async () => {
       if (input.type === "file") {
         changed = input.files.length > 0;
       } else if (input.id === "setting-new-city") {
+        const country =
+          document.getElementById("setting-location-country").value ||
+          settings.country;
         const name = toTitleCase(input.value).toLowerCase();
         changed =
           input.value.trim() !== "" &&
-          !settings.cities.some((city) => city.toLowerCase() === name);
+          !settings.cities.some(
+            (city) =>
+              city.country === country && city.name.toLowerCase() === name,
+          );
       } else if (input.id === "setting-new-region") {
+        const country =
+          document.getElementById("setting-location-country").value ||
+          settings.country;
         const name = toTitleCase(input.value).toLowerCase();
         changed =
           input.value.trim() !== "" &&
           !settings.regions.some(
-            (region) => region.toLowerCase() === name,
+            (region) =>
+              region.country === country && region.name.toLowerCase() === name,
           );
       } else if (input.id === "setting-new-area") {
+        const country =
+          document.getElementById("setting-location-country").value ||
+          settings.country;
         const name = toTitleCase(input.value).toLowerCase();
         changed =
           input.value.trim() !== "" &&
           !settings.areas.some(
-            (area) => area.toLowerCase() === name,
+            (area) =>
+              area.country === country && area.name.toLowerCase() === name,
           );
       } else {
         changed = input.value.trim() !== "";
@@ -8693,14 +8867,14 @@ const initializeApp = async () => {
       phoneInput.focus();
       return;
     }
-    if (!city || !settings.cities.includes(city)) {
+    if (!city || !hasLocation(settings.cities, country, city)) {
       await NRVDialogs.alert(appText("contacts.cityRequired", "Choose or add a city before saving this contact."));
       citySelect.focus();
       return;
     }
     if (
-      (region && !settings.regions.includes(region)) ||
-      (area && !settings.areas.includes(area))
+      (region && !hasLocation(settings.regions, country, region)) ||
+      (area && !hasLocation(settings.areas, country, area))
     ) {
       await NRVDialogs.alert(appText("contacts.locationInvalid", "Choose a region and area from the saved lists."));
       return;
@@ -9364,12 +9538,25 @@ const initializeApp = async () => {
             .map((name) => escapeHtml(name))
             .join(", ")}</li>`
         : "";
-    const listItems = [
-      nameList("print.cities", "Cities:", settings.cities),
-      nameList("print.regions", "Regions:", settings.regions),
-      nameList("print.areas", "Areas:", settings.areas),
-    ].join("");
-    const rows = listItems ? `<ul>${listItems}</ul>` : "";
+    const locationCountries = [
+      ...new Set(
+        [...settings.cities, ...settings.regions, ...settings.areas].map(
+          (item) => item.country,
+        ),
+      ),
+    ].sort(compareNames);
+    const rows = locationCountries
+      .map((country) => {
+        const listItems = [
+          nameList("print.cities", "Cities:", locationNamesFor(settings.cities, country)),
+          nameList("print.regions", "Regions:", locationNamesFor(settings.regions, country)),
+          nameList("print.areas", "Areas:", locationNamesFor(settings.areas, country)),
+        ].join("");
+        return listItems
+          ? `<h3>${escapeHtml(displayCountry(country))}</h3><ul>${listItems}</ul>`
+          : "";
+      })
+      .join("");
     await printContent(
       appText("settings.title", "Settings"),
       new Date().toLocaleDateString(),
@@ -10905,17 +11092,22 @@ const initializeApp = async () => {
         };
         const updatedContacts = [...contacts];
         let nextId = Date.now();
-        const addImportedName = (list, value) => {
+        const addImportedName = (list, value, country) => {
           const name = typeof value === "string" ? value.trim() : "";
-          if (!name) return "";
+          if (!name || !country) return name;
           const existing = list.find(
-            (item) => item.toLowerCase() === name.toLowerCase(),
+            (item) =>
+              item.country === country &&
+              item.name.toLowerCase() === name.toLowerCase(),
           );
-          if (existing) return existing;
-          list.push(name);
+          if (existing) return existing.name;
+          list.push({ name, country });
           return name;
         };
         for (const importedContact of importedList) {
+        const importedCountry = normalizeCountry(
+          importedContact.country || settings.country,
+        );
         const importedAreaName =
           importedContact.area || importedContact.areas?.[0] || "";
         const legacyAssignment = importedContact.areaAssignments.find(
@@ -10925,17 +11117,20 @@ const initializeApp = async () => {
           importedContact.city || legacyAssignment?.city || "";
         const importedRegion =
           importedContact.region || legacyAssignment?.region || "";
-        if (importedCity && !updatedSettings.cities.includes(importedCity)) {
-          updatedSettings.cities.push(importedCity);
-        }
-        importedContact.city = importedCity;
+        importedContact.city = addImportedName(
+          updatedSettings.cities,
+          importedCity,
+          importedCountry,
+        );
         importedContact.region = addImportedName(
           updatedSettings.regions,
           importedRegion,
+          importedCountry,
         );
         importedContact.area = addImportedName(
           updatedSettings.areas,
           importedAreaName,
+          importedCountry,
         );
         importedContact.streetAddress = getStreetAddress(importedContact);
         delete importedContact.areas;

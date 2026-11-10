@@ -190,31 +190,32 @@
 
     const base = localDirty ? localSettings : remoteSettings;
     const settings = { ...base };
+    // Cities, regions and areas are {name, country} records; legacy strings
+    // and {name, city} pairs may still arrive from old backups and are kept
+    // distinct here so normalizeRegionData can migrate them afterward.
+    const locationKey = (item) =>
+      typeof item === "string"
+        ? JSON.stringify(["", item.toLowerCase()])
+        : JSON.stringify([
+            String(item?.country || item?.city || "").toLowerCase(),
+            String(item?.name || "").toLowerCase(),
+          ]);
     settings.cities = unionBy(
       [localSettings.cities, remoteSettings.cities],
-      (city) => String(city),
+      locationKey,
     );
     settings.countries = unionBy(
       [localSettings.countries, remoteSettings.countries],
       (country) => String(country).toLowerCase(),
     );
-    const locationNames = (lists) =>
-      unionBy(
-        lists.map((list) =>
-          (list || [])
-            .map((item) => (typeof item === "string" ? item : item?.name))
-            .filter(Boolean),
-        ),
-        (name) => String(name).toLowerCase(),
-      );
-    settings.regions = locationNames([
-      localSettings.regions,
-      remoteSettings.regions,
-    ]);
-    settings.areas = locationNames([
-      localSettings.areas,
-      remoteSettings.areas,
-    ]);
+    settings.regions = unionBy(
+      [localSettings.regions, remoteSettings.regions],
+      locationKey,
+    );
+    settings.areas = unionBy(
+      [localSettings.areas, remoteSettings.areas],
+      locationKey,
+    );
     settings.deletedContacts = tombstones;
     settings.goalsAndMilestones = mergeGoalsAndMilestones(
       localSettings,

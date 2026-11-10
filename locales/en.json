@@ -770,9 +770,12 @@
   "setup.continueToContacts": "continue to Contacts",
   "setup.continuePunctuation": ".",
   "location.howTitle": "How locations work:",
-  "location.howText": "Cities, regions, and areas are three independent, reusable lists. Regions are large parts of town (such as North, South, East, and West) and areas are smaller neighborhoods. They are added as you enter them for yourself or a contact; use each field's + Add New choice to add one.",
+  "location.howText": "Cities, regions, and areas are three independent, reusable lists, and each country keeps its own lists. Regions are large parts of town (such as North, South, East, and West) and areas are smaller neighborhoods. They are added as you enter them for yourself or a contact; use each field's + Add New choice to add one.",
   "location.regionInstructions": "You can also add a region while adding a contact. Choose + Add New Region... in that contact's Region list. A region is saved once and can be used with any city.",
-  "location.manageNote": "Cities, regions and areas are each listed once. Edit renames an entry everywhere it is used. Delete is blocked while any contact uses it. The lists are independent: a contact can have a city, a region, an area, or any combination.",
+  "location.manageNote": "Cities, regions and areas are each listed once for the chosen country. Edit renames an entry everywhere it is used. Delete is blocked while any contact uses it. The lists are independent: a contact can have a city, a region, an area, or any combination.",
+  "location.locationCountry": "Country",
+  "location.locationCountryLabel": "Country for these lists",
+  "contacts.countryChangeConfirm": "Changing the country clears this contact's City, Region, and Area choices for the new country. Continue?",
   "location.contactCityNote": "Select a saved city or choose + Add City to add one here.",
   "location.addCityOption": "+ Add City",
   "location.newCity": "New city name:",
@@ -1159,6 +1162,7 @@
   "map.zoomIn": "Zoom in",
   "map.zoomOut": "Zoom out",
   "map.closePopup": "Close popup",
-  "release.current.title": "Independent cities, regions, and areas",
-  "release.current.change1": "Regions and areas are now saved once as independent reusable lists, with no city required, and any contact can use any saved city, region, and area together."
+  "release.current.title": "Country-scoped locations and reliable updates",
+  "release.current.change1": "Each country now keeps its own independent Cities, Regions, and Areas lists, so one country's entries are never offered for another country's contacts.",
+  "release.current.change2": "The app update prompt now checks the actual build and no longer repeats after you update."
 }

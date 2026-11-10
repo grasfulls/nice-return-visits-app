@@ -1,4 +1,4 @@
-const BUILD_REVISION = "sha256:71316d1df59e94e5f4d99a0537a821fef8a8f18b4a95fe3ce8f6f3b1866c428d";
+const BUILD_REVISION = "sha256:4d44255e00e962e90323fc8cae7209a99123823cae68e579e45a3523d6906c44";
 const CACHE_NAME = `return-visits-shell-${BUILD_REVISION.slice(7)}`;
 const APP_SHELL = [
   "./",
@@ -84,4 +84,11 @@ self.addEventListener("fetch", (event) => {
       }
     })(),
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "nrv-get-revision") {
+    const port = event.ports && event.ports[0];
+    if (port) port.postMessage({ revision: BUILD_REVISION });
+  }
 });

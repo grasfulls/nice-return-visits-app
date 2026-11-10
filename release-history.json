@@ -1,5 +1,22 @@
 [
   {
+    "version": "0.9.57",
+    "en": {
+      "title": "Country-scoped locations and reliable updates",
+      "changes": [
+        "Each country now keeps its own independent Cities, Regions, and Areas lists, so one country's entries are never offered for another country's contacts.",
+        "The app update prompt now checks the actual build and no longer repeats after you update."
+      ]
+    },
+    "es": {
+      "title": "Ubicaciones por país y actualizaciones confiables",
+      "changes": [
+        "Cada país ahora mantiene sus propias listas independientes de ciudades, regiones y áreas, de modo que las entradas de un país nunca se ofrecen para los contactos de otro país.",
+        "El aviso de actualización ahora comprueba la compilación real y ya no se repite después de actualizar."
+      ]
+    }
+  },
+  {
     "version": "0.9.56",
     "en": {
       "title": "Independent cities, regions, and areas",

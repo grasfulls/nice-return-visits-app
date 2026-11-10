@@ -715,11 +715,13 @@
             </dialog>
             <details class="settings-section" id="locations-section">
               <summary data-i18n="location.manageTitle">Cities, Regions &amp; Areas</summary>
-              <h3 data-i18n="location.addCityTitle">Add New City to List</h3>
               <p class="location-hint">
                 <strong data-i18n="location.howTitle">How locations work:</strong>
-                <span data-i18n="location.howText">Cities, regions, and areas are three independent, reusable lists. Regions are large parts of town (such as North, South, East, and West) and areas are smaller neighborhoods. They are added as you enter them for yourself or a contact; use each field's + Add New choice to add one.</span>
+                <span data-i18n="location.howText">Cities, regions, and areas are three independent, reusable lists, and each country keeps its own lists. Regions are large parts of town (such as North, South, East, and West) and areas are smaller neighborhoods. They are added as you enter them for yourself or a contact; use each field's + Add New choice to add one.</span>
               </p>
+              <label for="setting-location-country" data-i18n="location.locationCountry">Country</label>
+              <select id="setting-location-country" aria-label="Country for these lists" data-i18n-attr="aria-label:location.locationCountryLabel"></select>
+              <h3 style="margin-top: 15px" data-i18n="location.addCityTitle">Add New City to List</h3>
               <div style="display: flex; gap: 8px">
                 <input
                   type="text"
@@ -796,10 +798,11 @@
               <h3 style="margin-top: 20px" data-i18n="location.manageHeading">Manage Cities, Regions, and Areas</h3>
               <div id="region-area-list"></div>
               <small data-i18n="location.manageNote">
-                Cities, regions and areas are each listed once. Edit renames an
-                entry everywhere it is used. Delete is blocked while any
-                contact uses it. The lists are independent: a contact can have
-                a city, a region, an area, or any combination.
+                Cities, regions and areas are each listed once for the chosen
+                country. Edit renames an entry everywhere it is used. Delete
+                is blocked while any contact uses it. The lists are
+                independent: a contact can have a city, a region, an area, or
+                any combination.
               </small>
             </details>
             <details class="settings-section" id="time-tracking-section">
@@ -1147,9 +1150,10 @@
               <details class="settings-section">
                 <summary data-i18n="update.whatsNew">What's New</summary>
                 <!-- release-notes:start -->
-                <p data-i18n="release.current.title">Independent cities, regions, and areas</p>
+                <p data-i18n="release.current.title">Country-scoped locations and reliable updates</p>
                 <ul>
-                  <li data-i18n="release.current.change1">Regions and areas are now saved once as independent reusable lists, with no city required, and any contact can use any saved city, region, and area together.</li>
+                  <li data-i18n="release.current.change1">Each country now keeps its own independent Cities, Regions, and Areas lists, so one country&#39;s entries are never offered for another country&#39;s contacts.</li>
+                  <li data-i18n="release.current.change2">The app update prompt now checks the actual build and no longer repeats after you update.</li>
                 </ul>
                 <!-- release-notes:end -->
               </details>
@@ -1946,10 +1950,46 @@
         window.addEventListener("load", () => {
           const signalUpdateAvailable = () =>
             document.dispatchEvent(new Event("app-update-available"));
-          const observeUpdate = (previousWorker, worker) => {
-            if (!worker || !previousWorker || worker === previousWorker) return;
+          // A worker is asked for its generated build revision; the update
+          // prompt is raised only when that revision differs from the one
+          // this page is running. Worker object identity is never compared
+          // because it is unreliable on some browsers.
+          const workerRevision = (worker) =>
+            new Promise((resolve) => {
+              let channel;
+              try {
+                channel = new MessageChannel();
+              } catch (error) {
+                resolve(null);
+                return;
+              }
+              const timer = window.setTimeout(() => resolve(null), 3000);
+              channel.port1.onmessage = (event) => {
+                window.clearTimeout(timer);
+                resolve(
+                  typeof event.data?.revision === "string"
+                    ? event.data.revision
+                    : null,
+                );
+              };
+              try {
+                worker.postMessage({ type: "nrv-get-revision" }, [channel.port2]);
+              } catch (error) {
+                window.clearTimeout(timer);
+                resolve(null);
+              }
+            });
+          const signalIfDifferentRevision = async (worker) => {
+            if (!worker) return;
+            const revision = await workerRevision(worker);
+            if (revision && revision !== APP_BUILD_REVISION) {
+              signalUpdateAvailable();
+            }
+          };
+          const observeUpdate = (worker) => {
+            if (!worker) return;
             const signalIfActivated = () => {
-              if (worker.state === "activated") signalUpdateAvailable();
+              if (worker.state === "activated") signalIfDifferentRevision(worker);
             };
             worker.addEventListener("statechange", signalIfActivated);
             signalIfActivated();
@@ -1957,29 +1997,18 @@
 
           (async () => {
             try {
-              const previousRegistration =
-                await navigator.serviceWorker.getRegistration();
-              const previousWorker =
-                navigator.serviceWorker.controller ||
-                previousRegistration?.active ||
-                null;
               const registration =
                 await navigator.serviceWorker.register(
                   "./service-worker.js",
                   { updateViaCache: "none" },
                 );
               registration.addEventListener("updatefound", () =>
-                observeUpdate(previousWorker, registration.installing),
+                observeUpdate(registration.installing),
               );
-              if (registration.installing) {
-                observeUpdate(previousWorker, registration.installing);
-              }
-              if (
-                previousWorker &&
-                registration.active &&
-                registration.active !== previousWorker
-              ) {
-                signalUpdateAvailable();
+              if (registration.installing) observeUpdate(registration.installing);
+              if (registration.waiting) observeUpdate(registration.waiting);
+              if (registration.active) {
+                await signalIfDifferentRevision(registration.active);
               }
               if (navigator.onLine) await registration.update();
             } catch (error) {
