@@ -50,7 +50,6 @@ function createGuide(
           "launch-install-detected",
           "launch-route-guidance",
           "launch-route-choice",
-          "btn-launch-keep-suggested",
           "btn-launch-change-route",
           "btn-launch-keep-corrected",
           "btn-choose-install",
@@ -180,23 +179,27 @@ function createGuide(
 }
 
 for (const [userAgent, expected, device, browser] of [
-  [agents.iphone, "Safari on an iPhone", "iphone", "safari"],
-  [agents.ipad, "Safari on an iPad", "ipad", "safari"],
-  [agents.android, "Google Chrome on an Android phone or tablet", "android", "chrome"],
-  [agents.windows, "Google Chrome on a Windows computer", "windows", "chrome"],
-  [`${agents.windows} Edg/120.0`, "Microsoft Edge on a Windows computer", "windows", "edge"],
-  [agents.mac, "Safari on a Mac", "mac", "safari"],
-  [agents.chromebook, "Google Chrome on a Chromebook", "chromebook", "chrome"],
+  [agents.iphone, "We’ll proceed using an iPhone and Safari.", "iphone", "safari"],
+  [agents.ipad, "We’ll proceed using an iPad and Safari.", "ipad", "safari"],
+  [agents.android, "We’ll proceed using an Android phone or tablet and Google Chrome.", "android", "chrome"],
+  [agents.windows, "We’ll proceed using a Windows computer and Google Chrome.", "windows", "chrome"],
+  [`${agents.windows} Edg/120.0`, "We’ll proceed using a Windows computer and Microsoft Edge.", "windows", "edge"],
+  [agents.mac, "We’ll proceed using a Mac and Safari.", "mac", "safari"],
+  [agents.chromebook, "We’ll proceed using a Chromebook and Google Chrome.", "chromebook", "chrome"],
 ]) {
   const guide = createGuide(userAgent);
-  assert(guide.node("launch-install-detected").textContent.includes(expected));
+  assert.strictEqual(guide.node("launch-install-detected").textContent, expected);
+  assert.strictEqual(guide.node("launch-install-detected").hidden, false);
   assert.strictEqual(guide.node("launch-install-device").value, device);
   assert.strictEqual(guide.node("launch-install-browser").value, browser);
   assert.strictEqual(guide.node("browser-install-screen").hidden, false);
   assert(guide.node("browser-install-steps").children.length > 0);
 }
 const unknown = createGuide("unknown");
-assert(unknown.node("launch-install-detected").textContent.includes("another browser"));
+assert.strictEqual(
+  unknown.node("launch-install-detected").textContent,
+  "We’ll proceed using a computer and another browser.",
+);
 assert.strictEqual(unknown.node("launch-install-device").value, "computer");
 assert.strictEqual(unknown.node("launch-install-browser").value, "other");
 console.log("PASS device/browser detection identifies supported routes and exposes correction when unknown");
@@ -221,8 +224,7 @@ const ipadInstallTransition = createGuide(
 );
 assert.strictEqual(ipadInstallTransition.node("launch-choice-screen").hidden, false);
 assert.strictEqual(ipadInstallTransition.node("browser-install-screen").hidden, true);
-assert.strictEqual(ipadInstallTransition.node("launch-choice-options").hidden, true);
-ipadInstallTransition.node("btn-launch-keep-suggested").dispatch("click");
+assert.strictEqual(ipadInstallTransition.node("launch-install-detected").textContent, "We’ll proceed using an iPad and Safari.");
 assert.strictEqual(ipadInstallTransition.node("launch-choice-screen").hidden, false);
 assert.strictEqual(ipadInstallTransition.node("launch-choice-options").hidden, false);
 ipadInstallTransition.node("btn-choose-install").dispatch("click");
@@ -245,7 +247,6 @@ const failedRender = createGuide(
   "",
   { launchChoice: true, failElementCreation: true },
 );
-failedRender.node("btn-launch-keep-suggested").dispatch("click");
 failedRender.node("btn-choose-install").dispatch("click");
 assert.strictEqual(failedRender.node("launch-choice-screen").hidden, false);
 assert.strictEqual(failedRender.node("browser-install-screen").hidden, true);
@@ -333,13 +334,12 @@ const correction = createGuide(
   "",
   { launchChoice: true },
 );
-assert(correction.node("launch-install-detected").textContent.includes("Microsoft Edge on a Windows computer"));
+assert.strictEqual(correction.node("launch-install-detected").textContent, "We’ll proceed using a Windows computer and Microsoft Edge.");
 assert.strictEqual(correction.node("launch-route-guidance").hidden, false);
-assert.strictEqual(correction.node("btn-launch-keep-suggested").hidden, false);
 assert.strictEqual(correction.node("btn-launch-change-route").hidden, false);
 assert.strictEqual(correction.node("launch-install-device").value, "windows");
 assert.strictEqual(correction.node("launch-install-browser").value, "edge");
-correction.node("btn-launch-keep-suggested").dispatch("click");
+assert.strictEqual(correction.node("launch-choice-options").hidden, false);
 correction.node("btn-choose-install").dispatch("click");
 assert(correction.node("browser-install-instructions-title").textContent.includes("Microsoft Edge"));
 assert(correction.node("browser-install-instructions-title").textContent.includes("Windows"));
@@ -359,10 +359,10 @@ assert.strictEqual(corrected.node("launch-install-device").value, "windows");
 assert.strictEqual(corrected.node("launch-install-browser").value, "edge");
 corrected.node("launch-install-device").value = "mac";
 corrected.node("launch-install-device").dispatch("change");
-assert(corrected.node("launch-install-detected").textContent.includes("Mac"));
+assert.strictEqual(corrected.node("launch-install-detected").textContent, "We’ll proceed using a Mac and Microsoft Edge.");
 corrected.node("launch-install-browser").value = "safari";
 corrected.node("launch-install-browser").dispatch("change");
-assert(corrected.node("launch-install-detected").textContent.includes("Safari on a Mac"));
+assert.strictEqual(corrected.node("launch-install-detected").textContent, "We’ll proceed using a Mac and Safari.");
 corrected.node("btn-launch-keep-corrected").dispatch("click");
 assert.strictEqual(corrected.node("launch-route-editor").hidden, true);
 assert.strictEqual(corrected.node("launch-choice-options").hidden, false);
@@ -373,7 +373,7 @@ assert(corrected.node("browser-install-instructions-title").textContent.includes
 assert(!html.includes("That's not my browser"));
 assert(!html.includes("That's not my device"));
 assert(!html.includes("what's next"));
-console.log("PASS suggested and corrected device/browser routes remain on Screen 1 and flow into installation");
+console.log("PASS default and corrected device/browser routes remain on Screen 1 and flow into installation");
 
 const browserRisks = createGuide(
   agents.ipad,
@@ -383,7 +383,6 @@ const browserRisks = createGuide(
   "",
   { launchChoice: true },
 );
-browserRisks.node("btn-launch-keep-suggested").dispatch("click");
 browserRisks.node("btn-choose-browser").dispatch("click");
 assert.strictEqual(browserRisks.node("launch-choice-screen").hidden, false);
 assert.strictEqual(browserRisks.node("launch-browser-risk").hidden, false);
@@ -406,7 +405,6 @@ const browserChoice = createGuide(
   "",
   { launchChoice: true },
 );
-browserChoice.node("btn-launch-keep-suggested").dispatch("click");
 browserChoice.node("btn-choose-browser").dispatch("click");
 browserChoice.node("btn-continue-browser").dispatch("click");
 assert.strictEqual(browserChoice.localValues.get("nrv_launch_mode"), "browser");
@@ -416,11 +414,36 @@ console.log("PASS Continue in Browser preserves the existing browser-use behavio
 for (const language of ["en", "es"]) {
   const catalog = JSON.parse(fs.readFileSync(path.join(root, "locales", `${language}.json`), "utf8"));
   const localized = createGuide(agents.ipad, language, 0, null, "", { launchChoice: true });
-  assert(localized.node("launch-install-detected").textContent.includes("Safari"));
-  localized.node("btn-launch-keep-suggested").dispatch("click");
+  assert.strictEqual(localized.node("launch-install-detected").hidden, false);
+  assert.strictEqual(
+    localized.node("launch-install-detected").textContent,
+    language === "en"
+      ? "We’ll proceed using an iPad and Safari."
+      : "Continuaremos usando un iPad y Safari.",
+  );
+  localized.node("launch-route-guidance").textContent = i18n.t("launch.routeGuidance");
+  assert.strictEqual(localized.node("launch-route-guidance").textContent,
+    language === "en"
+      ? "If that doesn’t look right, change the device or browser."
+      : "Si no parece correcto, cambia el dispositivo o el navegador.");
+  localized.node("btn-launch-change-route").dispatch("click");
+  assert.strictEqual(localized.node("launch-install-device").value, "ipad");
+  assert.strictEqual(localized.node("launch-install-browser").value, "safari");
+  localized.node("launch-install-device").value = "windows";
+  localized.node("launch-install-device").dispatch("change");
+  localized.node("launch-install-browser").value = "chrome";
+  localized.node("launch-install-browser").dispatch("change");
+  assert.strictEqual(
+    localized.node("launch-install-detected").textContent,
+    language === "en"
+      ? "We’ll proceed using a Windows computer and Google Chrome."
+      : "Continuaremos usando una computadora con Windows y Google Chrome.",
+  );
+  localized.node("btn-launch-keep-corrected").dispatch("click");
   localized.node("btn-choose-browser").dispatch("click");
   assert.strictEqual(localized.node("launch-choice-screen").hidden, false);
   assert.strictEqual(localized.node("launch-browser-risk").hidden, false);
+  assert(catalog["launch.routeProceed"]);
   assert(catalog["launch.routeGuidance"]);
   assert(catalog["launch.installRecommended"]);
   assert(catalog["launch.browserRisks"]);
@@ -433,7 +456,10 @@ for (const language of ["en", "es"]) {
   assert(catalog["launch.installInstead"]);
 }
 assert(html.includes('id="launch-install-detected"'));
-assert(html.includes('data-i18n="install.keepSuggested"'));
+assert(!html.includes("btn-launch-keep-suggested"));
+assert(!html.includes("btn-launch-keep-suggested"));
+assert(!html.includes("install.keepSuggested"));
+assert(!html.includes("If you’re not sure, keep the suggested device and browser."));
 assert(html.includes('data-i18n="launch.changeRoute"'));
 assert(html.includes('data-i18n="launch.installRecommended"'));
 assert(html.includes('id="launch-browser-risk"'));
@@ -489,7 +515,6 @@ async function nativeChecks() {
     async prompt() { prompts += 1; },
     userChoice: Promise.resolve({ outcome: "accepted" }),
   }, "", { launchChoice: true });
-  windowsInstalled.node("btn-launch-keep-suggested").dispatch("click");
   windowsInstalled.node("btn-choose-install").dispatch("click");
   assert.strictEqual(windowsInstalled.node("browser-install-screen").hidden, false);
   await windowsInstalled.node("browser-install-native").click();
@@ -507,7 +532,6 @@ async function nativeChecks() {
   assert.strictEqual(windowsInstalled.node("browser-install-screen").hidden, false);
 
   const windowsInstalledEs = createGuide(agents.windows, "es", 0, null, "", { launchChoice: true });
-  windowsInstalledEs.node("btn-launch-keep-suggested").dispatch("click");
   windowsInstalledEs.node("btn-choose-install").dispatch("click");
   windowsInstalledEs.context.window.fire("appinstalled");
   const windowsHandoffEs = windowsInstalledEs.node("browser-install-status").textContent;

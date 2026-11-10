@@ -18,7 +18,7 @@ const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
 const APP_VERSION = "0.9.55";
-const APP_BUILD_REVISION = "sha256:26a9a744b57fdead6b03e9065f23122ee2b2e6d95029b911c18e4238640a8116";
+const APP_BUILD_REVISION = "sha256:cf42bad0167c261d1605475bd3ed4233403bc8f64d5df6ce747483459678e6b7";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -463,16 +463,14 @@ const showLaunchChoice = ({
   const screen = document.getElementById("launch-choice-screen");
   screen.hidden = false;
   document.documentElement.classList.remove("show-launch-choice");
+  document.getElementById("launch-route-editor").hidden = true;
+  document.getElementById("launch-browser-risk").hidden = true;
+  document.getElementById("launch-choice-options").hidden = false;
   const installButton = document.getElementById("btn-choose-install");
   const browserButton = document.getElementById("btn-choose-browser");
-  const routeChoice = document.getElementById("launch-route-choice");
-  const routeGuidance = document.getElementById("launch-route-guidance");
   const routeEditor = document.getElementById("launch-route-editor");
   const choiceOptions = document.getElementById("launch-choice-options");
   const browserRisk = document.getElementById("launch-browser-risk");
-  const keepSuggestedButton = document.getElementById(
-    "btn-launch-keep-suggested",
-  );
   const changeRouteButton = document.getElementById("btn-launch-change-route");
   const keepCorrectedButton = document.getElementById(
     "btn-launch-keep-corrected",
@@ -480,7 +478,6 @@ const showLaunchChoice = ({
   const browserRiskTitle = document.getElementById(
     "launch-browser-risk-title",
   );
-  let routeEstablished = false;
   const routeSelectors = setupInstallRouteSelector({
     deviceSelect: document.getElementById("launch-install-device"),
     browserSelect: document.getElementById("launch-install-browser"),
@@ -493,24 +490,18 @@ const showLaunchChoice = ({
     savedRoute: readSavedInstallRoute(),
   });
   const showInstallChoices = () => {
-    routeEstablished = true;
-    routeChoice.hidden = true;
-    routeGuidance.hidden = true;
     routeEditor.hidden = true;
     choiceOptions.hidden = false;
     installButton.focus();
   };
-  keepSuggestedButton.onclick = showInstallChoices;
   changeRouteButton.onclick = () => {
-    routeChoice.hidden = true;
-    routeGuidance.hidden = true;
     routeEditor.hidden = false;
     document.getElementById("launch-install-device").focus();
   };
   keepCorrectedButton.onclick = showInstallChoices;
   browserButton.hidden = returnToApp;
   installButton.disabled = !preservationHandled;
-  keepSuggestedButton.focus();
+  (installButton.disabled ? changeRouteButton : installButton).focus();
   if (!preservationHandled) {
     getInitialStoredInformation().then((result) => {
       if (screen.hidden) return;
@@ -522,9 +513,8 @@ const showLaunchChoice = ({
           "We could not check this browser for saved NRV information. Choose browser use first, then open Settings to try installing again.",
         );
         status.hidden = false;
-        if (routeEstablished && !returnToApp) browserButton.focus();
-        else keepSuggestedButton.focus();
-      } else if (routeEstablished) {
+        (returnToApp ? changeRouteButton : browserButton).focus();
+      } else {
         installButton.focus();
       }
     });
@@ -670,8 +660,8 @@ const setupInstallRouteSelector = ({
   browserSelect.value = savedRoute?.browser || environment.browser || "other";
   const update = () => {
     detected.textContent = appText(
-      "install.wizard.detected",
-      "It looks like you're using {browser} on {device}.",
+      "launch.routeProceed",
+      "We’ll proceed using {device} and {browser}.",
       {
         browser: browserNames[browserSelect.value],
         device: deviceNames[deviceSelect.value],
