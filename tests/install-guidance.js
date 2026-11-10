@@ -445,7 +445,7 @@ assert(html.includes('data-i18n="launch.websiteLink"'));
 assert(/\.install-screen-actions button\s*\{\s*min-height:\s*44px;/.test(
   fs.readFileSync(path.join(root, "styles.css"), "utf8"),
 ));
-assert(/\.install-screen-actions\[hidden\]\s*\{\s*display:\s*none;/.test(
+assert(/#launch-choice-screen\s+\.install-screen-actions\[hidden\]\s*\{\s*display:\s*none;/.test(
   fs.readFileSync(path.join(root, "styles.css"), "utf8"),
 ));
 console.log("PASS English/Spanish Screen 1 controls, risk details, back link, and mobile-sized buttons");

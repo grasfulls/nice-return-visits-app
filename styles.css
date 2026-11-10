@@ -172,7 +172,7 @@ html.show-launch-choice #launch-choice-screen[hidden] {
     margin-top: 20px;
 }
 
-.install-screen-actions[hidden] {
+#launch-choice-screen .install-screen-actions[hidden] {
     display: none;
 }
 
