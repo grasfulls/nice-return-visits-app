@@ -144,6 +144,56 @@ html.show-launch-choice #launch-choice-screen[hidden] {
     line-height: 1.45;
 }
 
+#ipad-safari-sequence h3 {
+    margin-bottom: 8px;
+}
+
+#ipad-safari-following-steps {
+    padding-left: 1.4em;
+}
+
+#ipad-safari-following-steps li {
+    margin: 0.65em 0;
+    line-height: 1.45;
+}
+
+.install-inline-link {
+    min-height: 44px;
+    padding: 0 2px;
+    border: 0;
+    color: #004080;
+    background: transparent;
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+#ipad-search-help-dialog {
+    width: calc(100% - 40px);
+    max-width: 420px;
+    max-height: calc(100vh - 40px);
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
+    padding: 24px;
+    border: 0;
+    border-radius: 12px;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
+}
+
+#ipad-search-help-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.45);
+}
+
+#ipad-search-help-dialog li {
+    margin: 0.65em 0;
+    line-height: 1.45;
+}
+
+#ipad-search-help-close {
+    min-height: 44px;
+    padding: 8px 18px;
+}
+
 .install-handoff {
     margin: 18px 0 10px;
     padding: 12px;

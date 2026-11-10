@@ -308,6 +308,21 @@
             <p data-i18n="install.appleWhy">Apple requires installation to be completed through Safari’s Add to Home Screen process.</p>
           </section>
           <ol id="browser-install-steps"></ol>
+          <section id="ipad-safari-sequence" hidden>
+            <aside class="install-handoff">
+              <strong data-i18n="install.ipad.beforeProceed">Before you proceed</strong>
+              <p data-i18n="install.ipad.readAhead">Read Steps 2–4 below before doing them.</p>
+              <p data-i18n="install.ipad.instructionsMayDisappear">After performing Step 2 or Step 3, these instructions may no longer be visible.</p>
+              <p><span data-i18n="install.ipad.findIcon">Once NRV has been added, find the NRV icon on your Home Screen and open it to continue. If you don’t see the icon, search for</span><span aria-hidden="true"> </span><button type="button" id="ipad-search-help-link" class="install-inline-link" data-i18n="install.ipad.searchLink">NRV</button>.</p>
+              <p data-i18n="install.ipad.noReturn">You do not need to return to this page.</p>
+            </aside>
+            <h3 data-i18n="install.ipad.proceedHeading">Proceed as follows</h3>
+            <ol id="ipad-safari-following-steps" start="2">
+              <li data-i18n="install.wizard.safariShare">Tap Share: the square with an arrow pointing up.</li>
+              <li data-i18n="install.wizard.safariHome">Scroll down and tap Add to Home Screen.</li>
+              <li data-i18n="install.wizard.safariAdd">Turn on Open as Web App if offered, then tap Add.</li>
+            </ol>
+          </section>
           <aside id="browser-install-handoff" class="install-handoff" hidden>
             <strong data-i18n="install.handoffHeading">Before you continue</strong>
             <p id="browser-install-handoff-text"></p>
@@ -324,6 +339,16 @@
           <a id="browser-install-cancel-link" href="https://nicereturnvisits.org/index.html" data-i18n="install.cancelLink" data-i18n-attr="href:launch.websiteUrl">Cancel and return to NRV website</a>
         </div>
       </div>
+      <dialog id="ipad-search-help-dialog" aria-labelledby="ipad-search-help-title">
+        <h2 id="ipad-search-help-title" data-i18n="install.ipad.searchHelpTitle">How to find NRV on your iPad</h2>
+        <ol>
+          <li data-i18n="install.ipad.searchHelpStep1">Go to the Home Screen.</li>
+          <li data-i18n="install.ipad.searchHelpStep2">Swipe down from the middle of the Home Screen.</li>
+          <li data-i18n="install.ipad.searchHelpStep3">Type NRV in Search.</li>
+          <li data-i18n="install.ipad.searchHelpStep4">Tap the NRV icon in the results.</li>
+        </ol>
+        <button type="button" id="ipad-search-help-close" data-i18n="install.ipad.searchHelpClose">Close</button>
+      </dialog>
     </section>
 
     <div id="app-container" inert aria-hidden="true">

@@ -85,6 +85,8 @@ function createGuide(
         replaceChildren() { this.children = []; },
         appendChild(child) { this.children.push(child); },
         focus() { activeElement = this; },
+        showModal() { this.open = true; },
+        close() { this.open = false; },
         getClientRects() { return [1]; },
         querySelectorAll() { return []; },
         click() { return this.onclick?.(); },
@@ -231,13 +233,31 @@ ipadInstallTransition.node("btn-choose-install").dispatch("click");
 assert.strictEqual(ipadInstallTransition.node("launch-choice-screen").hidden, true);
 assert.strictEqual(ipadInstallTransition.node("browser-install-screen").hidden, false);
 assert.strictEqual(ipadInstallTransition.node("browser-install-instructions").hidden, false);
-assert(ipadInstallTransition.node("browser-install-steps").children.some((step) => step.textContent.includes("Share")));
-assert(ipadInstallTransition.node("browser-install-steps").children.some((step) => step.textContent.includes("Add to Home Screen")));
-assert(ipadInstallTransition.node("browser-install-handoff-text").textContent.includes("swipe down"));
-assert(ipadInstallTransition.node("browser-install-final-action").textContent.includes("Open as Web App"));
 assert.strictEqual(ipadInstallTransition.node("browser-install-why").hidden, false);
+assert.strictEqual(ipadInstallTransition.node("browser-install-title").textContent, "Nice Return Visits");
+assert.strictEqual(ipadInstallTransition.context.document.title, "Nice Return Visits");
+assert.strictEqual(ipadInstallTransition.node("browser-install-instructions-title").textContent, "Install NRV on this iPad using Safari");
+assert.strictEqual(ipadInstallTransition.node("ipad-safari-sequence").hidden, false);
+assert.deepStrictEqual(
+  ipadInstallTransition.node("browser-install-steps").children.map((step) => step.textContent),
+  ["Use a regular Safari tab. Installation is not supported from a Private tab."],
+);
+assert.strictEqual(ipadInstallTransition.node("browser-install-handoff").hidden, true);
+assert.strictEqual(ipadInstallTransition.node("browser-install-final-action").hidden, true);
+const installModeBeforeHelp = ipadInstallTransition.localValues.get("nrv_launch_mode");
+ipadInstallTransition.node("ipad-search-help-link").dispatch("click");
+assert.strictEqual(ipadInstallTransition.node("ipad-search-help-dialog").open, true);
+assert.strictEqual(ipadInstallTransition.node("browser-install-screen").hidden, false);
+assert.strictEqual(ipadInstallTransition.node("launch-install-device").value, "ipad");
+assert.strictEqual(ipadInstallTransition.node("launch-install-browser").value, "safari");
+ipadInstallTransition.node("ipad-search-help-close").dispatch("click");
+assert.strictEqual(ipadInstallTransition.node("ipad-search-help-dialog").open, false);
+assert.strictEqual(ipadInstallTransition.node("browser-install-screen").hidden, false);
+assert.strictEqual(ipadInstallTransition.node("launch-install-device").value, "ipad");
+assert.strictEqual(ipadInstallTransition.node("launch-install-browser").value, "safari");
+assert.strictEqual(ipadInstallTransition.localValues.get("nrv_launch_mode"), installModeBeforeHelp);
 assert.strictEqual(ipadInstallTransition.errors.length, 0);
-console.log("PASS iPad/Safari Install NRV Icon transition renders complete guidance without replaceChildren");
+console.log("PASS iPad/Safari Screen 2 renders ordered guidance and in-page search help");
 
 const failedRender = createGuide(
   agents.ipad,
@@ -296,13 +316,17 @@ for (const language of ["en", "es"]) {
       assert(guide.node("launch-install-detected").textContent);
       guide.showGuide({ route: guide.routeSelector.getRoute() });
       assert(guide.node("browser-install-steps").children.length >= 1, `${device}/${browser}/${language}`);
-      assert.strictEqual(guide.node("browser-install-final-action").hidden, false, `${device}/${browser}/${language}`);
-      assert.strictEqual(guide.node("browser-install-handoff").hidden, false);
+      const ipadSafari = device === "ipad" && browser === "safari";
+      assert.strictEqual(guide.node("browser-install-final-action").hidden, ipadSafari, `${device}/${browser}/${language}`);
+      assert.strictEqual(guide.node("browser-install-handoff").hidden, ipadSafari);
+      assert.strictEqual(guide.node("ipad-safari-sequence").hidden, !ipadSafari);
       const allSteps = guide.node("browser-install-steps").children.map((item) => item.textContent).join(" ");
       if (language === "en") assert(allSteps.includes(expected), `${device}/${browser}`);
       const handoff = guide.node("browser-install-handoff-text").textContent.toLowerCase();
-      assert(handoff.includes(language === "en" ? "icon" : "icono"), `${device}/${browser}/${language}: ${handoff}`);
-      assert(handoff.includes(language === "en" ? "setup" : "configuración"));
+      if (!ipadSafari) {
+        assert(handoff.includes(language === "en" ? "icon" : "icono"), `${device}/${browser}/${language}: ${handoff}`);
+        assert(handoff.includes(language === "en" ? "setup" : "configuración"));
+      }
     }
   }
 }
@@ -312,6 +336,74 @@ assert(html.indexOf('id="launch-install-detected"') < html.indexOf('id="btn-choo
 assert(!html.includes('id="browser-install-next"'));
 assert(!html.includes('id="browser-install-wrong-browser"'));
 assert(!html.includes('id="browser-install-manual"'));
+assert(html.includes('id="ipad-safari-following-steps" start="2"'));
+assert(html.includes('id="ipad-search-help-dialog"'));
+assert(html.includes('id="ipad-search-help-link" class="install-inline-link"'));
+assert(html.includes('aria-hidden="true"> </span><button type="button" id="ipad-search-help-link"'));
+assert(/\.install-inline-link\s*\{[^}]*text-decoration:\s*underline;/s.test(
+  fs.readFileSync(path.join(root, "styles.css"), "utf8"),
+));
+const ipadScreen2Order = [
+  'id="browser-install-title"',
+  'id="browser-install-instructions-title"',
+  'id="browser-install-why"',
+  'data-i18n="install.appleWhy"',
+  'id="browser-install-steps"',
+  'id="ipad-safari-sequence"',
+  'data-i18n="install.ipad.beforeProceed"',
+  'data-i18n="install.ipad.proceedHeading"',
+  'id="ipad-safari-following-steps"',
+  'data-i18n="install.helpSummary"',
+  'id="browser-install-cancel-link"',
+];
+let priorIpadScreen2Position = -1;
+for (const marker of ipadScreen2Order) {
+  const position = html.indexOf(marker);
+  assert(position > priorIpadScreen2Position, `iPad Screen 2 order: ${marker}`);
+  priorIpadScreen2Position = position;
+}
+assert.strictEqual((html.match(/install\.wizard\.safariShare/g) || []).length, 1);
+assert.strictEqual((html.match(/install\.wizard\.safariHome"/g) || []).length, 1);
+assert.strictEqual((html.match(/install\.wizard\.safariAdd"/g) || []).length, 1);
+for (const language of ["en", "es"]) {
+  const ipadLocalized = createGuide(agents.ipad, language);
+  assert.strictEqual(ipadLocalized.node("browser-install-title").textContent,
+    language === "en" ? "Nice Return Visits" : "Nice Return Visits");
+  assert.strictEqual(ipadLocalized.node("ipad-safari-sequence").hidden, false);
+  assert(html.includes('id="ipad-search-help-link" class="install-inline-link" data-i18n="install.ipad.searchLink">NRV</button>'));
+  for (const key of [
+    "install.ipad.beforeProceed",
+    "install.ipad.readAhead",
+    "install.ipad.instructionsMayDisappear",
+    "install.ipad.findIcon",
+    "install.ipad.noReturn",
+    "install.ipad.proceedHeading",
+    "install.ipad.searchHelpTitle",
+    "install.ipad.searchHelpStep1",
+    "install.ipad.searchHelpStep2",
+    "install.ipad.searchHelpStep3",
+    "install.ipad.searchHelpStep4",
+    "install.ipad.searchHelpClose",
+  ]) assert(i18n.t(key), `${language}: ${key}`);
+  assert.strictEqual(i18n.t("install.ipad.searchLink"), "NRV");
+  assert(i18n.t("install.wizard.safariShare"));
+  assert(i18n.t("install.wizard.safariHome"));
+  assert(i18n.t("install.wizard.safariAdd").includes("Open as Web App") ||
+    language === "es" && i18n.t("install.wizard.safariAdd").includes("aplicación web"));
+  assert.strictEqual(i18n.t("install.ipad.searchHelpTitle"),
+    language === "en" ? "How to find NRV on your iPad" : "Cómo encontrar NRV en tu iPad");
+  assert.strictEqual(i18n.t("install.ipad.searchHelpStep4"),
+    language === "en" ? "Tap the NRV icon in the results." : "Toca el icono de NRV en los resultados.");
+  assert.strictEqual(i18n.t("install.ipad.readAhead"),
+    language === "en" ? "Read Steps 2–4 below before doing them." : "Lee los pasos 2–4 antes de realizarlos.");
+  assert.strictEqual(i18n.t("install.wizard.safariAdd"),
+    language === "en"
+      ? "Turn on Open as Web App if offered, then tap Add."
+      : "Activa Abrir como aplicación web si aparece y toca Añadir.");
+}
+const iphoneScreen2 = createGuide(agents.iphone);
+assert.strictEqual(iphoneScreen2.node("ipad-safari-sequence").hidden, true);
+assert.strictEqual(iphoneScreen2.node("browser-install-title").textContent, "Install Nice Return Visits app");
 console.log("PASS every supported route shows all steps and handoff guidance together in English and Spanish");
 
 const apple = createGuide(agents.ipad);

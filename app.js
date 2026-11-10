@@ -18,7 +18,7 @@ const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
 const APP_VERSION = "0.9.55";
-const APP_BUILD_REVISION = "sha256:aca94aceb7e70ee3305c79b4fbc4a709717fd72756af6c2dc2c228ea87290ecb";
+const APP_BUILD_REVISION = "sha256:a90714c217a9cf31ecfc1c92009926a2712ed0b7530e397ec5c7a0937bf58acc";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -767,12 +767,17 @@ const showBrowserInstallGuide = ({ route = null } = {}) => {
       return {
         supported: true,
         apple: true,
-        steps: [
-          appText("install.wizard.normalSafari", "Use a regular Safari tab. Installation is not supported from a Private tab."),
-          appText("install.wizard.safariShare", "Tap Share: the square with an arrow pointing up."),
-          appText("install.wizard.safariHome", "Scroll down and tap Add to Home Screen."),
-        ],
-        finalAction: appText("install.wizard.safariAdd", "Turn on Open as Web App if offered, then tap Add."),
+        ipadSafari: device === "ipad",
+        steps: device === "ipad"
+          ? [appText("install.wizard.normalSafari", "Use a regular Safari tab. Installation is not supported from a Private tab.")]
+          : [
+            appText("install.wizard.normalSafari", "Use a regular Safari tab. Installation is not supported from a Private tab."),
+            appText("install.wizard.safariShare", "Tap Share: the square with an arrow pointing up."),
+            appText("install.wizard.safariHome", "Scroll down and tap Add to Home Screen."),
+          ],
+        finalAction: device === "ipad"
+          ? ""
+          : appText("install.wizard.safariAdd", "Turn on Open as Web App if offered, then tap Add."),
         help: appText("install.wizard.safariHomeMore", "In the Share menu, scroll past the suggestions and actions. If Add to Home Screen is missing, look in Edit Actions or View More. If Share is hidden, tap the page once to show the browser controls."),
         handoff: appText("install.handoff.apple", "After you tap Add, this page may no longer be in front of you. Before you continue, turn on Open as Web App if offered. Look for NRV on your Home Screen. If you do not see it, swipe down from the middle of the Home Screen and search for NRV. Tap the NRV icon to open it. NRV will continue setup there. You do not need to return to this page."),
       };
@@ -838,6 +843,7 @@ const showBrowserInstallGuide = ({ route = null } = {}) => {
 
   const render = () => {
     const plan = planFor(device, browser);
+    const ipadSequence = document.getElementById("ipad-safari-sequence");
     routeTitle.textContent = appText(
       "install.routeTitle",
       "Install NRV on {device} using {browser}",
@@ -846,6 +852,9 @@ const showBrowserInstallGuide = ({ route = null } = {}) => {
         browser: browserNames[browser],
       },
     );
+    document.getElementById("browser-install-title").textContent = plan.ipadSafari
+      ? appText("install.ipad.title", "Nice Return Visits")
+      : appText("install.title", "Install Nice Return Visits app");
     const nativePromptAvailable = Boolean(window.nrvDeferredInstallPrompt);
     instructions.textContent = "";
     plan.steps.forEach((text) => {
@@ -855,16 +864,24 @@ const showBrowserInstallGuide = ({ route = null } = {}) => {
     });
     finalAction.textContent = plan.finalAction || "";
     finalAction.hidden = !plan.finalAction;
+    ipadSequence.hidden = !plan.ipadSafari;
     why.hidden = !plan.apple;
     help.hidden = !plan.help;
     helpText.textContent = plan.help;
-    handoff.hidden = !plan.handoff;
+    handoff.hidden = !plan.handoff || Boolean(plan.ipadSafari);
     handoffText.textContent = plan.handoff;
     nativeButton.hidden = !nativePromptAvailable;
     nativeButton.setAttribute("aria-label", appText("install.installButton", "Install NRV Icon"));
     status.hidden = true;
     status.textContent = "";
     return plan;
+  };
+  const searchHelpDialog = document.getElementById("ipad-search-help-dialog");
+  document.getElementById("ipad-search-help-link").onclick = () => {
+    searchHelpDialog.showModal();
+  };
+  document.getElementById("ipad-search-help-close").onclick = () => {
+    searchHelpDialog.close();
   };
   try {
     render();
@@ -873,7 +890,7 @@ const showBrowserInstallGuide = ({ route = null } = {}) => {
   }
   document.getElementById("browser-install-instructions").hidden = false;
   document.getElementById("launch-choice-screen").hidden = true;
-  document.title = appText("install.title", "Install Nice Return Visits app");
+  document.title = document.getElementById("browser-install-title").textContent;
   screen.hidden = false;
   routeTitle.focus();
 
