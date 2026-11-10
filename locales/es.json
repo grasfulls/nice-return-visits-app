@@ -779,6 +779,7 @@
   "update.offline": "Conéctate a internet antes de buscar actualizaciones de la aplicación.",
   "update.versionMismatch": "La versión publicada de NRV, {deployed}, es anterior a esta versión, {current}. Vuelve a intentarlo más tarde.",
   "update.versionNotReady": "NRV {version} está disponible, pero la actualización aún no está lista. Vuelve a intentarlo más tarde.",
+  "update.buildNotReady": "Hay una actualización de NRV disponible, pero sus archivos aún se están preparando. Vuelve a intentarlo más tarde.",
   "update.versionCheckFailed": "No se pudo verificar la versión publicada de NRV ni buscar actualizaciones. Comprueba tu conexión y vuelve a intentarlo.",
   "update.refreshing": "Comprobación de actualizaciones terminada. La aplicación se recargará ahora; los contactos guardados permanecerán en este dispositivo.",
   "update.finishContact": "Guarda o cierra el contacto abierto antes de recargar la aplicación. Tus contactos guardados permanecerán en este dispositivo.",

@@ -18,6 +18,7 @@ const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
 const APP_VERSION = "0.9.53";
+const APP_BUILD_REVISION = "sha256:86d57f665fcd43a0e5446cbc158dcb24e0fb525f3a80bda25609fb8d0045a80a";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -34,6 +35,13 @@ const parseAppVersion = (version) => {
     throw new Error("Invalid app version; expected MAJOR.MINOR.PATCH.");
   }
   return version.split(".");
+};
+const parseAppBuildRevision = (revision) => {
+  if (typeof revision !== "string" ||
+      !/^sha256:[a-f0-9]{64}(?![\s\S])/.test(revision)) {
+    throw new Error("Invalid deployment asset revision.");
+  }
+  return revision;
 };
 const appVersionOrder = (version) => {
   const parts = parseAppVersion(version);
@@ -55,7 +63,7 @@ const compareAppVersions = (left, right) => {
   }
   return 0;
 };
-const fetchDeployedAppVersion = async () => {
+const fetchDeployedAppMetadata = async () => {
   const url = new URL("version.json", document.baseURI);
   const nonce = new Uint32Array(4);
   crypto.getRandomValues(nonce);
@@ -64,11 +72,14 @@ const fetchDeployedAppVersion = async () => {
   if (!response.ok) throw new Error(`Version check failed with status ${response.status}.`);
   const metadata = await response.json();
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata) ||
-      Object.keys(metadata).length !== 1) {
+      Object.keys(metadata).length !== 2 ||
+      !Object.prototype.hasOwnProperty.call(metadata, "version") ||
+      !Object.prototype.hasOwnProperty.call(metadata, "revision")) {
     throw new Error("Invalid deployment version metadata.");
   }
   parseAppVersion(metadata.version);
-  return metadata.version;
+  parseAppBuildRevision(metadata.revision);
+  return metadata;
 };
 const guardDetailsFocusScroll = (form, scroller, viewport, clock) => {
   let pending = null;
@@ -8326,24 +8337,31 @@ const initializeApp = async () => {
           throw new Error("The app's update service is not registered.");
         }
         await registration.update();
-        const deployedVersion = await fetchDeployedAppVersion();
-        const versionComparison = compareAppVersions(deployedVersion, APP_VERSION);
+        const deployedMetadata = await fetchDeployedAppMetadata();
+        const versionComparison = compareAppVersions(
+          deployedMetadata.version,
+          APP_VERSION,
+        );
         if (versionComparison < 0) {
           status.textContent = appText(
             "update.versionMismatch",
-            `The deployed NRV version ${deployedVersion} is older than this version ${APP_VERSION}. Please try again later.`,
-            { deployed: deployedVersion, current: APP_VERSION },
+            `The deployed NRV version ${deployedMetadata.version} is older than this version ${APP_VERSION}. Please try again later.`,
+            { deployed: deployedMetadata.version, current: APP_VERSION },
           );
           button.disabled = false;
           return;
         }
+        const revisionMatches =
+          deployedMetadata.revision === APP_BUILD_REVISION;
         const incoming = registration.installing || registration.waiting;
         if (!incoming && !appUpdateAvailable) {
-          if (versionComparison > 0) {
+          if (versionComparison > 0 || !revisionMatches) {
             status.textContent = appText(
-              "update.versionNotReady",
-              `NRV ${deployedVersion} is available, but its update is not ready yet. Please try again later.`,
-              { version: deployedVersion },
+              versionComparison > 0 ? "update.versionNotReady" : "update.buildNotReady",
+              versionComparison > 0
+                ? `NRV ${deployedMetadata.version} is available, but its update is not ready yet. Please try again later.`
+                : "An NRV update is available, but its files are still being prepared. Please try again later.",
+              { version: deployedMetadata.version },
             );
             button.disabled = false;
             return;
@@ -8353,16 +8371,33 @@ const initializeApp = async () => {
           document.getElementById("app-no-update-dialog").showModal();
           return;
         }
-        if (incoming && incoming.state !== "activated") {
-          await new Promise((resolve) => {
-            const timer = window.setTimeout(resolve, 15000);
-            incoming.addEventListener("statechange", () => {
-              if (incoming.state === "activated") {
-                window.clearTimeout(timer);
-                resolve();
-              }
-            });
+        let updateActivated = !incoming || incoming.state === "activated";
+        if (incoming && !updateActivated) {
+          updateActivated = await new Promise((resolve) => {
+            let timer;
+            const finish = (activated) => {
+              window.clearTimeout(timer);
+              incoming.removeEventListener("statechange", onStateChange);
+              resolve(activated);
+            };
+            const onStateChange = () => {
+              if (incoming.state === "activated") finish(true);
+            };
+            timer = window.setTimeout(
+              () => finish(incoming.state === "activated"),
+              15000,
+            );
+            incoming.addEventListener("statechange", onStateChange);
+            onStateChange();
           });
+        }
+        if (!updateActivated) {
+          status.textContent = appText(
+            "update.buildNotReady",
+            "An NRV update is available, but its files are still being prepared. Please try again later.",
+          );
+          button.disabled = false;
+          return;
         }
         const refreshBlock = getAppRefreshBlockMessage();
         if (refreshBlock) {

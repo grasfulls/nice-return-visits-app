@@ -6,6 +6,7 @@ const vm = require("vm");
 
 const root = path.join(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const base = "https://example.test/app/";
 const entries = new Map();
 const deletedCaches = [];
@@ -22,9 +23,9 @@ const cache = {
   },
 };
 const caches = {
-  async open() { return cache; },
+  async open(name) { cache.name = name; return cache; },
   async match(request) { return entries.get(normalize(request)); },
-  async keys() { return ["return-visits-shell-v195", "return-visits-shell-v196", "return-visits-shell-v199", "return-visits-shell-v200", "return-visits-shell-v202", "unrelated-cache"]; },
+  async keys() { return ["return-visits-shell-v195", "return-visits-shell-v196", "return-visits-shell-v199", "return-visits-shell-v200", "return-visits-shell-v202", "return-visits-shell-v203", "unrelated-cache"]; },
   async delete(name) { deletedCaches.push(name); return true; },
 };
 const self = {
@@ -41,18 +42,28 @@ vm.runInNewContext(source, {
 });
 
 async function main() {
-  assert(source.includes('const CACHE_NAME = "return-visits-shell-v203";'));
-  console.log("PASS  service-worker cache generation advances to v203");
+  const revision = source.match(/^const BUILD_REVISION = "([^"]+)";$/m)?.[1];
+  assert(revision && /^sha256:[a-f0-9]{64}$/.test(revision));
+  assert(source.includes("return-visits-shell-${BUILD_REVISION.slice(7)}"));
+  assert(app.includes(`const APP_BUILD_REVISION = "${revision}";`));
+  assert(source.includes(`const BUILD_REVISION = "${revision}";`));
+  console.log("PASS  service-worker cache key uses the generated asset revision");
   let installation;
   handlers.install({ waitUntil(promise) { installation = promise; } });
   await installation;
+  assert.strictEqual(cache.name, `return-visits-shell-${revision.slice(7)}`);
+  const cachedIndex = entries.get(normalize("./index.html")).body;
+  assert(cachedIndex.includes('id="btn-contacts-backup"'));
+  assert(cachedIndex.includes('id="btn-contacts-restore"'));
+  assert(entries.get(normalize("./locales/en.json")).body.includes('"backup.contactsBackup": "Backup"'));
+  assert(entries.get(normalize("./locales/es.json")).body.includes('"backup.contactsBackup": "Copia de seguridad"'));
   assert(!source.includes("NRV-Privacy-Notice.pdf"));
   assert(!entries.has(normalize("./docs/NRV-Privacy-Notice.pdf")));
   console.log("PASS  service-worker installation does not require the removed local PDF");
   let activation;
   handlers.activate({ waitUntil(promise) { activation = promise; } });
   await activation;
-  assert.deepStrictEqual(deletedCaches, ["return-visits-shell-v195", "return-visits-shell-v196", "return-visits-shell-v199", "return-visits-shell-v200", "return-visits-shell-v202"]);
+  assert.deepStrictEqual(deletedCaches, ["return-visits-shell-v195", "return-visits-shell-v196", "return-visits-shell-v199", "return-visits-shell-v200", "return-visits-shell-v202", "return-visits-shell-v203"]);
   console.log("PASS  service-worker update removes previous shell caches");
   async function offline(relativePath, mode = "cors") {
     let response;
@@ -67,6 +78,8 @@ async function main() {
     const response = await offline(`./locales/${lang}.json`);
     const catalog = JSON.parse(response.body);
     assert(catalog["contacts.add"]);
+    assert(catalog["backup.contactsBackup"]);
+    assert(catalog["backup.contactsRestore"]);
     assert(catalog["goals.path.beginMinistry"]);
     console.log(`PASS  ${lang} catalog is available offline`);
     const shell = await offline(`./?lang=${lang}`, "navigate");

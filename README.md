@@ -347,9 +347,11 @@ After the reload, unlock with the same passphrase if one is turned on.
 
 The canonical public app version is `APP_VERSION` in `app.js`; Settings →
 App Updates displays the version of the running code. `version.json` is
-generated deployment metadata, not a second version to edit by hand. The
-service-worker cache counter and the data schema version are separate from
-the public app version.
+generated deployment metadata, not a second version to edit by hand. It also
+contains an internal SHA-256 asset revision. GitHub Actions regenerates that
+revision from tracked web assets on every push to `main`, updates the service
+worker cache key, and commits the generated files. The revision is not shown
+in the app. The data schema version is separate from both app identifiers.
 
 NRV uses `MAJOR.MINOR.PATCH`: increment PATCH for backward-compatible fixes,
 MINOR for backward-compatible features, and MAJOR for incompatible or
@@ -366,8 +368,10 @@ For each release:
 2. **Do not assign or change the version until Gary approves the proposed
    version number.**
 3. After approval, update `APP_VERSION` in `app.js`. Run
-   `node scripts/version.js --write` to generate `version.json`, then
-   `node scripts/version.js --check` to verify it.
+   `node scripts/build-revision.js --write` to generate `version.json` and the
+   matching internal revision in `app.js` and `service-worker.js`, then run
+   `node scripts/build-revision.js --check` to verify them. Routine changes do
+   not require changing `APP_VERSION`.
 4. Add a newest-first entry to `release-history.json` with the approved version
    and concise, verified English and Spanish user-facing notes. It is the
    single source for the app's current-release notes and the website's history.
@@ -378,8 +382,10 @@ For each release:
    pages. Do not edit the generated content independently. Without the website
    directory, the same commands update or check the app only; finish the website
    generation before releasing.
-6. Increment `CACHE_NAME` in `service-worker.js` so existing installations
-   discover and cache the changed app shell.
+6. Do not edit the generated build revision or cache key by hand; the
+   `main`-branch GitHub Action regenerates them for every push. The resulting
+   service-worker change lets existing installations discover updated app
+   assets even when the displayed release version stays the same.
 7. Run all `tests/*.js` scripts with Node.js, including the release-history,
    version, update, localization, and service-worker tests.
    Before release, complete the physical-device and browser installation
@@ -389,12 +395,12 @@ For each release:
 8. Deploy the app, service worker, generated metadata, and website changes
    together. Verify the app and website show consistent notes.
 
-The update check reads deployment metadata from the network and compares each
-version component numerically. A failed check or an older deployed version is
-reported rather than treated as current. Service-worker updates remain
-separate and can also occur without a public version change. During a
-non-atomic deployment, network-first loading can temporarily mix files from
-different releases; a version check does not verify each asset.
+The update check reads deployment metadata from the network, preserves the
+public version-severity checks, and compares the internal asset revision for
+same-version changes. A failed check or an older deployed version is reported
+rather than treated as current. The revision-keyed service-worker cache
+installs the matching app shell and removes the previous shell after
+activation.
 
 The plain-language user guide is available from **Settings → Help → User Guide & Privacy Notice** or directly at
 [NRV Help](https://nicereturnvisits.org/app/help.html). It is an

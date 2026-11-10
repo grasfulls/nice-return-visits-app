@@ -779,6 +779,7 @@
   "update.offline": "Connect to the internet before checking for app updates.",
   "update.versionMismatch": "The deployed NRV version {deployed} is older than this version {current}. Please try again later.",
   "update.versionNotReady": "NRV {version} is available, but its update is not ready yet. Please try again later.",
+  "update.buildNotReady": "An NRV update is available, but its files are still being prepared. Please try again later.",
   "update.versionCheckFailed": "Could not verify the deployed NRV version or check for updates. Check your connection and try again.",
   "update.refreshing": "Update check complete. Refreshing the app now; saved contacts are kept on this device.",
   "update.finishContact": "Save or exit the open contact before refreshing the app. Your saved contacts will remain on this device.",

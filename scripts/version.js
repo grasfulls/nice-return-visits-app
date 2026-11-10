@@ -33,11 +33,13 @@ const compareVersions = (left, right) => {
   }
   return 0;
 };
-const metadataFor = (version) => {
+const revisionPattern = /^sha256:[a-f0-9]{64}(?![\s\S])/;
+const metadataFor = (version, revision) => {
   if (!versionPattern.test(version)) throw new Error("Invalid app version.");
-  return `${JSON.stringify({ version }, null, 2)}\n`;
+  if (!revisionPattern.test(revision)) throw new Error("Invalid asset revision.");
+  return `${JSON.stringify({ version, revision }, null, 2)}\n`;
 };
-const checkMetadata = (contents, version) => {
+const checkMetadata = (contents, version, revision) => {
   let metadata;
   try {
     metadata = JSON.parse(contents);
@@ -45,8 +47,10 @@ const checkMetadata = (contents, version) => {
     throw new Error(`Invalid version metadata JSON: ${error.message}`);
   }
   if (!metadata || Array.isArray(metadata) || typeof metadata !== "object" ||
-      Object.keys(metadata).length !== 1 || metadata.version !== version) {
-    throw new Error("Deployment metadata does not match APP_VERSION.");
+      Object.keys(metadata).length !== 2 ||
+      metadata.version !== version || metadata.revision !== revision ||
+      !revisionPattern.test(metadata.revision)) {
+    throw new Error("Deployment metadata does not match APP_VERSION and asset revision.");
   }
 };
 
@@ -56,10 +60,15 @@ if (require.main === module) {
     if (process.argv.length !== 3 || !["--write", "--check"].includes(mode)) {
       throw new Error("Usage: node scripts/version.js --write|--check");
     }
-    const version = canonicalVersion(fs.readFileSync(path.join(root, "app.js"), "utf8"));
+    const appSource = fs.readFileSync(path.join(root, "app.js"), "utf8");
+    const version = canonicalVersion(appSource);
+    const revision = appSource.match(/^const APP_BUILD_REVISION = "([^"]+)";$/m)?.[1];
     const file = path.join(root, "version.json");
-    if (mode === "--write") fs.writeFileSync(file, metadataFor(version));
-    checkMetadata(fs.readFileSync(file, "utf8"), version);
+    if (!revisionPattern.test(revision)) throw new Error("Invalid app asset revision.");
+    if (mode === "--write") {
+      fs.writeFileSync(file, metadataFor(version, revision));
+    }
+    checkMetadata(fs.readFileSync(file, "utf8"), version, revision);
     console.log(`Deployment metadata matches NRV ${version}.`);
   } catch (error) {
     console.error(error.message);
@@ -67,4 +76,10 @@ if (require.main === module) {
   }
 }
 
-module.exports = { canonicalVersion, compareVersions, metadataFor, checkMetadata };
+module.exports = {
+  canonicalVersion,
+  compareVersions,
+  metadataFor,
+  checkMetadata,
+  revisionPattern,
+};

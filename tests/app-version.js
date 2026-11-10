@@ -6,6 +6,7 @@ const vm = require("vm");
 const { execFileSync } = require("child_process");
 const i18n = require("../i18n.js");
 const release = require("../scripts/version.js");
+const buildRevision = require("../scripts/build-revision.js");
 
 const root = path.join(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "app.js"), "utf8");
@@ -28,7 +29,7 @@ const context = {
   URL, Uint32Array,
 };
 vm.runInNewContext(`${source.slice(start, end)}
-this.api = { APP_VERSION, parseAppVersion, compareAppVersions, fetchDeployedAppVersion, publicVersionHistoryUrl };`, context);
+this.api = { APP_VERSION, APP_BUILD_REVISION, parseAppVersion, parseAppBuildRevision, compareAppVersions, fetchDeployedAppMetadata, publicVersionHistoryUrl };`, context);
 const api = context.api;
 const catalogs = Object.fromEntries(["en", "es"].map((language) => [
   language, JSON.parse(fs.readFileSync(path.join(root, "locales", `${language}.json`), "utf8")),
@@ -37,6 +38,7 @@ for (const language of ["en", "es"]) i18n._setCatalog(language, catalogs[languag
 
 async function main() {
   assert.strictEqual(api.APP_VERSION, "0.9.53");
+  assert(/^sha256:[a-f0-9]{64}$/.test(api.APP_BUILD_REVISION));
   assert.strictEqual(
     api.publicVersionHistoryUrl(api.APP_VERSION, "en"),
     "https://nicereturnvisits.org/version-history.html#version-0-9-53",
@@ -87,6 +89,15 @@ async function main() {
   for (const invalid of ["1.0", "1.2.3.4", "01.2.3", "1.-1.0", "1.2.3-beta", "1.2.3\n", "", null, 123]) {
     assert.throws(() => api.parseAppVersion(invalid));
   }
+  for (const invalid of [
+    "1.0.0",
+    "sha256:xyz",
+    `sha256:${"A".repeat(64)}`,
+    `sha256:${"a".repeat(64)}\n`,
+    null,
+  ]) {
+    assert.throws(() => api.parseAppBuildRevision(invalid));
+  }
   for (const [left, right, expected] of [
     ["0.9.0", "0.9.0", 0], ["1.0.0", "0.99.99", 1],
     ["1.10.0", "1.9.99", 1], ["1.0.10", "1.0.2", 1],
@@ -103,7 +114,7 @@ async function main() {
   assert.throws(() => release.canonicalVersion(`${source}\nconst APP_VERSION = "1.0.0";`));
   assert.throws(() => release.metadataFor("0.09.0"));
   const metadata = fs.readFileSync(path.join(root, "version.json"), "utf8");
-  release.checkMetadata(metadata, version);
+  release.checkMetadata(metadata, version, api.APP_BUILD_REVISION);
   assert(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('id="app-version-badge"'));
   assert(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('<a id="app-version-badge"'));
   assert(source.includes('versionLabel.textContent = `v${APP_VERSION}`'));
@@ -170,27 +181,42 @@ async function main() {
   renderHeader(true, "es");
   assert(headerNodes.get("app-version-badge").ariaLabel.includes("Hay una actualización disponible"));
   assert(headerNodes.get("app-version-badge").href.endsWith("#version-0-9-53"));
-  assert.throws(() => release.checkMetadata('{"version":"1.0.0"}', version));
+  assert.throws(() => release.checkMetadata('{"version":"1.0.0"}', version, api.APP_BUILD_REVISION));
   assert.throws(() => release.checkMetadata("not json", version));
-  assert.throws(() => release.checkMetadata('{"version":"0.9.0","extra":true}', version));
+  assert.throws(() => release.checkMetadata('{"version":"0.9.0","revision":"invalid"}', version, api.APP_BUILD_REVISION));
+  assert.throws(() => release.checkMetadata(release.metadataFor(version, `sha256:${"a".repeat(64)}`), version, api.APP_BUILD_REVISION));
+  assert.strictEqual(buildRevision.checkBuildFiles(), api.APP_BUILD_REVISION);
+  assert.strictEqual(JSON.parse(metadata).version, "0.9.53");
+  assert(fs.readFileSync(path.join(root, "service-worker.js"), "utf8").includes("return-visits-shell-${BUILD_REVISION.slice(7)}"));
   execFileSync(process.execPath, [path.join(root, "scripts", "version.js"), "--check"]);
-  console.log("PASS  generated deployment metadata matches canonical version");
+  console.log("PASS  generated metadata and service-worker cache use the internal asset revision");
 
-  response = { ok: true, json: async () => ({ version: "0.10.0" }) };
-  assert.strictEqual(await api.fetchDeployedAppVersion(), "0.10.0");
+  response = { ok: true, json: async () => ({ version: "0.10.0", revision: api.APP_BUILD_REVISION }) };
+  assert.deepStrictEqual(
+    JSON.parse(JSON.stringify(await api.fetchDeployedAppMetadata())),
+    { version: "0.10.0", revision: api.APP_BUILD_REVISION },
+  );
   assert.strictEqual(fetchOptions.cache, "no-store");
   assert.strictEqual(new URL(requestedUrl).pathname, "/nrv/version.json");
   assert(new URL(requestedUrl).searchParams.has("check"));
-  for (const bad of [null, [], {}, { version: "1.0" }, { version: 1 }, { version: "0.9.0", extra: true }]) {
+  for (const bad of [
+    null,
+    [],
+    {},
+    { version: "1.0", revision: api.APP_BUILD_REVISION },
+    { version: 1, revision: api.APP_BUILD_REVISION },
+    { version: "0.9.0", revision: "invalid" },
+    { version: "0.9.0", revision: api.APP_BUILD_REVISION, extra: true },
+  ]) {
     response = { ok: true, json: async () => bad };
-    await assert.rejects(api.fetchDeployedAppVersion());
+    await assert.rejects(api.fetchDeployedAppMetadata());
   }
   response = { ok: false, status: 404 };
-  await assert.rejects(api.fetchDeployedAppVersion());
+  await assert.rejects(api.fetchDeployedAppMetadata());
   response = { ok: true, json: async () => { throw new SyntaxError("bad JSON"); } };
-  await assert.rejects(api.fetchDeployedAppVersion());
+  await assert.rejects(api.fetchDeployedAppMetadata());
   response = new Error("offline");
-  await assert.rejects(api.fetchDeployedAppVersion());
+  await assert.rejects(api.fetchDeployedAppMetadata());
   console.log("PASS  fresh deployment lookup rejects invalid metadata and network failures");
 
   const handlerMatch = /\.getElementById\("btn-check-updates"\)\s*\.addEventListener\("click", async/.exec(source);
@@ -204,7 +230,9 @@ async function main() {
   let dialogs = 0;
   let reloads = 0;
   let updateCalls = 0;
-  let deployed = "0.9.53";
+  const cachedRevision = `sha256:${"a".repeat(64)}`;
+  const updatedRevision = `sha256:${"b".repeat(64)}`;
+  let deployed = { version: "0.9.53", revision: cachedRevision };
   let worker = null;
   let available = false;
   let block = "";
@@ -215,6 +243,7 @@ async function main() {
     get installing() { return worker; },
     waiting: null,
   };
+  const removedLocalStorageKeys = [];
   const handlerContext = {
     document: { getElementById(id) {
       if (id === "btn-check-updates") return { addEventListener(event, callback) { handler = callback; } };
@@ -223,15 +252,16 @@ async function main() {
     } },
     navigator: { onLine: true, serviceWorker: { getRegistration: async () => registration } },
     window: { setTimeout, clearTimeout },
-    localStorage: { removeItem() {} },
+    localStorage: { removeItem(key) { removedLocalStorageKeys.push(key); } },
     APP_UPDATE_PENDING_KEY: "pending",
     APP_VERSION: api.APP_VERSION,
+    APP_BUILD_REVISION: cachedRevision,
     appUpdateStatus: status,
     get appUpdateAvailable() { return available; },
     getAppRefreshBlockMessage: () => block,
     revealAppRefreshBlock() {},
     appText: (key, fallback, vars) => i18n.t(key, vars, fallback),
-    fetchDeployedAppVersion: async () => {
+    fetchDeployedAppMetadata: async () => {
       if (editDuringLookup) block = "new unsaved edit";
       if (deployed instanceof Error) throw deployed;
       return deployed;
@@ -246,24 +276,32 @@ async function main() {
   await check();
   assert.strictEqual(dialogs, 1);
   assert.strictEqual(status.textContent, catalogs.en["update.latest"]);
-  deployed = "0.10.0";
+  deployed = { version: "0.10.0", revision: updatedRevision };
   await check();
   assert(status.textContent.includes("0.10.0"));
   assert.strictEqual(dialogs, 1);
   assert.strictEqual(reloads, 0);
-  deployed = "0.8.9";
+  deployed = { version: "0.8.9", revision: updatedRevision };
   await check();
   assert(status.textContent.includes("older"));
   deployed = new Error("invalid metadata");
   await check();
   assert.strictEqual(status.textContent, catalogs.en["update.versionCheckFailed"]);
   assert(!button.disabled);
-  deployed = "0.9.53";
+  deployed = { version: "0.9.53", revision: updatedRevision };
+  await check();
+  assert.strictEqual(status.textContent, catalogs.en["update.buildNotReady"]);
+  assert.strictEqual(dialogs, 1);
+  assert.strictEqual(reloads, 0);
+  deployed = { version: "0.9.53", revision: updatedRevision };
   worker = { state: "activated" };
   await check();
-  assert.strictEqual(reloads, 1, "same version does not suppress worker update");
+  assert.strictEqual(api.APP_VERSION, "0.9.53");
+  assert.strictEqual(reloads, 1, "a changed internal revision updates the same displayed version");
+  assert.deepStrictEqual(removedLocalStorageKeys, ["pending"]);
   worker = null;
   available = true;
+  deployed = { version: "0.9.53", revision: cachedRevision };
   await check();
   assert.strictEqual(reloads, 2, "previously activated update still refreshes");
   editDuringLookup = true;
@@ -291,10 +329,12 @@ async function main() {
 
   for (const language of ["en", "es"]) {
     i18n._setCurrent(language);
-    for (const key of ["update.currentVersion", "update.versionMismatch", "update.versionNotReady", "app.versionLinkLabel", "update.done"]) {
+    for (const key of ["update.currentVersion", "update.versionMismatch", "update.versionNotReady", "update.buildNotReady", "app.versionLinkLabel", "update.done"]) {
       const text = i18n.t(key, { version: "0.9.0", deployed: "0.8.0", current: "0.9.0" });
       assert(!text.includes("{"), `${language} ${key} interpolates`);
-      assert(text.includes("0.9.0") || text.includes("0.8.0"));
+      if (key !== "update.buildNotReady") {
+        assert(text.includes("0.9.0") || text.includes("0.8.0"));
+      }
     }
     const versionLabel = { textContent: "" };
     const labelStart = source.indexOf('  document.getElementById("app-current-version").textContent = appText(');

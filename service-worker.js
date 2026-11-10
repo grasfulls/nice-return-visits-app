@@ -1,4 +1,5 @@
-const CACHE_NAME = "return-visits-shell-v203";
+const BUILD_REVISION = "sha256:86d57f665fcd43a0e5446cbc158dcb24e0fb525f3a80bda25609fb8d0045a80a";
+const CACHE_NAME = `return-visits-shell-${BUILD_REVISION.slice(7)}`;
 const APP_SHELL = [
   "./",
   "./index.html",
