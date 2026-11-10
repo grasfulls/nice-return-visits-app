@@ -25,7 +25,7 @@ const agents = {
   chromebook: "Mozilla/5.0 (X11; CrOS x86_64 15000.0.0) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
 };
 
-function createGuide(userAgent, language = "en", maxTouchPoints = 0, prompt = null) {
+function createGuide(userAgent, language = "en", maxTouchPoints = 0, prompt = null, platform = "") {
   i18n._setCurrent(language);
   const nodes = new Map();
   const errors = [];
@@ -51,6 +51,7 @@ function createGuide(userAgent, language = "en", maxTouchPoints = 0, prompt = nu
           listeners.get(name)?.delete(callback);
         },
         dispatch(name) {
+          this[`on${name}`]?.({ target: this });
           for (const callback of listeners.get(name) || []) callback({ target: this });
         },
         setAttribute(name, value) { this[name] = value; },
@@ -67,7 +68,7 @@ function createGuide(userAgent, language = "en", maxTouchPoints = 0, prompt = nu
   };
   const eventListeners = new Map();
   const context = {
-    navigator: { userAgent, maxTouchPoints },
+    navigator: { userAgent, maxTouchPoints, platform },
     window: {
       nrvDeferredInstallPrompt: prompt,
       addEventListener(name, callback) {
@@ -86,14 +87,37 @@ function createGuide(userAgent, language = "en", maxTouchPoints = 0, prompt = nu
       get activeElement() { return activeElement; },
       set activeElement(value) { activeElement = value; },
       getElementById: node,
+      documentElement: { classList: { remove() {} } },
       createElement: (tagName) => ({ tagName, textContent: "" }),
     },
     console: { error: (...args) => errors.push(args) },
     appText: (key, fallback, vars) => i18n.t(key, vars, fallback),
   };
   activeElement = node("btn-choose-install");
-  vm.runInNewContext(`${code}\nthis.showGuide = showBrowserInstallGuide; showBrowserInstallGuide();`, context);
-  return { context, errors, node };
+  vm.runInNewContext(
+    `${code}
+      const routeSelector = setupInstallRouteSelector({
+        deviceSelect: document.getElementById("launch-install-device"),
+        browserSelect: document.getElementById("launch-install-browser"),
+        detected: document.getElementById("launch-install-detected"),
+        environment: detectInstallEnvironment(
+          navigator.userAgent,
+          navigator.maxTouchPoints,
+          navigator.platform,
+        ),
+      });
+      this.routeSelector = routeSelector;
+      this.showGuide = showBrowserInstallGuide;
+      showBrowserInstallGuide({ route: routeSelector.getRoute() });`,
+    context,
+  );
+  return {
+    context,
+    errors,
+    node,
+    routeSelector: context.routeSelector,
+    showGuide: context.showGuide,
+  };
 }
 
 for (const [userAgent, expected, device, browser] of [
@@ -106,22 +130,31 @@ for (const [userAgent, expected, device, browser] of [
   [agents.chromebook, "Google Chrome on a Chromebook", "chromebook", "chrome"],
 ]) {
   const guide = createGuide(userAgent);
-  assert(guide.node("browser-install-detected").textContent.includes(expected));
-  assert.strictEqual(guide.node("browser-install-device").value, device);
-  assert.strictEqual(guide.node("browser-install-browser").value, browser);
+  assert(guide.node("launch-install-detected").textContent.includes(expected));
+  assert.strictEqual(guide.node("launch-install-device").value, device);
+  assert.strictEqual(guide.node("launch-install-browser").value, browser);
   assert.strictEqual(guide.node("browser-install-screen").hidden, false);
-  assert.strictEqual(guide.node("browser-install-correction").open, false);
   assert(guide.node("browser-install-steps").children.length > 0);
 }
 const unknown = createGuide("unknown");
-assert(unknown.node("browser-install-detected").textContent.includes("couldn't identify"));
-assert.strictEqual(unknown.node("browser-install-correction").open, true);
-assert(unknown.node("browser-install-detected").getAttribute === undefined);
+assert(unknown.node("launch-install-detected").textContent.includes("Another browser"));
+assert.strictEqual(unknown.node("launch-install-device").value, "computer");
+assert.strictEqual(unknown.node("launch-install-browser").value, "other");
 console.log("PASS device/browser detection identifies supported routes and exposes correction when unknown");
+const ipadDesktop = createGuide(
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15",
+  "en",
+  5,
+  null,
+  "MacIntel",
+);
+assert.strictEqual(ipadDesktop.node("launch-install-device").value, "ipad");
+assert.strictEqual(ipadDesktop.node("launch-install-browser").value, "safari");
+console.log("PASS iPadOS desktop-mode Safari is identified from platform and touch points");
 
 const supported = {
-  iphone: { safari: "normal Safari" },
-  ipad: { safari: "normal Safari" },
+  iphone: { safari: "regular Safari" },
+  ipad: { safari: "regular Safari" },
   android: {
     chrome: "three dots",
     edge: "three-line",
@@ -137,22 +170,26 @@ for (const language of ["en", "es"]) {
   for (const [device, browsers] of Object.entries(supported)) {
     for (const [browser, expected] of Object.entries(browsers)) {
       const guide = createGuide("unknown", language);
-      guide.node("browser-install-device").value = device;
-      guide.node("browser-install-device").dispatch("change");
-      guide.node("browser-install-browser").value = browser;
-      guide.node("browser-install-browser").dispatch("change");
-      assert(guide.node("browser-install-detected").textContent);
-      assert(guide.node("browser-install-steps").children.length >= 2, `${device}/${browser}/${language}`);
+      guide.node("launch-install-device").value = device;
+      guide.node("launch-install-device").dispatch("change");
+      guide.node("launch-install-browser").value = browser;
+      guide.node("launch-install-browser").dispatch("change");
+      assert(guide.node("launch-install-detected").textContent);
+      guide.showGuide({ route: guide.routeSelector.getRoute() });
+      assert(guide.node("browser-install-steps").children.length >= 1, `${device}/${browser}/${language}`);
+      assert.strictEqual(guide.node("browser-install-final-action").hidden, false, `${device}/${browser}/${language}`);
       assert.strictEqual(guide.node("browser-install-handoff").hidden, false);
       const allSteps = guide.node("browser-install-steps").children.map((item) => item.textContent).join(" ");
       if (language === "en") assert(allSteps.includes(expected), `${device}/${browser}`);
       const handoff = guide.node("browser-install-handoff-text").textContent.toLowerCase();
-      assert(handoff.includes(language === "en" ? "icon" : "icono"));
+      assert(handoff.includes(language === "en" ? "icon" : "icono"), `${device}/${browser}/${language}: ${handoff}`);
       assert(handoff.includes(language === "en" ? "setup" : "configuración"));
     }
   }
 }
-assert(html.indexOf('id="browser-install-handoff"') < html.indexOf('id="browser-install-steps"'));
+assert(html.indexOf('id="browser-install-steps"') < html.indexOf('id="browser-install-handoff"'));
+assert(html.indexOf('id="browser-install-handoff"') < html.indexOf('id="browser-install-final-action"'));
+assert(html.indexOf('id="launch-install-detected"') < html.indexOf('id="btn-choose-install"'));
 assert(!html.includes('id="browser-install-next"'));
 assert(!html.includes('id="browser-install-wrong-browser"'));
 assert(!html.includes('id="browser-install-manual"'));
@@ -167,16 +204,17 @@ assert(apple.node("browser-install-handoff-text").textContent.includes("Open as 
 assert(apple.node("browser-install-handoff-text").textContent.includes("Home Screen"));
 const appleRoute = createGuide(agents.ipad, "es");
 assert(appleRoute.node("browser-install-handoff-text").textContent.includes("pantalla de inicio"));
+assert(!appleRoute.node("browser-install-handoff-text").textContent.includes("iPad"));
 console.log("PASS Apple instructions explain the required Safari process and warn before Add");
 
 const correction = createGuide(`${agents.windows} Edg/120.0`);
-assert(correction.node("browser-install-detected").textContent.includes("Microsoft Edge"));
-correction.node("browser-install-correction").open = true;
-correction.node("browser-install-device").value = "mac";
-correction.node("browser-install-device").dispatch("change");
-correction.node("browser-install-browser").value = "safari";
-correction.node("browser-install-browser").dispatch("change");
-assert(correction.node("browser-install-detected").textContent.includes("Safari on a Mac"));
+assert(correction.node("launch-install-detected").textContent.includes("Microsoft Edge"));
+correction.node("launch-install-device").value = "mac";
+correction.node("launch-install-device").dispatch("change");
+correction.node("launch-install-browser").value = "safari";
+correction.node("launch-install-browser").dispatch("change");
+assert(correction.node("launch-install-detected").textContent.includes("Safari on a Mac"));
+correction.showGuide({ route: correction.routeSelector.getRoute() });
 assert(correction.node("browser-install-steps").children[0].textContent.includes("File"));
 assert(!html.includes("That's not my browser"));
 assert(!html.includes("That's not my device"));
@@ -226,23 +264,21 @@ nativeChecks().catch((error) => {
   process.exitCode = 1;
 });
 
-const inApp = createGuide(agents.android);
-inApp.node("browser-install-cancel").click();
-inApp.context.document.activeElement = inApp.node("btn-settings-install");
-inApp.context.showGuide({ returnToApp: true });
-assert.strictEqual(inApp.node("app-container").hidden, true);
-inApp.node("browser-install-cancel").click();
-assert.strictEqual(inApp.node("app-container").hidden, false);
-assert.strictEqual(inApp.node("app-container").inert, false);
-console.log("PASS installation opened from Settings returns to the existing app");
+assert(html.includes('id="browser-install-cancel-link"'));
+assert(html.includes('data-i18n="install.cancelLink"'));
+assert(html.includes('data-i18n-attr="href:launch.websiteUrl"'));
+assert(!/browser-install-cancel-link[\s\S]{0,300}(?:eraseAllData|deleteDatabase)/.test(app));
+console.log("PASS install cancellation returns to the NRV site without erasing app data");
 
 const setupFlow = fs.readFileSync(path.join(root, "index.html"), "utf8");
 assert(setupFlow.includes('id="agreement-panel"'));
 assert(setupFlow.includes('id="setup-wizard-step-1"'));
 assert(setupFlow.includes('id="setup-existing-data"'));
+assert(setupFlow.includes('id="installed-welcome"'));
 assert(setupFlow.includes('id="btn-install-restore"'));
 assert(setupFlow.includes('id="btn-install-open-existing"'));
 assert(app.includes("showInstallScreen(\"install\")"));
 assert(app.includes("showInstallScreen(\"existing\")"));
 assert(app.includes("if (restoredFromBackup)"));
+assert(app.includes('document.getElementById("installed-welcome").hidden = !isInstalledApp()'));
 console.log("PASS installed NRV retains Terms/Privacy, new setup, existing-data and restore entry paths");

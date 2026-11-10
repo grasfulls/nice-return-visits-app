@@ -59,8 +59,35 @@
         <h1 id="launch-choice-title" tabindex="-1" data-i18n="launch.title">Install Nice Return Visits app</h1>
         <p data-i18n="launch.tagline">No more, “Oh, I have a return visit around here!”</p>
         <p data-i18n="launch.recommend">Keep your return visits organized and ready when you need them.</p>
+        <p data-i18n="launch.installExpectation">
+          We’ll guide you through installation and make sure you know what to do before these instructions leave your screen.
+        </p>
+        <p id="launch-install-detected" role="status" aria-live="polite"></p>
+        <p data-i18n="install.keepSuggested">Not sure? Keep the suggested choices.</p>
+        <details id="launch-install-correction">
+          <summary data-i18n="install.correction">Doesn’t look right? Change device or browser</summary>
+          <label for="launch-install-device" data-i18n="install.deviceLabel">Device</label>
+          <select id="launch-install-device">
+            <option value="iphone">iPhone</option>
+            <option value="ipad">iPad</option>
+            <option value="android" data-i18n="install.device.android">Android phone or tablet</option>
+            <option value="windows" data-i18n="install.device.windows">Windows computer</option>
+            <option value="mac">Mac</option>
+            <option value="chromebook" data-i18n="install.chromebook">Chromebook</option>
+            <option value="computer" data-i18n="install.device.computer">Other computer</option>
+          </select>
+          <label for="launch-install-browser" data-i18n="install.browserLabel">Browser</label>
+          <select id="launch-install-browser">
+            <option value="chrome">Google Chrome</option>
+            <option value="edge">Microsoft Edge</option>
+            <option value="safari">Safari</option>
+            <option value="firefox">Firefox</option>
+            <option value="samsung">Samsung Internet</option>
+            <option value="other" data-i18n="install.otherBrowser">Another browser / I don't know</option>
+          </select>
+        </details>
         <div class="install-screen-actions">
-          <button type="button" id="btn-choose-install" data-i18n="launch.installButton">
+          <button type="button" id="btn-choose-install" data-i18n="install.installButton">
             Install NRV Icon
           </button>
           <button
@@ -247,50 +274,27 @@
     >
       <div class="install-screen-card">
         <h1 id="browser-install-title" tabindex="-1" data-i18n="install.title">Install Nice Return Visits app</h1>
-        <p id="browser-install-detected" role="status" aria-live="polite"></p>
-        <details id="browser-install-correction">
-          <summary data-i18n="install.correction">Wrong device or browser? Change it</summary>
-          <label for="browser-install-device" data-i18n="install.deviceLabel">Device</label>
-          <select id="browser-install-device">
-            <option value="iphone">iPhone</option>
-            <option value="ipad">iPad</option>
-            <option value="android" data-i18n="install.device.android">Android phone or tablet</option>
-            <option value="windows" data-i18n="install.device.windows">Windows computer</option>
-            <option value="mac">Mac</option>
-            <option value="chromebook" data-i18n="install.chromebook">Chromebook</option>
-            <option value="computer" data-i18n="install.device.computer">Other computer</option>
-          </select>
-          <label for="browser-install-browser" data-i18n="install.browserLabel">Browser</label>
-          <select id="browser-install-browser">
-            <option value="chrome">Google Chrome</option>
-            <option value="edge">Microsoft Edge</option>
-            <option value="safari">Safari</option>
-            <option value="firefox">Firefox</option>
-            <option value="samsung">Samsung Internet</option>
-            <option value="other" data-i18n="install.otherBrowser">Another browser / I don't know</option>
-          </select>
-        </details>
-        <section id="browser-install-instructions" aria-labelledby="browser-install-instructions-title">
-          <h2 id="browser-install-instructions-title" data-i18n="install.instructionsTitle">Install NRV</h2>
+        <section id="browser-install-instructions" aria-labelledby="browser-install-instructions-title" hidden>
+          <h2 id="browser-install-instructions-title"></h2>
           <section id="browser-install-why" hidden>
             <h3 data-i18n="install.appleWhyTitle">Why the manual steps?</h3>
             <p data-i18n="install.appleWhy">Apple requires installation to be completed through Safari’s Add to Home Screen process.</p>
           </section>
+          <ol id="browser-install-steps"></ol>
           <aside id="browser-install-handoff" class="install-handoff" hidden>
             <strong data-i18n="install.handoffHeading">Before you continue</strong>
             <p id="browser-install-handoff-text"></p>
           </aside>
-          <button type="button" id="browser-install-native" data-i18n="launch.installButton" hidden>Install NRV Icon</button>
+          <p id="browser-install-final-action" class="install-final-action" hidden></p>
+          <button type="button" id="browser-install-native" data-i18n="install.installButton" hidden>Install NRV Icon</button>
           <p id="browser-install-status" role="status" aria-live="polite" tabindex="-1" hidden></p>
-          <ol id="browser-install-steps"></ol>
           <details id="browser-install-help" hidden>
             <summary data-i18n="install.helpSummary">Can't find an option?</summary>
             <p id="browser-install-help-text"></p>
           </details>
         </section>
         <div class="install-screen-actions">
-          <button type="button" id="browser-install-cancel" class="install-screen-secondary" data-i18n="install.cancel">Back</button>
-          <a href="https://nicereturnvisits.org/index.html" data-i18n="launch.websiteLink" data-i18n-attr="href:launch.websiteUrl">← Back to NRV website</a>
+          <a id="browser-install-cancel-link" href="https://nicereturnvisits.org/index.html" data-i18n="install.cancelLink" data-i18n-attr="href:launch.websiteUrl">Cancel and return to NRV website</a>
         </div>
       </div>
     </section>
@@ -1098,9 +1102,9 @@
               <details class="settings-section">
                 <summary data-i18n="update.whatsNew">What's New</summary>
                 <!-- release-notes:start -->
-                <p data-i18n="release.current.title">A smoother installation experience</p>
+                <p data-i18n="release.current.title">A clearer path from installation to NRV</p>
                 <ul>
-                  <li data-i18n="release.current.change1">Install NRV with a clearer device-specific guide, a safe handoff to the new icon, and a cleaner Contacts toolbar.</li>
+                  <li data-i18n="release.current.change1">Choose or correct your device and browser before installing, then follow the matching steps and open the new NRV icon to continue setup.</li>
                 </ul>
                 <!-- release-notes:end -->
               </details>
@@ -1132,6 +1136,10 @@
     >
       <div class="install-screen-card">
         <h1 id="install-screen-title" data-i18n="page.install">NRV-Install</h1>
+        <section id="installed-welcome" hidden>
+          <h2 data-i18n="setup.installedWelcome">Welcome to Nice Return Visits</h2>
+          <p data-i18n="setup.iconInstallationComplete">Icon installation is complete. Now for the details...</p>
+        </section>
         <p id="setup-wizard-progress" role="status" aria-live="polite"></p>
         <section id="setup-existing-data" class="setup-wizard-step" hidden>
           <h2 tabindex="-1" data-i18n="setup.existingTitle">Existing NRV data has been detected</h2>

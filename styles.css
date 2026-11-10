@@ -91,27 +91,27 @@ html.show-launch-choice #launch-choice-screen[hidden] {
     margin: 0.75em 0;
 }
 
-#browser-install-correction {
+#launch-install-correction {
     margin: 12px 0 20px;
 }
 
-#browser-install-correction summary {
+#launch-install-correction summary {
     color: #004080;
     cursor: pointer;
     font-size: 0.9rem;
 }
 
-#browser-install-correction label,
-#browser-install-correction select {
+#launch-install-correction label,
+#launch-install-correction select {
     display: block;
     width: 100%;
 }
 
-#browser-install-correction label {
+#launch-install-correction label {
     margin-top: 12px;
 }
 
-#browser-install-correction select {
+#launch-install-correction select {
     min-height: 44px;
     margin-top: 4px;
 }
@@ -126,7 +126,7 @@ html.show-launch-choice #launch-choice-screen[hidden] {
 }
 
 .install-handoff {
-    margin: 18px 0;
+    margin: 18px 0 10px;
     padding: 12px;
     border-left: 4px solid #004080;
     border-radius: 4px;
@@ -135,6 +135,15 @@ html.show-launch-choice #launch-choice-screen[hidden] {
 
 .install-handoff p {
     margin-bottom: 0 !important;
+}
+
+.install-final-action {
+    margin: 10px 0 18px !important;
+    font-weight: 600;
+}
+
+.install-final-action[hidden] {
+    display: none;
 }
 
 .install-screen-actions {

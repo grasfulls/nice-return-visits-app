@@ -1,5 +1,20 @@
 [
   {
+    "version": "0.9.55",
+    "en": {
+      "title": "A clearer path from installation to NRV",
+      "changes": [
+        "Choose or correct your device and browser before installing, then follow the matching steps and open the new NRV icon to continue setup."
+      ]
+    },
+    "es": {
+      "title": "Un camino más claro desde la instalación hasta NRV",
+      "changes": [
+        "Elige o corrige tu dispositivo y navegador antes de instalar. Luego sigue los pasos correspondientes y abre el nuevo icono de NRV para continuar la configuración."
+      ]
+    }
+  },
+  {
     "version": "0.9.54",
     "en": {
       "title": "A smoother installation experience",
