@@ -31,8 +31,8 @@ const settings = {
   state: "WA",
   defaultCity: "Seattle",
   cities: ["Seattle"],
-  regions: [{ city: "Seattle", name: "North" }],
-  areas: [{ city: "Seattle", name: "Central" }],
+  regions: ["North"],
+  areas: ["Central"],
   me: {
     name: "Test", country: "United States", state: "WA", city: "Seattle",
     region: "North", area: "Central", street: "", postalCode: "98101", lat: "", lng: "",
@@ -61,6 +61,7 @@ const context = {
     saves += 1;
   },
   showStorageError() {},
+  NRVDialogs: { alert: async () => {}, confirm: async () => true },
   updateAddressingProfile() {},
   appText: (key, fallback) => fallback,
   alert() {},

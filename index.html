@@ -718,7 +718,7 @@
               <h3 data-i18n="location.addCityTitle">Add New City to List</h3>
               <p class="location-hint">
                 <strong data-i18n="location.howTitle">How locations work:</strong>
-                <span data-i18n="location.howText">A city is divided into regions, which are large parts of the city (such as North, South, East, and West). A region is divided into areas, which are smaller neighborhoods within that region. Cities, regions, and areas are added as you enter them for yourself or a contact; use each field's + Add New choice to add one.</span>
+                <span data-i18n="location.howText">Cities, regions, and areas are three independent, reusable lists. Regions are large parts of town (such as North, South, East, and West) and areas are smaller neighborhoods. They are added as you enter them for yourself or a contact; use each field's + Add New choice to add one.</span>
               </p>
               <div style="display: flex; gap: 8px">
                 <input
@@ -746,9 +746,6 @@
 
               <h3 style="margin-top: 15px" data-i18n="location.addRegionTitle">Add New Region</h3>
               <div style="display: flex; gap: 8px">
-                <select id="setting-region-city" aria-label="City for new region" data-i18n-attr="aria-label:location.cityForRegion">
-                  <option value="" data-i18n="location.chooseCity">Choose city</option>
-                </select>
                 <input
                   type="text"
                   id="setting-new-region"
@@ -771,12 +768,9 @@
                   Add Region
                 </button>
               </div>
-              <p data-i18n="location.regionInstructions">You can also add a region while adding a contact. Choose + Add New Region... in that contact's Region list to add one for the selected City. A region name can be used in more than one city; the city you choose makes it unique.</p>
+              <p data-i18n="location.regionInstructions">You can also add a region while adding a contact. Choose + Add New Region... in that contact's Region list. A region is saved once and can be used with any city.</p>
               <h3 style="margin-top: 15px" data-i18n="location.addAreaTitle">Add New Area</h3>
               <div style="display: flex; gap: 8px">
-                <select id="setting-area-city" aria-label="City for new area" data-i18n-attr="aria-label:location.cityForArea">
-                  <option value="" data-i18n="location.chooseCity">Choose city</option>
-                </select>
                 <input
                   type="text"
                   id="setting-new-area"
@@ -802,13 +796,10 @@
               <h3 style="margin-top: 20px" data-i18n="location.manageHeading">Manage Cities, Regions, and Areas</h3>
               <div id="region-area-list"></div>
               <small data-i18n="location.manageNote">
-                Cities, regions and areas are each listed once. Edit renames a
-                region or area everywhere and lets you choose which cities it
-                is assigned to. Delete is blocked while any contact uses it;
-                deleting a city also removes its region and area assignments,
-                after you confirm. Regions and areas are independent: a
-                contact can have a city, a region, an area, or any
-                combination.
+                Cities, regions and areas are each listed once. Edit renames an
+                entry everywhere it is used. Delete is blocked while any
+                contact uses it. The lists are independent: a contact can have
+                a city, a region, an area, or any combination.
               </small>
             </details>
             <details class="settings-section" id="time-tracking-section">
@@ -1156,9 +1147,9 @@
               <details class="settings-section">
                 <summary data-i18n="update.whatsNew">What's New</summary>
                 <!-- release-notes:start -->
-                <p data-i18n="release.current.title">A clearer path from installation to NRV</p>
+                <p data-i18n="release.current.title">Independent cities, regions, and areas</p>
                 <ul>
-                  <li data-i18n="release.current.change1">Choose or correct your device and browser before installing, then follow the matching steps and open the new NRV icon to continue setup.</li>
+                  <li data-i18n="release.current.change1">Regions and areas are now saved once as independent reusable lists, with no city required, and any contact can use any saved city, region, and area together.</li>
                 </ul>
                 <!-- release-notes:end -->
               </details>

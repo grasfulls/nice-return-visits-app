@@ -118,8 +118,8 @@ check(i18n.t("contacts.visitCount", { count: 1 }) === "1 nota de visita" &&
   i18n.t("contacts.dayCount", { count: 1 }) === "1 día" &&
   i18n.t("contacts.dayCount", { count: 2 }) === "2 días",
   "Spanish contact counts use the correct plural forms");
-check(i18n.t("location.areaAdded", { name: "Centro", city: "Lima" }) ===
-  "Se agregó el área «Centro» a Lima." &&
+check(i18n.t("location.areaAdded", { name: "Centro" }) ===
+  "Se agregó el área «Centro»." &&
   i18n.t("map.centeredNear", { location: "Lima, Lima" }) ===
   "No hay marcadores de contactos para mostrar. El mapa está centrado cerca de Lima, Lima." &&
   i18n.t("print.mapLocationCount", { count: 2, date: "11/5" }) ===
@@ -128,8 +128,8 @@ check(i18n.t("location.areaAdded", { name: "Centro", city: "Lima" }) ===
   "No se puede eliminar la ubicación de tipo región mientras tenga 1 contacto asignado. Primero reasigna ese contacto.",
   "Spanish dynamic messages interpolate location values without changing them");
 i18n._setCurrent("en");
-check(i18n.t("location.areaAdded", { name: "Centro", city: "Lima" }) ===
-  'Area "Centro" added to Lima.' &&
+check(i18n.t("location.areaAdded", { name: "Centro" }) ===
+  'Area "Centro" added.' &&
   i18n.t("map.centeredNear", { location: "Lima, Lima" }) ===
   "No contact pins to show. The map is centered near Lima, Lima." &&
   i18n.t("print.mapLocationCount", { count: 1, date: "11/5" }) ===

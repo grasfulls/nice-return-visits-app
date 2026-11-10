@@ -1,5 +1,20 @@
 [
   {
+    "version": "0.9.56",
+    "en": {
+      "title": "Independent cities, regions, and areas",
+      "changes": [
+        "Regions and areas are now saved once as independent reusable lists, with no city required, and any contact can use any saved city, region, and area together."
+      ]
+    },
+    "es": {
+      "title": "Ciudades, regiones y áreas independientes",
+      "changes": [
+        "Las regiones y áreas ahora se guardan una sola vez como listas independientes y reutilizables, sin necesidad de una ciudad, y cualquier contacto puede usar juntas cualquier ciudad, región y área guardadas."
+      ]
+    }
+  },
+  {
     "version": "0.9.55",
     "en": {
       "title": "A clearer path from installation to NRV",

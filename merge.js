@@ -198,14 +198,23 @@
       [localSettings.countries, remoteSettings.countries],
       (country) => String(country).toLowerCase(),
     );
-    settings.regions = unionBy(
-      [localSettings.regions, remoteSettings.regions],
-      (item) => JSON.stringify([item.city, item.name]),
-    );
-    settings.areas = unionBy(
-      [localSettings.areas, remoteSettings.areas],
-      (item) => JSON.stringify([item.city, item.name]),
-    );
+    const locationNames = (lists) =>
+      unionBy(
+        lists.map((list) =>
+          (list || [])
+            .map((item) => (typeof item === "string" ? item : item?.name))
+            .filter(Boolean),
+        ),
+        (name) => String(name).toLowerCase(),
+      );
+    settings.regions = locationNames([
+      localSettings.regions,
+      remoteSettings.regions,
+    ]);
+    settings.areas = locationNames([
+      localSettings.areas,
+      remoteSettings.areas,
+    ]);
     settings.deletedContacts = tombstones;
     settings.goalsAndMilestones = mergeGoalsAndMilestones(
       localSettings,
