@@ -18,7 +18,7 @@ const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
 const APP_VERSION = "0.9.55";
-const APP_BUILD_REVISION = "sha256:e0a75ccf09567b492162a611bf84cd7d8b1f50db1e2133f1bf65cbd79004427d";
+const APP_BUILD_REVISION = "sha256:896e3f9881a4b44dcdb40986c414ca4027182647f21ae02249ce5ae172553263";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -926,6 +926,131 @@ const markInstalledSetupComplete = () => {
     console.error("Unable to save the installed-app setup status:", error);
     return false;
   }
+};
+const clearNrvWorkingState = async ({
+  database,
+  indexedDB,
+  localStorage,
+  sessionStorage,
+  dropbox,
+}) => {
+  database.close();
+  await new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase("return-visits-app");
+    request.onsuccess = resolve;
+    request.onerror = () =>
+      reject(request.error || new Error("Database deletion failed."));
+    request.onblocked = () =>
+      reject(
+        new Error(
+          "The database is still open in another NRV window or browser tab.",
+        ),
+      );
+  });
+  localStorage.clear();
+  sessionStorage.clear();
+  await new Promise((resolve, reject) => {
+    const request = indexedDB.open("return-visits-app", 1);
+    request.onupgradeneeded = () =>
+      request.result.createObjectStore("appData", { keyPath: "key" });
+    request.onerror = () =>
+      reject(request.error || new Error("Database verification failed."));
+    request.onsuccess = () => {
+      const verificationDatabase = request.result;
+      try {
+        if (!verificationDatabase.objectStoreNames.contains("appData")) {
+          throw new Error("The fresh NRV database is missing its data store.");
+        }
+        const transaction = verificationDatabase.transaction(
+          "appData",
+          "readonly",
+        );
+        const keysRequest = transaction.objectStore("appData").getAllKeys();
+        const failVerification = (error) => {
+          verificationDatabase.close();
+          reject(error || new Error("Database verification failed."));
+        };
+        keysRequest.onsuccess = () => {
+          const hasStoredData = keysRequest.result.length > 0;
+          verificationDatabase.close();
+          if (hasStoredData) {
+            reject(new Error("Some NRV working information remains in IndexedDB."));
+          } else {
+            resolve();
+          }
+        };
+        keysRequest.onerror = () => {
+          failVerification(keysRequest.error);
+        };
+        transaction.onerror = () => {
+          failVerification(transaction.error);
+        };
+        transaction.onabort = () => {
+          failVerification(transaction.error);
+        };
+      } catch (error) {
+        verificationDatabase.close();
+        reject(error);
+      }
+    };
+  });
+  if (localStorage.length !== 0 || sessionStorage.length !== 0) {
+    throw new Error("Some NRV working state could not be cleared.");
+  }
+  if (dropbox?.isConnected()) {
+    throw new Error("The local Dropbox connection could not be cleared.");
+  }
+};
+const runStartFreshFlow = async ({
+  dropboxConnected,
+  askForConfirmation,
+  erase,
+  showMessage,
+  redirect,
+}) => {
+  const reminder = appText(
+    "storage.eraseConfirm",
+    "Start Fresh removes the contacts, visit information, settings, and security/setup information in this NRV working copy. If you may need it later, create or verify a current backup first and keep a protected recovery copy outside NRV's working data and outside locations NRV actively manages for normal backup/synchronization. Independently saved backup files are not erased. Continue?",
+  );
+  const confirmation = dropboxConnected
+    ? `${reminder}\n\n${appText(
+      "storage.eraseDropboxConfirm",
+      "Using Dropbox? Erasing this NRV copy will disconnect it from Dropbox, but it will not delete your existing Dropbox backups. If you may need that information later, preserve a recovery copy outside NRV's active Dropbox backup/synchronization area before continuing. Reconnecting later is a deliberate choice; NRV will not automatically restore old Dropbox data.",
+    )}`
+    : reminder;
+  if (!await askForConfirmation(confirmation)) return "cancelled";
+  if (!await askForConfirmation(appText(
+    "settings.eraseFinalConfirm",
+    "Last check: erase this NRV working copy and start fresh?",
+  ))) {
+    return "cancelled";
+  }
+
+  while (true) {
+    try {
+      await erase();
+      break;
+    } catch (error) {
+      console.error("Unable to verify the NRV working-state erase:", error);
+      const detail = error?.message || appText(
+        "storage.eraseRetryDetail",
+        "Some NRV working information may remain.",
+      );
+      if (!await askForConfirmation(appText(
+        "storage.eraseRetryConfirm",
+        `NRV could not verify that this copy is cleared, so it has not been reported as fresh and you will not be redirected. ${detail} Choose OK to retry, or Cancel to return to Settings. If you cancel, this copy may be partially cleared.`,
+        { detail },
+      ))) {
+        return "failed";
+      }
+    }
+  }
+  await showMessage(appText(
+    "storage.eraseComplete",
+    "NRV has been cleared. You’ll now return to the Nice Return Visits website to begin again.",
+  ));
+  redirect("https://nicereturnvisits.org/");
+  return "complete";
 };
 let appUpdateAvailable = false;
 let appReadyForUpdates = false;
@@ -12110,52 +12235,20 @@ const initializeApp = async () => {
     document.title = name;
     installScreen.hidden = false;
   };
-  const eraseAllData = async () => {
-    try {
-      database.close();
-      await new Promise((resolve, reject) => {
-        const request = indexedDB.deleteDatabase("return-visits-app");
-        request.onsuccess = resolve;
-        request.onerror = () =>
-          reject(request.error || new Error("Database deletion failed."));
-        request.onblocked = () =>
-          reject(
-            new Error(
-              "The database is still open in another NRV window or browser tab.",
-            ),
-          );
-      });
-      localStorage.clear();
-      sessionStorage.clear();
-      if (localStorage.length !== 0 || sessionStorage.length !== 0) {
-        throw new Error("Some NRV storage choices could not be cleared.");
-      }
-      window.location.reload();
-    } catch (error) {
-      console.error("Unable to erase app data:", error);
-      const eraseErrors = {
-        "Database deletion failed.": appText("storage.eraseDatabaseFailed", "Database deletion failed."),
-        "The database is still open in another NRV window or browser tab.": appText("storage.eraseDatabaseOpen", "The database is still open in another NRV window or browser tab."),
-        "Some NRV storage choices could not be cleared.": appText("storage.eraseChoicesFailed", "Some NRV storage choices could not be cleared."),
-      };
-      const detail = Object.prototype.hasOwnProperty.call(eraseErrors, error.message)
-        ? eraseErrors[error.message]
-        : error.message || appText("storage.eraseRetry", "Close other NRV windows or tabs, reload, and try again.");
-      await NRVDialogs.alert(
-        appText("storage.eraseFailed", `NRV could not verify a complete erase. No fresh start was confirmed. ${detail}`, { detail }),
-      );
-    }
-  };
   const confirmEraseAllData = async () => {
-    if (
-      !await NRVDialogs.confirm(
-        appText("storage.eraseConfirm", "Before erasing, create or verify a current backup and keep a separate recovery copy outside NRV's normal storage and Dropbox app folder. This removes contacts, settings, passphrase/security data, setup choices, and Dropbox connection state from this app copy. Downloaded backup files and Dropbox backups are not deleted. Continue?"),
-      )
-    ) {
-      return;
-    }
-    if (!await NRVDialogs.confirm(appText("settings.eraseFinalConfirm", "Last check: erase this NRV working copy and start fresh?"))) return;
-    void eraseAllData();
+    return runStartFreshFlow({
+      dropboxConnected: Boolean(dropbox?.isConnected()),
+      askForConfirmation: (message) => NRVDialogs.confirm(message),
+      erase: () => clearNrvWorkingState({
+        database,
+        indexedDB,
+        localStorage,
+        sessionStorage,
+        dropbox,
+      }),
+      showMessage: (message) => NRVDialogs.alert(message),
+      redirect: (url) => window.location.assign(url),
+    });
   };
   document
     .getElementById("btn-erase-all-data")

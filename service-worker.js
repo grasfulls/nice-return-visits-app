@@ -1,4 +1,4 @@
-const BUILD_REVISION = "sha256:e0a75ccf09567b492162a611bf84cd7d8b1f50db1e2133f1bf65cbd79004427d";
+const BUILD_REVISION = "sha256:896e3f9881a4b44dcdb40986c414ca4027182647f21ae02249ce5ae172553263";
 const CACHE_NAME = `return-visits-shell-${BUILD_REVISION.slice(7)}`;
 const APP_SHELL = [
   "./",
