@@ -91,29 +91,48 @@ html.show-launch-choice #launch-choice-screen[hidden] {
     margin: 0.75em 0;
 }
 
-#launch-install-correction {
-    margin: 12px 0 20px;
+#launch-route-guidance {
+    margin-bottom: 0;
 }
 
-#launch-install-correction summary {
-    color: #004080;
-    cursor: pointer;
-    font-size: 0.9rem;
+#launch-route-editor {
+    margin-top: 12px;
 }
 
-#launch-install-correction label,
-#launch-install-correction select {
+#launch-route-editor label,
+#launch-route-editor select {
     display: block;
     width: 100%;
 }
 
-#launch-install-correction label {
+#launch-route-editor label {
     margin-top: 12px;
 }
 
-#launch-install-correction select {
+#launch-route-editor select {
     min-height: 44px;
     margin-top: 4px;
+}
+
+#launch-route-editor .install-screen-actions {
+    margin-top: 12px;
+}
+
+#launch-browser-risk {
+    margin-top: 16px;
+    padding: 14px;
+    border-left: 4px solid #9a5b00;
+    border-radius: 4px;
+    background: #fff8e8;
+}
+
+#launch-browser-risk h2 {
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+}
+
+#launch-browser-risk p {
+    margin-top: 0;
 }
 
 #browser-install-steps {
@@ -151,6 +170,10 @@ html.show-launch-choice #launch-choice-screen[hidden] {
     flex-direction: column;
     gap: 10px;
     margin-top: 20px;
+}
+
+.install-screen-actions[hidden] {
+    display: none;
 }
 
 .install-screen-actions button {

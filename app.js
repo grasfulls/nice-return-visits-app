@@ -18,7 +18,7 @@ const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
 const APP_VERSION = "0.9.55";
-const APP_BUILD_REVISION = "sha256:896e3f9881a4b44dcdb40986c414ca4027182647f21ae02249ce5ae172553263";
+const APP_BUILD_REVISION = "sha256:3983c5b39459a8f0a749161e18c0be35a16fc1f8db5c5fa0741e7ccca8dc50d9";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -465,6 +465,22 @@ const showLaunchChoice = ({
   document.documentElement.classList.remove("show-launch-choice");
   const installButton = document.getElementById("btn-choose-install");
   const browserButton = document.getElementById("btn-choose-browser");
+  const routeChoice = document.getElementById("launch-route-choice");
+  const routeGuidance = document.getElementById("launch-route-guidance");
+  const routeEditor = document.getElementById("launch-route-editor");
+  const choiceOptions = document.getElementById("launch-choice-options");
+  const browserRisk = document.getElementById("launch-browser-risk");
+  const keepSuggestedButton = document.getElementById(
+    "btn-launch-keep-suggested",
+  );
+  const changeRouteButton = document.getElementById("btn-launch-change-route");
+  const keepCorrectedButton = document.getElementById(
+    "btn-launch-keep-corrected",
+  );
+  const browserRiskTitle = document.getElementById(
+    "launch-browser-risk-title",
+  );
+  let routeEstablished = false;
   const routeSelectors = setupInstallRouteSelector({
     deviceSelect: document.getElementById("launch-install-device"),
     browserSelect: document.getElementById("launch-install-browser"),
@@ -476,9 +492,25 @@ const showLaunchChoice = ({
     ),
     savedRoute: readSavedInstallRoute(),
   });
+  const showInstallChoices = () => {
+    routeEstablished = true;
+    routeChoice.hidden = true;
+    routeGuidance.hidden = true;
+    routeEditor.hidden = true;
+    choiceOptions.hidden = false;
+    installButton.focus();
+  };
+  keepSuggestedButton.onclick = showInstallChoices;
+  changeRouteButton.onclick = () => {
+    routeChoice.hidden = true;
+    routeGuidance.hidden = true;
+    routeEditor.hidden = false;
+    document.getElementById("launch-install-device").focus();
+  };
+  keepCorrectedButton.onclick = showInstallChoices;
   browserButton.hidden = returnToApp;
-  installButton.focus();
   installButton.disabled = !preservationHandled;
+  keepSuggestedButton.focus();
   if (!preservationHandled) {
     getInitialStoredInformation().then((result) => {
       if (screen.hidden) return;
@@ -490,8 +522,9 @@ const showLaunchChoice = ({
           "We could not check this browser for saved NRV information. Choose browser use first, then open Settings to try installing again.",
         );
         status.hidden = false;
-        browserButton.focus();
-      } else {
+        if (routeEstablished && !returnToApp) browserButton.focus();
+        else keepSuggestedButton.focus();
+      } else if (routeEstablished) {
         installButton.focus();
       }
     });
@@ -530,7 +563,7 @@ const showLaunchChoice = ({
     }
     return launchInstall({ route, statusElement: status });
   };
-  browserButton.onclick = () => {
+  const chooseBrowser = () => {
     const errorMessage = document.getElementById("launch-choice-error");
     try {
       localStorage.setItem(LAUNCH_MODE_KEY, "browser");
@@ -548,6 +581,17 @@ const showLaunchChoice = ({
       console.error("Unable to clear installation session state:", error);
     }
     window.location.reload();
+  };
+  browserButton.onclick = () => {
+    choiceOptions.hidden = true;
+    browserRisk.hidden = false;
+    browserRiskTitle.focus();
+  };
+  document.getElementById("btn-continue-browser").onclick = chooseBrowser;
+  document.getElementById("btn-install-instead").onclick = () => {
+    browserRisk.hidden = true;
+    choiceOptions.hidden = false;
+    installButton.focus();
   };
 };
 const showInstallGuideFailure = (error, route = null) => {
@@ -615,12 +659,12 @@ const setupInstallRouteSelector = ({
     computer: appText("install.device.display.computer", "a computer"),
   };
   const browserNames = {
-    chrome: "Google Chrome",
-    edge: "Microsoft Edge",
-    safari: "Safari",
-    firefox: "Firefox",
-    samsung: "Samsung Internet",
-    other: appText("install.otherBrowser", "another browser"),
+    chrome: appText("install.browser.chrome", "Google Chrome"),
+    edge: appText("install.browser.edge", "Microsoft Edge"),
+    safari: appText("install.browser.safari", "Safari"),
+    firefox: appText("install.browser.firefox", "Firefox"),
+    samsung: appText("install.browser.samsung", "Samsung Internet"),
+    other: appText("install.browser.other", "another browser"),
   };
   deviceSelect.value = savedRoute?.device || environment.device || "computer";
   browserSelect.value = savedRoute?.browser || environment.browser || "other";

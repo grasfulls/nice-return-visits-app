@@ -63,42 +63,72 @@
           We’ll guide you through installation and make sure you know what to do before these instructions leave your screen.
         </p>
         <p id="launch-install-detected" role="status" aria-live="polite"></p>
-        <p data-i18n="install.keepSuggested">Not sure? Keep the suggested choices.</p>
-        <details id="launch-install-correction">
-          <summary data-i18n="install.correction">Doesn’t look right? Change device or browser</summary>
+        <p id="launch-route-guidance" data-i18n="launch.routeGuidance">
+          If you’re not sure, keep the suggested device and browser.
+        </p>
+        <div id="launch-route-choice" class="install-screen-actions">
+          <button type="button" id="btn-launch-keep-suggested" class="install-screen-secondary" data-i18n="install.keepSuggested">
+            Keep Suggested Choices
+          </button>
+          <button type="button" id="btn-launch-change-route" class="install-screen-secondary" data-i18n="launch.changeRoute">
+            Change Browser or Device
+          </button>
+        </div>
+        <div id="launch-route-editor" hidden>
           <label for="launch-install-device" data-i18n="install.deviceLabel">Device</label>
           <select id="launch-install-device">
-            <option value="iphone">iPhone</option>
-            <option value="ipad">iPad</option>
+            <option value="iphone" data-i18n="install.device.iphone">iPhone</option>
+            <option value="ipad" data-i18n="install.device.ipad">iPad</option>
             <option value="android" data-i18n="install.device.android">Android phone or tablet</option>
             <option value="windows" data-i18n="install.device.windows">Windows computer</option>
-            <option value="mac">Mac</option>
+            <option value="mac" data-i18n="install.device.mac">Mac</option>
             <option value="chromebook" data-i18n="install.chromebook">Chromebook</option>
             <option value="computer" data-i18n="install.device.computer">Other computer</option>
           </select>
           <label for="launch-install-browser" data-i18n="install.browserLabel">Browser</label>
           <select id="launch-install-browser">
-            <option value="chrome">Google Chrome</option>
-            <option value="edge">Microsoft Edge</option>
-            <option value="safari">Safari</option>
-            <option value="firefox">Firefox</option>
-            <option value="samsung">Samsung Internet</option>
+            <option value="chrome" data-i18n="install.browser.chrome">Google Chrome</option>
+            <option value="edge" data-i18n="install.browser.edge">Microsoft Edge</option>
+            <option value="safari" data-i18n="install.browser.safari">Safari</option>
+            <option value="firefox" data-i18n="install.browser.firefox">Firefox</option>
+            <option value="samsung" data-i18n="install.browser.samsung">Samsung Internet</option>
             <option value="other" data-i18n="install.otherBrowser">Another browser / I don't know</option>
           </select>
-        </details>
-        <div class="install-screen-actions">
-          <button type="button" id="btn-choose-install" data-i18n="install.installButton">
-            Install NRV Icon
+          <div class="install-screen-actions">
+            <button type="button" id="btn-launch-keep-corrected" data-i18n="launch.keepCorrected">
+              Keep These Choices
+            </button>
+          </div>
+        </div>
+        <div id="launch-choice-options" class="install-screen-actions" hidden>
+          <button type="button" id="btn-choose-install" data-i18n="launch.installRecommended">
+            Install NRV Icon (Recommended)
           </button>
           <button
             type="button"
             id="btn-choose-browser"
             class="install-screen-secondary"
-            data-i18n="launch.browserButton"
+            data-i18n="launch.browserRisks"
           >
-            Use NRV in this browser
+            Use NRV in this browser (See risks)
           </button>
         </div>
+        <section id="launch-browser-risk" aria-labelledby="launch-browser-risk-title" hidden>
+          <h2 id="launch-browser-risk-title" tabindex="-1" data-i18n="launch.browserRiskTitle">
+            Using NRV in a browser
+          </h2>
+          <p data-i18n="launch.browserRiskText">
+            Different browsers, browser profiles, devices, and an installed NRV icon can hold separate copies of your NRV information. This can result in multiple datasets. You could update the wrong copy or lose information if a copy is cleared or removed without a current backup. For regular use, the installed NRV icon is recommended.
+          </p>
+          <div class="install-screen-actions">
+            <button type="button" id="btn-continue-browser" data-i18n="launch.continueBrowser">
+              Continue in Browser
+            </button>
+            <button type="button" id="btn-install-instead" class="install-screen-secondary" data-i18n="launch.installInstead">
+              Install NRV Icon Instead
+            </button>
+          </div>
+        </section>
         <p data-i18n="launch.storageNote">Your saved information stays in this browser unless you choose to transfer or back it up.</p>
         <p>
           <a href="https://nicereturnvisits.org/index.html" data-i18n="launch.websiteLink" data-i18n-attr="href:launch.websiteUrl">
