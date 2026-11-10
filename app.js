@@ -18,7 +18,7 @@ const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
 const APP_VERSION = "0.9.53";
-const APP_BUILD_REVISION = "sha256:86d57f665fcd43a0e5446cbc158dcb24e0fb525f3a80bda25609fb8d0045a80a";
+const APP_BUILD_REVISION = "sha256:a8c6cf8ee12b58f55841547aa8c5c994e2367f1f095d3f65b7aab4b5bd60bd32";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -5461,8 +5461,6 @@ const initializeApp = async () => {
     const count = visibleContacts.length;
     const printButton = document.getElementById("btn-print-visible");
     if (printButton) printButton.disabled = count === 0;
-    const exportButton = document.getElementById("btn-export-visible");
-    if (exportButton) exportButton.disabled = count === 0;
     const badge = document.querySelector("#btn-print-visible .nav-action-count");
     if (badge) {
       badge.textContent = count;
@@ -10753,8 +10751,10 @@ const initializeApp = async () => {
     .getElementById("btn-export-backup")
     .addEventListener("click", () => downloadEncryptedBackup());
   document
-    .getElementById("btn-export-visible")
-    .addEventListener("click", openExportSelection);
+    .getElementById("btn-contacts-backup")
+    .addEventListener("click", () =>
+      document.getElementById("btn-export-backup").click(),
+    );
 
   const contactTransferDialog = document.getElementById(
     "contact-transfer-dialog",
@@ -10904,9 +10904,6 @@ const initializeApp = async () => {
 
   const backupFileInput = document.getElementById("backup-file-input");
   const contactFileInput = document.getElementById("contact-file-input");
-  document
-    .getElementById("btn-import-contact")
-    .addEventListener("click", () => contactFileInput.click());
   contactFileInput.addEventListener("change", async () => {
       const files = [...contactFileInput.files];
       if (!files.length) return;
@@ -11209,11 +11206,6 @@ const initializeApp = async () => {
     .getElementById("btn-restore-backup")
     .addEventListener("click", () =>
       restoreBackupFile(backupFileInput.files[0]),
-    );
-  document
-    .getElementById("btn-contacts-backup")
-    .addEventListener("click", () =>
-      document.getElementById("btn-export-backup").click(),
     );
   const contactsBackupFileInput = document.getElementById(
     "contacts-backup-file-input",

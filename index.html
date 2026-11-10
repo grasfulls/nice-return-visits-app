@@ -403,42 +403,35 @@
             <div class="contact-toolbar-actions">
               <button
                 type="button"
-                id="btn-import-contact"
-                class="icon-action"
-                title="Import contacts from file"
-                aria-label="Import contacts from file"
-                data-i18n-attr="title:contacts.import;aria-label:contacts.import"
+                id="btn-contacts-backup"
+                class="icon-action contact-backup-button"
+                title="Backup"
+                aria-label="Backup"
+                data-i18n-attr="title:backup.contactsBackup;aria-label:backup.contactsBackup"
               >
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 11l4 4 4-4M4 14v6h16v-6"/></svg>
+                <span aria-hidden="true">↑</span>
+                <span class="contact-backup-label-full" data-i18n="backup.contactsBackup">Backup</span>
+                <span class="contact-backup-label-short" data-i18n="backup.contactsBackupShort">Backup</span>
               </button>
               <button
                 type="button"
-                id="btn-export-visible"
-                class="icon-action"
-                title="Export contacts from this view"
-                aria-label="Export contacts from this view"
-                data-i18n-attr="title:contacts.export;aria-label:contacts.export"
-                disabled
+                id="btn-contacts-restore"
+                class="icon-action contact-backup-button"
+                title="Restore"
+                aria-label="Restore"
+                data-i18n-attr="title:backup.contactsRestore;aria-label:backup.contactsRestore"
               >
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m-5 5 5-5 5 5M4 16v4h16v-4"/></svg>
-              </button>
-            </div>
-            <div class="contact-backup-actions">
-              <button type="button" id="btn-contacts-backup">
-                <span aria-hidden="true">↑</span>
-                <span data-i18n="backup.contactsBackup">Backup</span>
-              </button>
-              <button type="button" id="btn-contacts-restore">
                 <span aria-hidden="true">↓</span>
-                <span data-i18n="backup.contactsRestore">Restore</span>
+                <span class="contact-backup-label-full" data-i18n="backup.contactsRestore">Restore</span>
+                <span class="contact-backup-label-short" data-i18n="backup.contactsRestoreShort">Restore</span>
               </button>
+              <input
+                type="file"
+                id="contacts-backup-file-input"
+                accept="application/json,.json"
+                hidden
+              />
             </div>
-            <input
-              type="file"
-              id="contacts-backup-file-input"
-              accept="application/json,.json"
-              hidden
-            />
             <input
               type="file"
               id="contact-file-input"
