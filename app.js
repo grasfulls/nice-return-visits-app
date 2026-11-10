@@ -18,7 +18,7 @@ const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
 const APP_VERSION = "0.9.55";
-const APP_BUILD_REVISION = "sha256:b1d3220af39aeea905f23b431d6c0a69260e1483211f9a24ba9a14eb8ddabe95";
+const APP_BUILD_REVISION = "sha256:e0a75ccf09567b492162a611bf84cd7d8b1f50db1e2133f1bf65cbd79004427d";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -445,7 +445,11 @@ const launchInstall = ({ route, statusElement } = {}) => {
     statusElement.textContent = "";
     statusElement.hidden = true;
   }
-  showBrowserInstallGuide({ route });
+  try {
+    return showBrowserInstallGuide({ route });
+  } catch (error) {
+    return showInstallGuideFailure(error, route);
+  }
 };
 const showLaunchChoice = ({
   returnToApp = false,
@@ -545,6 +549,28 @@ const showLaunchChoice = ({
     }
     window.location.reload();
   };
+};
+const showInstallGuideFailure = (error, route = null) => {
+  console.error("Unable to prepare the installation guide:", error);
+  const launchChoice = document.getElementById("launch-choice-screen");
+  if (launchChoice.hidden) {
+    if (route) {
+      try {
+        sessionStorage.setItem(INSTALL_ROUTE_KEY, JSON.stringify(route));
+      } catch (storageError) {
+        console.error("Unable to preserve the selected installation route:", storageError);
+      }
+    }
+    showLaunchChoice({ preservationHandled: true });
+  }
+  document.getElementById("browser-install-screen").hidden = true;
+  const errorMessage = document.getElementById("launch-choice-error");
+  errorMessage.textContent = appText(
+    "install.renderFailed",
+    "The installation instructions could not be displayed. Reload this page and try again.",
+  );
+  errorMessage.hidden = false;
+  return false;
 };
 const detectInstallEnvironment = (userAgent, maxTouchPoints, platform = "") => {
   const isIPad = /iPad/i.test(userAgent) ||
@@ -648,16 +674,13 @@ const readSavedInstallRoute = () => {
   }
 };
 const showBrowserInstallGuide = ({ route = null } = {}) => {
-  document.getElementById("launch-choice-screen").hidden = true;
   const unlockScreen = document.getElementById("unlock-screen");
   if (unlockScreen) unlockScreen.hidden = true;
   const appContainer = document.getElementById("app-container");
   appContainer.hidden = true;
   appContainer.inert = true;
   appContainer.setAttribute("aria-hidden", "true");
-  document.title = appText("install.title", "Install Nice Return Visits app");
   const screen = document.getElementById("browser-install-screen");
-  screen.hidden = false;
 
   const environment = detectInstallEnvironment(
     navigator.userAgent || "",
@@ -790,7 +813,7 @@ const showBrowserInstallGuide = ({ route = null } = {}) => {
       },
     );
     const nativePromptAvailable = Boolean(window.nrvDeferredInstallPrompt);
-    instructions.replaceChildren();
+    instructions.textContent = "";
     plan.steps.forEach((text) => {
       const item = document.createElement("li");
       item.textContent = text;
@@ -809,6 +832,32 @@ const showBrowserInstallGuide = ({ route = null } = {}) => {
     status.textContent = "";
     return plan;
   };
+  try {
+    render();
+  } catch (error) {
+    return showInstallGuideFailure(error, route);
+  }
+  document.getElementById("browser-install-instructions").hidden = false;
+  document.getElementById("launch-choice-screen").hidden = true;
+  document.title = appText("install.title", "Install Nice Return Visits app");
+  screen.hidden = false;
+  routeTitle.focus();
+
+  const onAppInstalled = () => {
+    window.nrvDeferredInstallPrompt = null;
+    status.textContent = device === "windows"
+      ? appText(
+        "install.nativeInstalled.windows",
+        "NRV has been installed. If NRV did not open automatically, select Search on the Windows taskbar and search for Nice Return Visits. Open Nice Return Visits from the search results. You may also find NRV in Start or wherever you chose to place or pin it during installation.",
+      )
+      : appText(
+        "install.nativeInstalled",
+        "NRV has been installed. Open it from its new icon to continue setup.",
+      );
+    status.hidden = false;
+    status.focus();
+  };
+  window.addEventListener("appinstalled", onAppInstalled);
 
   const onBeforeInstallPrompt = () => {
     nativeButton.hidden = false;
@@ -829,7 +878,12 @@ const showBrowserInstallGuide = ({ route = null } = {}) => {
       await prompt.prompt();
       const choice = await prompt.userChoice;
       status.textContent = choice.outcome === "accepted"
-        ? appText("install.nativeAccepted", "Installation is starting. If NRV does not open automatically, open its new icon and continue there.")
+        ? appText(
+          device === "windows" ? "install.nativeAccepted.windows" : "install.nativeAccepted",
+          device === "windows"
+            ? "Installation is starting. If NRV installs but does not open automatically, select Search on the Windows taskbar and search for Nice Return Visits. Open it from the search results. You may also find NRV in Start or wherever you chose to place or pin it during installation."
+            : "Installation is starting. If NRV does not open automatically, open its new icon and continue there.",
+        )
         : appText("install.nativeDismissed", "Installation was not completed. You can use the steps below.");
       status.hidden = false;
     } catch (error) {
@@ -862,10 +916,7 @@ const showBrowserInstallGuide = ({ route = null } = {}) => {
       first.focus();
     }
   };
-  render();
-  document.getElementById("browser-install-instructions").hidden = false;
-  screen.hidden = false;
-  routeTitle.focus();
+  return true;
 };
 const markInstalledSetupComplete = () => {
   try {
@@ -10437,12 +10488,13 @@ const initializeApp = async () => {
     const savedRoute = readSavedInstallRoute();
     closePreservationScreen();
     if (savedRoute) {
-      try {
-        sessionStorage.removeItem(INSTALL_ROUTE_KEY);
-      } catch (error) {
-        console.error("Unable to clear the saved installation route:", error);
+      if (launchInstall({ route: savedRoute })) {
+        try {
+          sessionStorage.removeItem(INSTALL_ROUTE_KEY);
+        } catch (error) {
+          console.error("Unable to clear the saved installation route:", error);
+        }
       }
-      launchInstall({ route: savedRoute });
       return;
     }
     showLaunchChoice({

@@ -8,9 +8,12 @@ const i18n = require("../i18n.js");
 const root = path.join(__dirname, "..");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const launchStart = app.indexOf("const launchInstall =");
 const start = app.indexOf("const detectInstallEnvironment =");
 const end = app.indexOf("\nconst markInstalledSetupComplete =", start);
-assert(start >= 0 && end > start);
+const launchEnd = app.indexOf("\nconst detectInstallEnvironment", launchStart);
+assert(launchStart >= 0 && launchEnd > launchStart && end > start);
+const launchCode = app.slice(launchStart, launchEnd);
 const code = app.slice(start, end);
 for (const language of ["en", "es"]) {
   i18n._setCatalog(language, JSON.parse(fs.readFileSync(path.join(root, "locales", `${language}.json`), "utf8")));
@@ -25,7 +28,14 @@ const agents = {
   chromebook: "Mozilla/5.0 (X11; CrOS x86_64 15000.0.0) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
 };
 
-function createGuide(userAgent, language = "en", maxTouchPoints = 0, prompt = null, platform = "") {
+function createGuide(
+  userAgent,
+  language = "en",
+  maxTouchPoints = 0,
+  prompt = null,
+  platform = "",
+  { launchChoice = false, legacyDomApi = false, failElementCreation = false } = {},
+) {
   i18n._setCurrent(language);
   const nodes = new Map();
   const errors = [];
@@ -33,12 +43,17 @@ function createGuide(userAgent, language = "en", maxTouchPoints = 0, prompt = nu
   const node = (id) => {
     if (!nodes.has(id)) {
       const listeners = new Map();
-      nodes.set(id, {
+      const created = {
         id,
         hidden: id !== "launch-choice-screen",
         open: false,
         disabled: false,
-        textContent: "",
+        _textContent: "",
+        get textContent() { return this._textContent; },
+        set textContent(value) {
+          this._textContent = String(value);
+          if (this._textContent === "") this.children = [];
+        },
         value: "",
         children: [],
         isConnected: true,
@@ -62,15 +77,21 @@ function createGuide(userAgent, language = "en", maxTouchPoints = 0, prompt = nu
         getClientRects() { return [1]; },
         querySelectorAll() { return []; },
         click() { return this.onclick?.(); },
-      });
+      };
+      if (legacyDomApi && id === "browser-install-steps") {
+        delete created.replaceChildren;
+      }
+      nodes.set(id, created);
     }
     return nodes.get(id);
   };
   const eventListeners = new Map();
+  const sessionValues = new Map();
   const context = {
     navigator: { userAgent, maxTouchPoints, platform },
     window: {
       nrvDeferredInstallPrompt: prompt,
+      location: { reload() {} },
       addEventListener(name, callback) {
         if (!eventListeners.has(name)) eventListeners.set(name, new Set());
         eventListeners.get(name).add(callback);
@@ -88,14 +109,25 @@ function createGuide(userAgent, language = "en", maxTouchPoints = 0, prompt = nu
       set activeElement(value) { activeElement = value; },
       getElementById: node,
       documentElement: { classList: { remove() {} } },
-      createElement: (tagName) => ({ tagName, textContent: "" }),
+      createElement: (tagName) => {
+        if (failElementCreation) throw new Error("DOM unavailable");
+        return { tagName, textContent: "" };
+      },
+    },
+    sessionStorage: {
+      getItem(key) { return sessionValues.get(key) || null; },
+      setItem(key, value) { sessionValues.set(key, String(value)); },
+      removeItem(key) { sessionValues.delete(key); },
     },
     console: { error: (...args) => errors.push(args) },
     appText: (key, fallback, vars) => i18n.t(key, vars, fallback),
   };
   activeElement = node("btn-choose-install");
   vm.runInNewContext(
-    `${code}
+    `const LAUNCH_MODE_KEY = "nrv_launch_mode";
+      const INSTALL_ROUTE_KEY = "nrv_install_route";
+      ${launchCode}
+      ${code}
       const routeSelector = setupInstallRouteSelector({
         deviceSelect: document.getElementById("launch-install-device"),
         browserSelect: document.getElementById("launch-install-browser"),
@@ -108,7 +140,12 @@ function createGuide(userAgent, language = "en", maxTouchPoints = 0, prompt = nu
       });
       this.routeSelector = routeSelector;
       this.showGuide = showBrowserInstallGuide;
-      showBrowserInstallGuide({ route: routeSelector.getRoute() });`,
+      this.showLaunchChoice = showLaunchChoice;
+      if (${launchChoice}) {
+        showLaunchChoice({ preservationHandled: true });
+      } else {
+        showBrowserInstallGuide({ route: routeSelector.getRoute() });
+      }`,
     context,
   );
   return {
@@ -117,6 +154,7 @@ function createGuide(userAgent, language = "en", maxTouchPoints = 0, prompt = nu
     node,
     routeSelector: context.routeSelector,
     showGuide: context.showGuide,
+    showLaunchChoice: context.showLaunchChoice,
   };
 }
 
@@ -151,6 +189,60 @@ const ipadDesktop = createGuide(
 assert.strictEqual(ipadDesktop.node("launch-install-device").value, "ipad");
 assert.strictEqual(ipadDesktop.node("launch-install-browser").value, "safari");
 console.log("PASS iPadOS desktop-mode Safari is identified from platform and touch points");
+
+const ipadInstallTransition = createGuide(
+  agents.ipad,
+  "en",
+  0,
+  null,
+  "",
+  { launchChoice: true, legacyDomApi: true },
+);
+assert.strictEqual(ipadInstallTransition.node("launch-choice-screen").hidden, false);
+assert.strictEqual(ipadInstallTransition.node("browser-install-screen").hidden, true);
+ipadInstallTransition.node("btn-choose-install").dispatch("click");
+assert.strictEqual(ipadInstallTransition.node("launch-choice-screen").hidden, true);
+assert.strictEqual(ipadInstallTransition.node("browser-install-screen").hidden, false);
+assert.strictEqual(ipadInstallTransition.node("browser-install-instructions").hidden, false);
+assert(ipadInstallTransition.node("browser-install-steps").children.some((step) => step.textContent.includes("Share")));
+assert(ipadInstallTransition.node("browser-install-steps").children.some((step) => step.textContent.includes("Add to Home Screen")));
+assert(ipadInstallTransition.node("browser-install-handoff-text").textContent.includes("swipe down"));
+assert(ipadInstallTransition.node("browser-install-final-action").textContent.includes("Open as Web App"));
+assert.strictEqual(ipadInstallTransition.node("browser-install-why").hidden, false);
+assert.strictEqual(ipadInstallTransition.errors.length, 0);
+console.log("PASS iPad/Safari Install NRV Icon transition renders complete guidance without replaceChildren");
+
+const failedRender = createGuide(
+  agents.ipad,
+  "en",
+  0,
+  null,
+  "",
+  { launchChoice: true, failElementCreation: true },
+);
+failedRender.node("btn-choose-install").dispatch("click");
+assert.strictEqual(failedRender.node("launch-choice-screen").hidden, false);
+assert.strictEqual(failedRender.node("browser-install-screen").hidden, true);
+assert.strictEqual(failedRender.node("launch-choice-error").hidden, false);
+assert.strictEqual(failedRender.errors.length, 1);
+console.log("PASS a guide rendering error keeps the user on the chooser with a clear recovery message");
+
+const preservedRouteFailure = createGuide(
+  agents.ipad,
+  "en",
+  0,
+  null,
+  "",
+  { launchChoice: true, failElementCreation: true },
+);
+preservedRouteFailure.node("launch-choice-screen").hidden = true;
+preservedRouteFailure.showGuide({ route: { device: "ipad", browser: "safari" } });
+assert.strictEqual(preservedRouteFailure.node("launch-choice-screen").hidden, false);
+assert.strictEqual(preservedRouteFailure.node("browser-install-screen").hidden, true);
+assert.strictEqual(preservedRouteFailure.node("launch-install-device").value, "ipad");
+assert.strictEqual(preservedRouteFailure.node("launch-install-browser").value, "safari");
+assert.strictEqual(preservedRouteFailure.node("launch-choice-error").hidden, false);
+console.log("PASS a failed guide from the data-preservation path restores the selected route for retry");
 
 const supported = {
   iphone: { safari: "regular Safari" },
@@ -256,7 +348,36 @@ async function nativeChecks() {
   };
   latePrompt.context.window.fire("beforeinstallprompt");
   assert.strictEqual(latePrompt.node("browser-install-native").hidden, false);
+  const windowsInstalled = createGuide(agents.windows, "en", 0, {
+    async prompt() { prompts += 1; },
+    userChoice: Promise.resolve({ outcome: "accepted" }),
+  }, "", { launchChoice: true });
+  windowsInstalled.node("btn-choose-install").dispatch("click");
+  assert.strictEqual(windowsInstalled.node("browser-install-screen").hidden, false);
+  await windowsInstalled.node("browser-install-native").click();
+  const windowsPendingHandoff = windowsInstalled.node("browser-install-status").textContent;
+  assert(windowsPendingHandoff.includes("Search on the Windows taskbar"));
+  assert(windowsPendingHandoff.includes("Start"));
+  windowsInstalled.context.window.fire("appinstalled");
+  const windowsHandoff = windowsInstalled.node("browser-install-status").textContent;
+  assert(windowsHandoff.includes("NRV has been installed"));
+  assert(windowsHandoff.includes("Search on the Windows taskbar"));
+  assert(windowsHandoff.includes("search for Nice Return Visits"));
+  assert(windowsHandoff.includes("Start"));
+  assert(windowsHandoff.includes("place or pin it during installation"));
+  assert.strictEqual(windowsInstalled.node("browser-install-instructions").hidden, false);
+  assert.strictEqual(windowsInstalled.node("browser-install-screen").hidden, false);
+
+  const windowsInstalledEs = createGuide(agents.windows, "es", 0, null, "", { launchChoice: true });
+  windowsInstalledEs.node("btn-choose-install").dispatch("click");
+  windowsInstalledEs.context.window.fire("appinstalled");
+  const windowsHandoffEs = windowsInstalledEs.node("browser-install-status").textContent;
+  assert(windowsHandoffEs.includes("NRV se instaló"));
+  assert(windowsHandoffEs.includes("Buscar"));
+  assert(windowsHandoffEs.includes("Nice Return Visits"));
+  assert(windowsHandoffEs.includes("Inicio"));
   console.log("PASS native install accept/dismiss/failure and late browser prompt fallback");
+  console.log("PASS Windows successful installation shows English/Spanish Search and optional-location guidance");
 }
 
 nativeChecks().catch((error) => {
