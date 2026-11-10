@@ -423,6 +423,22 @@
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m-5 5 5-5 5 5M4 16v4h16v-4"/></svg>
               </button>
             </div>
+            <div class="contact-backup-actions">
+              <button type="button" id="btn-contacts-backup">
+                <span aria-hidden="true">↑</span>
+                <span data-i18n="backup.contactsBackup">Backup</span>
+              </button>
+              <button type="button" id="btn-contacts-restore">
+                <span aria-hidden="true">↓</span>
+                <span data-i18n="backup.contactsRestore">Restore</span>
+              </button>
+            </div>
+            <input
+              type="file"
+              id="contacts-backup-file-input"
+              accept="application/json,.json"
+              hidden
+            />
             <input
               type="file"
               id="contact-file-input"

@@ -11175,6 +11175,23 @@ const initializeApp = async () => {
     .addEventListener("click", () =>
       restoreBackupFile(backupFileInput.files[0]),
     );
+  document
+    .getElementById("btn-contacts-backup")
+    .addEventListener("click", () =>
+      document.getElementById("btn-export-backup").click(),
+    );
+  const contactsBackupFileInput = document.getElementById(
+    "contacts-backup-file-input",
+  );
+  document
+    .getElementById("btn-contacts-restore")
+    .addEventListener("click", () => contactsBackupFileInput.click());
+  contactsBackupFileInput.addEventListener("change", async () => {
+    const file = contactsBackupFileInput.files[0];
+    if (!file) return;
+    await restoreBackupFile(file);
+    contactsBackupFileInput.value = "";
+  });
   const clearRestoreFileButton = document.getElementById(
     "btn-clear-restore-file",
   );

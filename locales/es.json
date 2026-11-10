@@ -500,6 +500,8 @@
   "backup.restoreWarning": "Elige la copia que deseas restaurar. Esto reemplazará todos los contactos de este dispositivo.",
   "backup.title": "Copia de seguridad",
   "backup.restore": "Restaurar",
+  "backup.contactsBackup": "Copia de seguridad",
+  "backup.contactsRestore": "Restaurar",
   "backup.restoreSelected": "Restaurar copia de seguridad seleccionada",
   "backup.clearFile": "Cancelar / quitar archivo seleccionado",
   "dropbox.cloudSummary": "Copia de seguridad o restauración en la nube (Dropbox)",
