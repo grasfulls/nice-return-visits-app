@@ -246,7 +246,7 @@ const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const styles = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 assert(html.includes('id="goals-view"'));
 assert(html.includes('id="app-version-badge"'));
-assert(source.includes("versionBadge.textContent = `v${APP_VERSION}`"));
+assert(source.includes('versionLabel.textContent = `v${APP_VERSION}`'));
 assert(html.includes('id="settings-goals-encouragement"'));
 assert(html.includes('aria-live="polite"'));
 assert(html.includes("Start where you are: use personal ministry goals or Time in"));

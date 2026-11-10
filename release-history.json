@@ -1,5 +1,20 @@
 [
   {
+    "version": "0.9.53",
+    "en": {
+      "title": "More room for your contacts",
+      "changes": [
+        "NRV uses the top of the screen more efficiently, giving your contacts more room."
+      ]
+    },
+    "es": {
+      "title": "Más espacio para tus contactos",
+      "changes": [
+        "NRV aprovecha mejor la parte superior de la pantalla para dar más espacio a tus contactos."
+      ]
+    }
+  },
+  {
     "version": "0.9.52",
     "en": {
       "title": "Keep your information when installing",

@@ -17,7 +17,7 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
-const APP_VERSION = "0.9.52";
+const APP_VERSION = "0.9.53";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -6766,13 +6766,24 @@ const initializeApp = async () => {
     if (h1) h1.textContent = `NRV - ${name}`;
     const versionBadge = document.getElementById("app-version-badge");
     if (versionBadge) {
-      versionBadge.textContent = `v${APP_VERSION}`;
+      const versionLabel = document.getElementById("app-version-label");
+      const updateIndicator = document.getElementById(
+        "app-version-update-indicator",
+      );
+      if (versionLabel) versionLabel.textContent = `v${APP_VERSION}`;
+      if (updateIndicator) updateIndicator.hidden = !appUpdateAvailable;
       updatePublicVersionLink(versionBadge);
       versionBadge.setAttribute(
         "aria-label",
-        appText("app.versionLinkLabel", "Version {version}. What's new?", {
-          version: APP_VERSION,
-        }),
+        appUpdateAvailable
+          ? appText(
+              "app.versionUpdateLinkLabel",
+              "Version {version}. An update is ready. What's new?",
+              { version: APP_VERSION },
+            )
+          : appText("app.versionLinkLabel", "Version {version}. What's new?", {
+              version: APP_VERSION,
+            }),
       );
     }
   };

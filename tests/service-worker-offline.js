@@ -24,7 +24,7 @@ const cache = {
 const caches = {
   async open() { return cache; },
   async match(request) { return entries.get(normalize(request)); },
-  async keys() { return ["return-visits-shell-v195", "return-visits-shell-v196", "return-visits-shell-v199", "return-visits-shell-v200", "unrelated-cache"]; },
+  async keys() { return ["return-visits-shell-v195", "return-visits-shell-v196", "return-visits-shell-v199", "return-visits-shell-v200", "return-visits-shell-v202", "unrelated-cache"]; },
   async delete(name) { deletedCaches.push(name); return true; },
 };
 const self = {
@@ -41,6 +41,8 @@ vm.runInNewContext(source, {
 });
 
 async function main() {
+  assert(source.includes('const CACHE_NAME = "return-visits-shell-v203";'));
+  console.log("PASS  service-worker cache generation advances to v203");
   let installation;
   handlers.install({ waitUntil(promise) { installation = promise; } });
   await installation;
@@ -50,7 +52,7 @@ async function main() {
   let activation;
   handlers.activate({ waitUntil(promise) { activation = promise; } });
   await activation;
-  assert.deepStrictEqual(deletedCaches, ["return-visits-shell-v195", "return-visits-shell-v196", "return-visits-shell-v199", "return-visits-shell-v200"]);
+  assert.deepStrictEqual(deletedCaches, ["return-visits-shell-v195", "return-visits-shell-v196", "return-visits-shell-v199", "return-visits-shell-v200", "return-visits-shell-v202"]);
   console.log("PASS  service-worker update removes previous shell caches");
   async function offline(relativePath, mode = "cors") {
     let response;

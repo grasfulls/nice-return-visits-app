@@ -312,7 +312,10 @@
     <div id="app-container" inert aria-hidden="true">
       <header>
         <h1 id="app-title" tabindex="-1">NRV - Contacts</h1>
-        <a id="app-version-badge" href="https://nicereturnvisits.org/version-history.html"></a>
+        <a id="app-version-badge" href="https://nicereturnvisits.org/version-history.html">
+          <span id="app-version-label"></span>
+          <span id="app-version-update-indicator" class="version-update-indicator" aria-hidden="true" hidden>!</span>
+        </a>
         <img
           class="app-header-logo"
           src="./icons/header-watermark.png"
@@ -1133,10 +1136,9 @@
               <details class="settings-section">
                 <summary data-i18n="update.whatsNew">What's New</summary>
                 <!-- release-notes:start -->
-                <p data-i18n="release.current.title">Keep your information when installing</p>
+                <p data-i18n="release.current.title">More room for your contacts</p>
                 <ul>
-                  <li data-i18n="release.current.change1">Use NRV in your browser, or add its icon for regular use.</li>
-                  <li data-i18n="release.current.change2">Back up existing NRV information before moving it to an installed copy; the original is not erased.</li>
+                  <li data-i18n="release.current.change1">NRV uses the top of the screen more efficiently, giving your contacts more room.</li>
                 </ul>
                 <!-- release-notes:end -->
               </details>

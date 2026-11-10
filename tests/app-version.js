@@ -36,14 +36,14 @@ const catalogs = Object.fromEntries(["en", "es"].map((language) => [
 for (const language of ["en", "es"]) i18n._setCatalog(language, catalogs[language]);
 
 async function main() {
-  assert.strictEqual(api.APP_VERSION, "0.9.52");
+  assert.strictEqual(api.APP_VERSION, "0.9.53");
   assert.strictEqual(
     api.publicVersionHistoryUrl(api.APP_VERSION, "en"),
-    "https://nicereturnvisits.org/version-history.html#version-0-9-52",
+    "https://nicereturnvisits.org/version-history.html#version-0-9-53",
   );
   assert.strictEqual(
     api.publicVersionHistoryUrl(api.APP_VERSION, "es"),
-    "https://nicereturnvisits.org/es/version-history.html#version-0-9-52",
+    "https://nicereturnvisits.org/es/version-history.html#version-0-9-53",
   );
   const updatedMessage = { textContent: "" };
   const updatedLink = { href: "" };
@@ -81,7 +81,7 @@ async function main() {
     updatedDialogShown = false;
     showUpdatedNotice();
     assert(updatedMessage.textContent.includes(api.APP_VERSION), updatedMessage.textContent);
-    assert(updatedLink.href.endsWith(`${page}#version-0-9-52`));
+    assert(updatedLink.href.endsWith(`${page}#version-0-9-53`));
     assert(updatedDialogShown);
   }
   for (const invalid of ["1.0", "1.2.3.4", "01.2.3", "1.-1.0", "1.2.3-beta", "1.2.3\n", "", null, 123]) {
@@ -91,7 +91,8 @@ async function main() {
     ["0.9.0", "0.9.0", 0], ["1.0.0", "0.99.99", 1],
     ["1.10.0", "1.9.99", 1], ["1.0.10", "1.0.2", 1],
     ["0.9.0", "0.10.0", -1], ["0.9.5", "0.9.51", -1],
-    ["0.9.51", "0.9.52", -1], ["0.9.53", "0.9.6", -1],
+    ["0.9.51", "0.9.52", -1], ["0.9.52", "0.9.53", -1],
+    ["0.9.53", "0.9.6", -1],
     ["0.9.6", "0.10.0", -1], ["99999999999999999999.0.0", "9.0.0", 1],
   ]) assert.strictEqual(api.compareAppVersions(left, right), expected);
   assert.throws(() => api.compareAppVersions("1.0.0", "1.01.0"));
@@ -105,10 +106,70 @@ async function main() {
   release.checkMetadata(metadata, version);
   assert(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('id="app-version-badge"'));
   assert(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('<a id="app-version-badge"'));
-  assert(source.includes("versionBadge.textContent = `v${APP_VERSION}`"));
+  assert(source.includes('versionLabel.textContent = `v${APP_VERSION}`'));
   assert(source.includes("updatePublicVersionLink(versionBadge)"));
   assert(source.includes('updatePublicVersionLink(document.getElementById("app-updated-whats-new"))'));
   assert(fs.readFileSync(path.join(root, "styles.css"), "utf8").includes("#app-version-badge:focus-visible"));
+  const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
+  assert(html.includes('id="app-version-label"'));
+  assert(html.includes('id="app-version-update-indicator"'));
+  assert(css.includes("left: 56px;"));
+  assert(css.includes("position: absolute;"));
+  assert(css.includes(".app-header-logo"));
+  assert(css.includes("left: 4px;"));
+  assert(css.includes("left: 56px;"));
+  assert(css.includes("min-width: 44px;"));
+  assert(html.includes('<h1 id="app-title" tabindex="-1">NRV - Contacts</h1>'));
+  assert(html.includes('id="sync-status"'));
+  assert(html.includes('id="filters-bar"'));
+  assert(css.includes("right: 8px;"));
+  assert(css.includes("@media (max-width: 380px)"));
+  const titleStart = html.indexOf('<h1 id="app-title"');
+  const badgeStart = html.indexOf('<a id="app-version-badge"');
+  const syncStart = html.indexOf('id="sync-status"');
+  const filterStart = html.indexOf('id="filters-bar"');
+  assert(titleStart < badgeStart && badgeStart < syncStart && syncStart < filterStart);
+
+  const headerStart = source.indexOf("  const updateHeaderTitle = () => {");
+  const headerEnd = source.indexOf("\n\n  const setupNextStepsDialog", headerStart);
+  assert(headerStart >= 0 && headerEnd > headerStart);
+  const headerNodes = new Map([
+    ["contact-modal", { style: { display: "none" } }],
+    ["app-title", { textContent: "", setAttribute() {} }],
+    ["app-version-badge", { textContent: "", href: "", ariaLabel: "", setAttribute(_name, value) { this.ariaLabel = value; } }],
+    ["app-version-label", { textContent: "" }],
+    ["app-version-update-indicator", { hidden: true }],
+    ["modal-title", { textContent: "Contact" }],
+  ]);
+  const renderHeader = (updateAvailable, language = "en") => {
+    i18n._setCurrent(language);
+    vm.runInNewContext(
+      `${source.slice(headerStart, headerEnd)}\nupdateHeaderTitle();`,
+      {
+        APP_VERSION: api.APP_VERSION,
+        appUpdateAvailable: updateAvailable,
+        currentViewId: "contacts-view",
+        document: {
+          body: { classList: { contains: () => false } },
+          getElementById(id) { return headerNodes.get(id); },
+        },
+        appText: (key, fallback, vars) => i18n.t(key, vars, fallback),
+        updatePublicVersionLink: (link) => {
+          link.href = api.publicVersionHistoryUrl(api.APP_VERSION, i18n.getLanguage());
+        },
+      },
+    );
+    return headerNodes;
+  };
+  assert.strictEqual(renderHeader(false).get("app-version-update-indicator").hidden, true);
+  assert(!headerNodes.get("app-version-badge").ariaLabel.toLowerCase().includes("update is ready"));
+  renderHeader(true, "en");
+  assert.strictEqual(headerNodes.get("app-version-update-indicator").hidden, false);
+  assert(headerNodes.get("app-version-badge").ariaLabel.includes("An update is ready"));
+  renderHeader(true, "es");
+  assert(headerNodes.get("app-version-badge").ariaLabel.includes("Hay una actualización disponible"));
+  assert(headerNodes.get("app-version-badge").href.endsWith("#version-0-9-53"));
   assert.throws(() => release.checkMetadata('{"version":"1.0.0"}', version));
   assert.throws(() => release.checkMetadata("not json", version));
   assert.throws(() => release.checkMetadata('{"version":"0.9.0","extra":true}', version));
@@ -143,7 +204,7 @@ async function main() {
   let dialogs = 0;
   let reloads = 0;
   let updateCalls = 0;
-  let deployed = "0.9.52";
+  let deployed = "0.9.53";
   let worker = null;
   let available = false;
   let block = "";
@@ -197,7 +258,7 @@ async function main() {
   await check();
   assert.strictEqual(status.textContent, catalogs.en["update.versionCheckFailed"]);
   assert(!button.disabled);
-  deployed = "0.9.52";
+  deployed = "0.9.53";
   worker = { state: "activated" };
   await check();
   assert.strictEqual(reloads, 1, "same version does not suppress worker update");

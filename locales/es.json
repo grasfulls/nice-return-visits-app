@@ -163,6 +163,7 @@
   "page.welcome": "NRV - Bienvenida",
   "app.versionLabel": "Versión {version}",
   "app.versionLinkLabel": "Versión {version}. ¿Qué novedades hay?",
+  "app.versionUpdateLinkLabel": "Versión {version}. Hay una actualización disponible. ¿Qué novedades hay?",
   "page.install": "NRV - Instalación",
   "view.contacts": "Contactos",
   "view.map": "Mapa",
@@ -1117,7 +1118,6 @@
   "map.zoomIn": "Acercar",
   "map.zoomOut": "Alejar",
   "map.closePopup": "Cerrar ventana emergente",
-  "release.current.title": "Conserva tu información al instalar",
-  "release.current.change1": "Usa NRV en el navegador o añade su icono para usarlo con regularidad.",
-  "release.current.change2": "Crea una copia de seguridad antes de pasar tu información a la aplicación instalada; la original no se borra."
+  "release.current.title": "Más espacio para tus contactos",
+  "release.current.change1": "NRV aprovecha mejor la parte superior de la pantalla para dar más espacio a tus contactos."
 }
