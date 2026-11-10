@@ -21,6 +21,12 @@ const manifestAssets = [
 ];
 const shellBlock = serviceWorker.match(/const APP_SHELL = \[([\s\S]*?)\n\];/);
 assert(shellBlock, "service-worker cache list exists");
+assert(
+  /fetch\(event\.request,\s*\{\s*cache:\s*["']no-cache["']\s*\}\)/.test(
+    serviceWorker,
+  ),
+  "service-worker network-first requests revalidate cached assets",
+);
 const shellAssets = [...shellBlock[1].matchAll(/"([^"]+)"/g)].map(
   (match) => match[1],
 );
