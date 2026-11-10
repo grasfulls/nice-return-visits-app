@@ -17,18 +17,36 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
-const APP_VERSION = "0.9.5";
+const APP_VERSION = "0.9.52";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
+const publicVersionHistoryUrl = (version, language) => {
+  const page = language === "es" ? "es/version-history.html" : "version-history.html";
+  const url = new URL(page, "https://nicereturnvisits.org/");
+  url.hash = `version-${version.replace(/\./g, "-")}`;
+  return url.href;
+};
+const updatePublicVersionLink = (link) => {
+  link.href = publicVersionHistoryUrl(APP_VERSION, window.NRVI18n.getLanguage());
+};
 const parseAppVersion = (version) => {
   if (typeof version !== "string" || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?![\s\S])/.test(version)) {
     throw new Error("Invalid app version; expected MAJOR.MINOR.PATCH.");
   }
   return version.split(".");
 };
+const appVersionOrder = (version) => {
+  const parts = parseAppVersion(version);
+  const patch = Number(parts[2]);
+  // 0.9.51-0.9.59 are small updates to 0.9.5, before the larger 0.9.6 release.
+  if (parts[0] === "0" && parts[1] === "9" && patch >= 51 && patch <= 59) {
+    return [parts[0], parts[1], "5", String(patch - 50)];
+  }
+  return [parts[0], parts[1], parts[2], "0"];
+};
 const compareAppVersions = (left, right) => {
-  const leftParts = parseAppVersion(left);
-  const rightParts = parseAppVersion(right);
+  const leftParts = appVersionOrder(left);
+  const rightParts = appVersionOrder(right);
   for (let index = 0; index < leftParts.length; index += 1) {
     const a = leftParts[index];
     const b = rightParts[index];
@@ -406,6 +424,7 @@ const APP_UPDATE_PENDING_KEY = "return_visits_app_update_pending";
 const INSTALLED_SETUP_COMPLETE_KEY = "nrv_installed_setup_completed";
 const LAUNCH_MODE_KEY = "nrv_launch_mode";
 const INSTALL_GUIDE_STATE_KEY = "nrv_install_guide_state";
+const INSTALL_TRANSFER_PENDING_KEY = "nrv_install_transfer_pending";
 const isInstalledApp = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
   navigator.standalone === true;
@@ -449,8 +468,49 @@ const showLaunchChoice = () => {
   document.documentElement.classList.remove("show-launch-choice");
   const installButton = document.getElementById("btn-choose-install");
   installButton.focus();
-  installButton.onclick = () =>
-    launchInstall({ statusElement: document.getElementById("launch-install-status") });
+  installButton.disabled = true;
+  getInitialStoredInformation().then((result) => {
+    if (screen.hidden) return;
+    installButton.disabled = Boolean(result.error);
+    if (result.error) {
+      const status = document.getElementById("launch-install-status");
+      status.textContent = appText(
+        "install.storageCheckFailed",
+        "We could not check this browser for saved NRV information. Choose browser use first, then open Settings to try installing again.",
+      );
+      status.hidden = false;
+      document.getElementById("btn-choose-browser").focus();
+    } else {
+      installButton.focus();
+    }
+  });
+  installButton.onclick = () => {
+    const status = document.getElementById("launch-install-status");
+    if (!initialStoredInformation || initialStoredInformation.error) {
+      status.textContent = appText(
+        "install.storageCheckFailed",
+        "We could not check this browser for saved NRV information. Choose browser use first, then open Settings to try installing again.",
+      );
+      status.hidden = false;
+      return;
+    }
+    if (initialStoredInformation.hasPotentialInformation) {
+      try {
+        localStorage.setItem(LAUNCH_MODE_KEY, "browser");
+        sessionStorage.setItem(INSTALL_TRANSFER_PENDING_KEY, "true");
+        window.location.reload();
+      } catch (error) {
+        console.error("Unable to prepare the existing-information handoff:", error);
+        status.textContent = appText(
+          "install.handoffStartFailed",
+          "NRV could not prepare the information-preserving steps. Your browser information has not changed. Choose browser use, then open Settings to try again.",
+        );
+        status.hidden = false;
+      }
+      return;
+    }
+    return launchInstall({ statusElement: status });
+  };
   document
     .getElementById("btn-choose-browser")
     .onclick = () => {
@@ -466,8 +526,9 @@ const showLaunchChoice = () => {
       }
       try {
         sessionStorage.removeItem(INSTALL_GUIDE_STATE_KEY);
+        sessionStorage.removeItem(INSTALL_TRANSFER_PENDING_KEY);
       } catch (error) {
-        console.error("Unable to clear installation guide progress:", error);
+        console.error("Unable to clear installation session state:", error);
       }
       window.location.reload();
     };
@@ -852,6 +913,12 @@ const showJustUpdatedNotice = () => {
   }
   if (!pending) return;
   const dialog = document.getElementById("app-updated-dialog");
+  document.getElementById("app-updated-message").textContent = appText(
+    "update.done",
+    `NRV ${APP_VERSION} has refreshed. Your saved contacts remain on this device.`,
+    { version: APP_VERSION },
+  );
+  updatePublicVersionLink(document.getElementById("app-updated-whats-new"));
   window.setTimeout(() => {
     if (!document.querySelector("dialog[open]")) dialog.showModal();
   }, 750);
@@ -2233,6 +2300,55 @@ const normalizeRegionData = (settings, contacts) => {
   return { settings: normalizedSettings, contacts: normalizedContacts };
 };
 
+const hasMeaningfulUserInformation = (settings, contacts) => {
+  const defaultSettings = normalizeRegionData(DEFAULT_SETTINGS, []).settings;
+  return contacts.length > 0 ||
+    JSON.stringify(settings) !== JSON.stringify(defaultSettings);
+};
+
+const inspectStoredUserInformation = async () => {
+  const database = await openAppDatabase();
+  try {
+    const [storedSettings, storedContacts, metadata] = await Promise.all([
+      readStoredValue(database, "settings"),
+      readStoredValue(database, "contacts"),
+      readStoredValue(database, ENCRYPTION_META_KEY),
+    ]);
+    if (metadata) return { hasPotentialInformation: true };
+    const settings = storedSettings ??
+      parseLegacyValue("return_visits_settings") ??
+      DEFAULT_SETTINGS;
+    const contacts = storedContacts ??
+      parseLegacyValue("return_visits_contacts") ??
+      [];
+    const normalized = normalizeRegionData(settings, contacts);
+    return {
+      hasPotentialInformation: Boolean(metadata) ||
+        hasMeaningfulUserInformation(normalized.settings, normalized.contacts),
+    };
+  } finally {
+    database.close();
+  }
+};
+
+let initialStoredInformation = null;
+let initialStoredInformationPromise = null;
+const getInitialStoredInformation = () => {
+  if (!initialStoredInformationPromise) {
+    initialStoredInformationPromise = inspectStoredUserInformation()
+      .then((result) => {
+        initialStoredInformation = result;
+        return result;
+      })
+      .catch((error) => {
+        console.error("Unable to check for saved NRV information:", error);
+        initialStoredInformation = { error };
+        return initialStoredInformation;
+      });
+  }
+  return initialStoredInformationPromise;
+};
+
 const decryptBackup = async (backup, passphrase) => {
   if (passphrase !== null && passphrase.length < 8) {
     throw new Error("The backup passphrase must be at least 8 characters.");
@@ -2575,6 +2691,13 @@ const initializeAppData = async () => {
         localStorage.removeItem("return_visits_settings");
         localStorage.removeItem("return_visits_contacts");
         localStorage.setItem("return_visits_last_backup_reminder", Date.now());
+        if (backup.transferPurpose === "installation") {
+          await NRVDialogs.alert(
+            restored.metadata?.recovery
+              ? appText("backup.installTransferRestored", "Your NRV information has been restored to this copy. Please check that it is here; the original browser copy remains unchanged.")
+              : appText("backup.installTransferRestoredNoRecovery", "Your NRV information has been restored to this copy. Please check that it is here; the original browser copy remains unchanged. This backup has no recovery code yet; open Settings → Data/Security → Passphrase to Open App and choose Make a New Recovery Code."),
+          );
+        }
         dismissUnlockScreen(prompt.screen);
         resolve({
           database,
@@ -6644,9 +6767,10 @@ const initializeApp = async () => {
     const versionBadge = document.getElementById("app-version-badge");
     if (versionBadge) {
       versionBadge.textContent = `v${APP_VERSION}`;
+      updatePublicVersionLink(versionBadge);
       versionBadge.setAttribute(
         "aria-label",
-        appText("app.versionLabel", "Version {version}", {
+        appText("app.versionLinkLabel", "Version {version}. What's new?", {
           version: APP_VERSION,
         }),
       );
@@ -8769,10 +8893,10 @@ const initializeApp = async () => {
     document.getElementById("copy-notice-text").textContent =
       kind === "empty-installed"
         ? appText("contacts.emptyInstalled", "This installed copy is empty. If you already added contacts in your browser, open the app in that browser, go to Settings → Backup or Restore and back up, then restore here. Or connect Dropbox in both copies.")
-        : appText("contacts.browserCopy", "You're seeing NRV in a browser. When you're ready, install it and use its icon to open it. Browser and installed copies store contacts separately, so back up and restore before changing copies.");
+        : appText("contacts.browserCopy", "You're using NRV in a browser. You can keep using it here, but we recommend installing the NRV icon for regular use. Information saved in a browser can sometimes be lost, so remember to make backups.");
     const installButton = document.getElementById("btn-copy-notice-install");
     installButton.hidden = kind !== "browser-copy";
-    installButton.onclick = () => launchInstall({
+    installButton.onclick = () => window.nrvBeginBrowserInstall({
       returnToApp: true,
       statusElement: document.getElementById("copy-notice-install-status"),
       buttonElement: installButton,
@@ -8787,8 +8911,11 @@ const initializeApp = async () => {
           `return_visits_copy_notice_${notice.dataset.kind}`,
           "1",
         );
+        if (notice.dataset.kind === "browser-copy") {
+          localStorage.setItem(LAUNCH_MODE_KEY, "browser");
+        }
       } catch (error) {
-        console.error("Unable to save the copy notice status:", error);
+        console.error("Unable to save the browser-use choice:", error);
       }
       notice.hidden = true;
     });
@@ -10107,7 +10234,7 @@ const initializeApp = async () => {
       updateMapChangeViewIndicator();
     });
 
-  const buildBackup = async (encrypt = Boolean(encryptionKey)) => {
+  const buildBackup = async (encrypt = Boolean(encryptionKey), options = {}) => {
     const useKey = encrypt && encryptionKey;
     return {
       format: useKey
@@ -10115,6 +10242,9 @@ const initializeApp = async () => {
         : "return-visits-backup",
       version: 1,
       exportedAt: new Date().toISOString(),
+      ...(options.transferPurpose
+        ? { transferPurpose: options.transferPurpose }
+        : {}),
       ...(useKey
         ? {
             encryption: cryptoMetadata,
@@ -10146,6 +10276,167 @@ const initializeApp = async () => {
       await showStorageError("export encrypted backup", error);
     }
   };
+
+  const preservationScreen = document.getElementById(
+    "install-preservation-screen",
+  );
+  const preservationChoice = document.getElementById(
+    "install-preservation-choice",
+  );
+  const preservationBackup = document.getElementById(
+    "install-preservation-backup",
+  );
+  const preservationNoData = document.getElementById(
+    "install-preservation-no-data",
+  );
+  const preservationLink = document.getElementById(
+    "btn-preservation-download",
+  );
+  const preservationSaved = document.getElementById(
+    "install-preservation-saved",
+  );
+  const preservationContinue = document.getElementById(
+    "btn-preservation-continue",
+  );
+  let preservationDownloadUrl = null;
+  let preservationFocusTarget = null;
+  const closePreservationScreen = () => {
+    preservationScreen.hidden = true;
+    document.getElementById("app-container").inert = false;
+    document.getElementById("app-container").setAttribute("aria-hidden", "false");
+    if (preservationDownloadUrl) {
+      URL.revokeObjectURL(preservationDownloadUrl);
+      preservationDownloadUrl = null;
+    }
+    if (preservationFocusTarget?.isConnected) preservationFocusTarget.focus();
+  };
+  const showPreservationScreen = (hasInformation, focusTarget) => {
+    preservationFocusTarget = focusTarget;
+    document.getElementById("app-container").inert = true;
+    document.getElementById("app-container").setAttribute("aria-hidden", "true");
+    preservationChoice.hidden = !hasInformation;
+    preservationBackup.hidden = true;
+    preservationNoData.hidden = hasInformation;
+    document.getElementById("btn-preservation-save").disabled = false;
+    preservationLink.removeAttribute("href");
+    preservationSaved.checked = false;
+    preservationSaved.disabled = true;
+    preservationContinue.disabled = true;
+    const error = document.getElementById("install-preservation-error");
+    error.textContent = "";
+    error.hidden = true;
+    preservationScreen.hidden = false;
+    document.getElementById(
+      hasInformation ? "btn-preservation-save" : "btn-preservation-empty-continue",
+    ).focus();
+  };
+  const beginBrowserInstall = ({
+    returnToApp = false,
+    statusElement,
+    buttonElement,
+    focusTarget,
+    confirmNoData = false,
+  } = {}) => {
+    const hasInformation = hasMeaningfulUserInformation(settings, contacts);
+    if (!hasInformation && !confirmNoData) {
+      launchInstall({ returnToApp, statusElement, buttonElement });
+      return;
+    }
+    showPreservationScreen(hasInformation, focusTarget || buttonElement);
+  };
+  window.nrvBeginBrowserInstall = beginBrowserInstall;
+
+  const createInstallTransferBackup = async () => {
+    const error = document.getElementById("install-preservation-error");
+    const saveButton = document.getElementById("btn-preservation-save");
+    saveButton.disabled = true;
+    error.hidden = true;
+    try {
+      const backup = await buildBackup(Boolean(encryptionKey), {
+        transferPurpose: "installation",
+      });
+      const blob = new Blob([JSON.stringify(backup, null, 2)], {
+        type: "application/json",
+      });
+      if (preservationDownloadUrl) URL.revokeObjectURL(preservationDownloadUrl);
+      preservationDownloadUrl = URL.createObjectURL(blob);
+      preservationLink.href = preservationDownloadUrl;
+      preservationLink.download = `return-visits-backup-${new Date()
+        .toISOString()
+        .slice(0, 10)}.json`;
+      preservationBackup.hidden = false;
+      preservationChoice.hidden = true;
+      document.getElementById("install-preservation-status").textContent =
+        appText("install.preserve.ready", "Your NRV backup is ready. Download it, then confirm below before continuing.");
+      preservationLink.focus();
+    } catch (backupError) {
+      console.error("Unable to create an installation-transfer backup:", backupError);
+      error.textContent = appText(
+        "install.preserve.backupFailed",
+        "NRV could not create the backup. Your browser information has not changed. Try again or install without copying.",
+      );
+      error.hidden = false;
+      saveButton.disabled = false;
+    }
+  };
+  document
+    .getElementById("btn-preservation-save")
+    .addEventListener("click", createInstallTransferBackup);
+  preservationLink.addEventListener("click", () => {
+    if (preservationLink.hasAttribute("href")) {
+      markBackupDone();
+      preservationSaved.disabled = false;
+      preservationSaved.focus();
+    }
+  });
+  preservationSaved.addEventListener("change", () => {
+    preservationContinue.disabled = !preservationSaved.checked;
+  });
+  const continueInstallation = () => {
+    closePreservationScreen();
+    launchInstall({
+      returnToApp: true,
+      statusElement: document.getElementById("settings-install-status"),
+      buttonElement: document.getElementById("btn-settings-install"),
+    });
+  };
+  preservationContinue.addEventListener("click", () => {
+    if (preservationSaved.checked) continueInstallation();
+  });
+  document
+    .getElementById("btn-preservation-skip")
+    .addEventListener("click", continueInstallation);
+  [
+    "btn-preservation-cancel",
+    "btn-preservation-cancel-backup",
+    "btn-preservation-empty-cancel",
+  ].forEach((id) =>
+    document.getElementById(id).addEventListener("click", closePreservationScreen),
+  );
+  document
+    .getElementById("btn-preservation-empty-continue")
+    .addEventListener("click", continueInstallation);
+  preservationScreen.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closePreservationScreen();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = [...preservationScreen.querySelectorAll(
+      'button:not(:disabled), a[href], input:not(:disabled)',
+    )].filter((element) => !element.closest("[hidden]"));
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
 
   const downloadContactsSubset = async (list, encrypt) => {
     try {
@@ -10835,10 +11126,15 @@ const initializeApp = async () => {
     renderContacts();
     updatePassphraseSection();
     markBackupDone();
+    const installationTransfer = backup.transferPurpose === "installation";
     await NRVDialogs.alert(
-      encryptionKey && !restored.metadata?.recovery
-        ? appText("backup.restoredNoRecovery", "Backup restored. It has no recovery code yet; open Settings → Data/Security → Passphrase to Open App and choose Make a New Recovery Code.")
-        : appText("backup.restored", "Backup restored successfully."),
+      installationTransfer
+        ? encryptionKey && !restored.metadata?.recovery
+          ? appText("backup.installTransferRestoredNoRecovery", "Your NRV information has been restored to this copy. Please check that it is here; the original browser copy remains unchanged. This backup has no recovery code yet; open Settings → Data/Security → Passphrase to Open App and choose Make a New Recovery Code.")
+          : appText("backup.installTransferRestored", "Your NRV information has been restored to this copy. Please check that it is here; the original browser copy remains unchanged.")
+        : encryptionKey && !restored.metadata?.recovery
+          ? appText("backup.restoredNoRecovery", "Backup restored. It has no recovery code yet; open Settings → Data/Security → Passphrase to Open App and choose Make a New Recovery Code.")
+          : appText("backup.restored", "Backup restored successfully."),
     );
     return true;
   };
@@ -11789,10 +12085,16 @@ const initializeApp = async () => {
   } catch (error) {
     console.error("Unable to read the installed-app setup status:", error);
   }
+  let browserPreview = false;
+  try {
+    browserPreview = localStorage.getItem(LAUNCH_MODE_KEY) === "browser";
+  } catch (error) {
+    console.error("Unable to read the selected launch mode:", error);
+  }
   if (restoredFromBackup) {
     markInstalledSetupComplete();
     installScreen.hidden = true;
-  } else if (existingStateDetected && !setupDoneFlag) {
+  } else if (existingStateDetected && !setupDoneFlag && !browserPreview) {
     showInstallScreen("existing");
   } else if (contacts.length > 0 || setupDoneFlag) {
     if (contacts.length > 0) markInstalledSetupComplete();
@@ -12279,20 +12581,38 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       const settingsInstallButton = document.getElementById("btn-settings-install");
       const settingsInstallStatus = document.getElementById("settings-install-status");
-      let browserPreview = false;
-      try {
-        browserPreview = localStorage.getItem(LAUNCH_MODE_KEY) === "browser";
-      } catch (error) {
-        console.error("Unable to read the selected launch mode:", error);
-      }
-      settingsInstallButton.hidden = isInstalledApp() || !browserPreview;
+      settingsInstallButton.hidden = isInstalledApp();
       settingsInstallButton.addEventListener("click", () =>
-        launchInstall({
+        window.nrvBeginBrowserInstall({
           returnToApp: true,
           statusElement: settingsInstallStatus,
           buttonElement: settingsInstallButton,
         }),
       );
+      let transferPending = false;
+      try {
+        transferPending =
+          sessionStorage.getItem(INSTALL_TRANSFER_PENDING_KEY) === "true";
+        if (transferPending) {
+          sessionStorage.removeItem(INSTALL_TRANSFER_PENDING_KEY);
+        }
+      } catch (error) {
+        console.error("Unable to read the pending installation handoff:", error);
+        settingsInstallStatus.textContent = appText(
+          "install.handoffStartFailed",
+          "NRV could not prepare the information-preserving steps. Your browser information has not changed. Choose browser use, then open Settings to try again.",
+        );
+        settingsInstallStatus.hidden = false;
+      }
+      if (transferPending && browserPreview) {
+        window.nrvBeginBrowserInstall({
+          returnToApp: true,
+          statusElement: settingsInstallStatus,
+          buttonElement: settingsInstallButton,
+          focusTarget: document.getElementById("app-title"),
+          confirmNoData: true,
+        });
+      }
       updateStorageProtectionStatus();
       appReadyForUpdates = true;
       showJustUpdatedNotice();

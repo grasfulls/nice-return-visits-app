@@ -48,6 +48,9 @@ function createGuide(userAgent, language = "en", maxTouchPoints = 0, storedSessi
     localStorage: { setItem(key, value) { context.saved = [key, value]; } },
     LAUNCH_MODE_KEY: "nrv_launch_mode",
     INSTALL_GUIDE_STATE_KEY: "nrv_install_guide_state",
+    INSTALL_TRANSFER_PENDING_KEY: "nrv_install_transfer_pending",
+    initialStoredInformation: { hasPotentialInformation: false },
+    getInitialStoredInformation: () => Promise.resolve(context.initialStoredInformation),
     console: { error: (...args) => errors.push(args) },
     document: {
       title: "",
@@ -127,7 +130,7 @@ for (const language of ["en", "es"]) {
         assert(count < 10);
         assert(seen.length >= 5, `${device}/${browser} handoff`);
         assert(seen.some((text) => text.includes(language === "en" ? "close this browser page" : "cierra esta página")));
-        assert(seen.at(-1).includes(language === "en" ? "restore" : "restaurar"));
+        assert(seen.at(-1).toLowerCase().includes(language === "en" ? "restore" : "restaurar"));
         guide.node("browser-install-back").click();
         assert(!guide.node("browser-install-next").hidden);
       } else {
@@ -267,6 +270,34 @@ async function nativeChecks() {
     preview.node("btn-choose-browser").click();
     assert.deepStrictEqual(preview.context.saved, ["nrv_launch_mode", "browser"]);
     assert(preview.context.reloaded);
+
+    const existingInformation = createGuide(agents.android, language);
+    existingInformation.context.initialStoredInformation = {
+      hasPotentialInformation: true,
+    };
+    existingInformation.context.launch();
+    existingInformation.node("btn-choose-install").click();
+    assert.deepStrictEqual(
+      existingInformation.context.saved,
+      ["nrv_launch_mode", "browser"],
+    );
+    assert.strictEqual(
+      existingInformation.storedSession.get("nrv_install_transfer_pending"),
+      "true",
+    );
+    assert(existingInformation.context.reloaded);
+
+    const informationCheckFailed = createGuide(agents.android, language);
+    informationCheckFailed.context.initialStoredInformation = {
+      error: new Error("storage unavailable"),
+    };
+    informationCheckFailed.context.launch();
+    informationCheckFailed.node("btn-choose-install").click();
+    assert.strictEqual(
+      informationCheckFailed.node("launch-install-status").textContent,
+      i18n.t("install.storageCheckFailed"),
+    );
+    assert.strictEqual(informationCheckFailed.context.reloaded, undefined);
 
     const storageFailure = createGuide(agents.android, language);
     storageFailure.context.launch();

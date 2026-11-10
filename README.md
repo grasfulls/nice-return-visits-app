@@ -355,6 +355,9 @@ NRV uses `MAJOR.MINOR.PATCH`: increment PATCH for backward-compatible fixes,
 MINOR for backward-compatible features, and MAJOR for incompatible or
 fundamental changes. Versions beginning with `0` are development releases;
 `1.0.0` is reserved for the first completed public release.
+For this release series, `0.9.51` through `0.9.59` are minor updates after
+`0.9.5` and before `0.9.6`. The app and release-history comparators preserve
+that order.
 
 For each release:
 

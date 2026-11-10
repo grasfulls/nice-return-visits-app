@@ -28,7 +28,7 @@ const context = {
   URL, Uint32Array,
 };
 vm.runInNewContext(`${source.slice(start, end)}
-this.api = { APP_VERSION, parseAppVersion, compareAppVersions, fetchDeployedAppVersion };`, context);
+this.api = { APP_VERSION, parseAppVersion, compareAppVersions, fetchDeployedAppVersion, publicVersionHistoryUrl };`, context);
 const api = context.api;
 const catalogs = Object.fromEntries(["en", "es"].map((language) => [
   language, JSON.parse(fs.readFileSync(path.join(root, "locales", `${language}.json`), "utf8")),
@@ -36,14 +36,63 @@ const catalogs = Object.fromEntries(["en", "es"].map((language) => [
 for (const language of ["en", "es"]) i18n._setCatalog(language, catalogs[language]);
 
 async function main() {
-  assert.strictEqual(api.APP_VERSION, "0.9.5");
+  assert.strictEqual(api.APP_VERSION, "0.9.52");
+  assert.strictEqual(
+    api.publicVersionHistoryUrl(api.APP_VERSION, "en"),
+    "https://nicereturnvisits.org/version-history.html#version-0-9-52",
+  );
+  assert.strictEqual(
+    api.publicVersionHistoryUrl(api.APP_VERSION, "es"),
+    "https://nicereturnvisits.org/es/version-history.html#version-0-9-52",
+  );
+  const updatedMessage = { textContent: "" };
+  const updatedLink = { href: "" };
+  let updatedDialogShown = false;
+  const noticeStart = source.indexOf("const showJustUpdatedNotice =");
+  const noticeEnd = source.indexOf('\ndocument\n  .getElementById("btn-ok-updated")', noticeStart);
+  assert(noticeStart >= 0 && noticeEnd > noticeStart);
+  const showUpdatedNotice = vm.runInNewContext(
+    `${source.slice(noticeStart, noticeEnd)}\nshowJustUpdatedNotice;`,
+    {
+      APP_VERSION: api.APP_VERSION,
+      APP_JUST_UPDATED_KEY: "updated",
+      sessionStorage: { getItem: () => "1", removeItem() {} },
+      window: { NRVI18n: i18n, setTimeout: (callback) => callback() },
+      document: {
+        getElementById(id) {
+          if (id === "app-updated-message") return updatedMessage;
+          if (id === "app-updated-whats-new") return updatedLink;
+          if (id === "app-updated-dialog") return { showModal() { updatedDialogShown = true; } };
+          throw new Error(`Unexpected element ${id}`);
+        },
+        querySelector: () => null,
+      },
+      appText: (key, fallback, vars) => i18n.t(key, vars, fallback),
+      updatePublicVersionLink: (link) => {
+        link.href = api.publicVersionHistoryUrl(api.APP_VERSION, i18n.getLanguage());
+      },
+    },
+  );
+  for (const [language, page] of [
+    ["en", "version-history.html"],
+    ["es", "es/version-history.html"],
+  ]) {
+    i18n._setCurrent(language);
+    updatedDialogShown = false;
+    showUpdatedNotice();
+    assert(updatedMessage.textContent.includes(api.APP_VERSION), updatedMessage.textContent);
+    assert(updatedLink.href.endsWith(`${page}#version-0-9-52`));
+    assert(updatedDialogShown);
+  }
   for (const invalid of ["1.0", "1.2.3.4", "01.2.3", "1.-1.0", "1.2.3-beta", "1.2.3\n", "", null, 123]) {
     assert.throws(() => api.parseAppVersion(invalid));
   }
   for (const [left, right, expected] of [
     ["0.9.0", "0.9.0", 0], ["1.0.0", "0.99.99", 1],
     ["1.10.0", "1.9.99", 1], ["1.0.10", "1.0.2", 1],
-    ["0.9.0", "0.10.0", -1], ["99999999999999999999.0.0", "9.0.0", 1],
+    ["0.9.0", "0.10.0", -1], ["0.9.5", "0.9.51", -1],
+    ["0.9.51", "0.9.52", -1], ["0.9.53", "0.9.6", -1],
+    ["0.9.6", "0.10.0", -1], ["99999999999999999999.0.0", "9.0.0", 1],
   ]) assert.strictEqual(api.compareAppVersions(left, right), expected);
   assert.throws(() => api.compareAppVersions("1.0.0", "1.01.0"));
   console.log("PASS  strict numeric MAJOR.MINOR.PATCH validation and comparison");
@@ -55,7 +104,11 @@ async function main() {
   const metadata = fs.readFileSync(path.join(root, "version.json"), "utf8");
   release.checkMetadata(metadata, version);
   assert(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('id="app-version-badge"'));
+  assert(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('<a id="app-version-badge"'));
   assert(source.includes("versionBadge.textContent = `v${APP_VERSION}`"));
+  assert(source.includes("updatePublicVersionLink(versionBadge)"));
+  assert(source.includes('updatePublicVersionLink(document.getElementById("app-updated-whats-new"))'));
+  assert(fs.readFileSync(path.join(root, "styles.css"), "utf8").includes("#app-version-badge:focus-visible"));
   assert.throws(() => release.checkMetadata('{"version":"1.0.0"}', version));
   assert.throws(() => release.checkMetadata("not json", version));
   assert.throws(() => release.checkMetadata('{"version":"0.9.0","extra":true}', version));
@@ -90,7 +143,7 @@ async function main() {
   let dialogs = 0;
   let reloads = 0;
   let updateCalls = 0;
-  let deployed = "0.9.5";
+  let deployed = "0.9.52";
   let worker = null;
   let available = false;
   let block = "";
@@ -144,7 +197,7 @@ async function main() {
   await check();
   assert.strictEqual(status.textContent, catalogs.en["update.versionCheckFailed"]);
   assert(!button.disabled);
-  deployed = "0.9.5";
+  deployed = "0.9.52";
   worker = { state: "activated" };
   await check();
   assert.strictEqual(reloads, 1, "same version does not suppress worker update");
@@ -177,7 +230,7 @@ async function main() {
 
   for (const language of ["en", "es"]) {
     i18n._setCurrent(language);
-    for (const key of ["update.currentVersion", "update.versionMismatch", "update.versionNotReady"]) {
+    for (const key of ["update.currentVersion", "update.versionMismatch", "update.versionNotReady", "app.versionLinkLabel", "update.done"]) {
       const text = i18n.t(key, { version: "0.9.0", deployed: "0.8.0", current: "0.9.0" });
       assert(!text.includes("{"), `${language} ${key} interpolates`);
       assert(text.includes("0.9.0") || text.includes("0.8.0"));

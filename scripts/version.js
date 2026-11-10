@@ -12,6 +12,27 @@ const canonicalVersion = (source) => {
   }
   return declarations[0][1];
 };
+const compareVersions = (left, right) => {
+  const order = (version) => {
+    const parts = version.split(".");
+    const patch = Number(parts[2]);
+    if (parts[0] === "0" && parts[1] === "9" && patch >= 51 && patch <= 59) {
+      return [parts[0], parts[1], "5", String(patch - 50)];
+    }
+    return [parts[0], parts[1], parts[2], "0"];
+  };
+  const leftParts = order(left);
+  const rightParts = order(right);
+  for (let index = 0; index < leftParts.length; index += 1) {
+    if (leftParts[index].length !== rightParts[index].length) {
+      return leftParts[index].length > rightParts[index].length ? 1 : -1;
+    }
+    if (leftParts[index] !== rightParts[index]) {
+      return leftParts[index] > rightParts[index] ? 1 : -1;
+    }
+  }
+  return 0;
+};
 const metadataFor = (version) => {
   if (!versionPattern.test(version)) throw new Error("Invalid app version.");
   return `${JSON.stringify({ version }, null, 2)}\n`;
@@ -46,4 +67,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { canonicalVersion, metadataFor, checkMetadata };
+module.exports = { canonicalVersion, compareVersions, metadataFor, checkMetadata };

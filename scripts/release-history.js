@@ -1,21 +1,12 @@
 // Run with: node scripts/release-history.js --write|--check [--site <website-directory>]
 const fs = require("fs");
 const path = require("path");
-const { canonicalVersion } = require("./version.js");
+const { canonicalVersion, compareVersions } = require("./version.js");
 
 const root = path.join(__dirname, "..");
 const versionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?![\s\S])/;
 const escapeHtml = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;")
   .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-const compareVersions = (left, right) => {
-  const a = left.split(".");
-  const b = right.split(".");
-  for (let i = 0; i < 3; i += 1) {
-    if (a[i].length !== b[i].length) return a[i].length > b[i].length ? 1 : -1;
-    if (a[i] !== b[i]) return a[i] > b[i] ? 1 : -1;
-  }
-  return 0;
-};
 const validateHistory = (history, currentVersion) => {
   if (!Array.isArray(history) || history.length === 0) throw new Error("Release history must not be empty.");
   history.forEach((release, index) => {
@@ -62,7 +53,7 @@ const appLines = (release) => [
 ];
 const siteLines = (history, language) => history.flatMap((release) => [
   '<section class="faq-item">',
-  `  <h2>${escapeHtml(release.version)} — ${escapeHtml(release[language].title)}</h2>`,
+  `  <h2 id="version-${escapeHtml(release.version.replace(/\./g, "-"))}">${escapeHtml(release.version)} — ${escapeHtml(release[language].title)}</h2>`,
   "  <ul>",
   ...release[language].changes.map((change) => `    <li>${escapeHtml(change)}</li>`),
   "  </ul>",

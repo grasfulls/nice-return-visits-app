@@ -112,6 +112,22 @@ html.show-launch-choice #launch-choice-screen[hidden] {
     min-height: 44px;
 }
 
+.install-preservation-download {
+    display: block;
+    min-height: 44px;
+    padding: 12px;
+    border-radius: 6px;
+    background: #004080;
+    color: white;
+    font-weight: 600;
+    text-align: center;
+}
+
+.install-preservation-download:focus-visible {
+    outline: 3px solid #f0ad00;
+    outline-offset: 3px;
+}
+
 .install-screen-actions .install-screen-secondary {
     border: 1px solid #004080;
     background: white;
@@ -586,12 +602,27 @@ header {
 #app-version-badge {
     position: relative;
     z-index: 1;
-    display: block;
-    margin-top: 2px;
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0;
+    padding-inline: 0.45rem;
+    border-radius: 0.25rem;
     color: rgb(255 255 255 / 62%);
     font-size: 0.62rem;
     line-height: 1;
     letter-spacing: 0.03em;
+    text-decoration: none;
+}
+
+#app-version-badge:hover {
+    color: #fff;
+}
+
+#app-version-badge:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 1px;
 }
 
 .app-header-logo {

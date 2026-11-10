@@ -12,23 +12,30 @@ const history = JSON.parse(fs.readFileSync(path.join(root, "release-history.json
 const version = canonicalVersion(fs.readFileSync(path.join(root, "app.js"), "utf8"));
 generator.validateHistory(history, version);
 assert.strictEqual(history[0].version, version);
+assert.strictEqual(history[0].version, "0.9.52");
+assert(!/important/i.test(history[0].en.title));
+assert(!/important/i.test(history[0].es.title));
 assert.throws(() => generator.validateHistory([], version));
 assert.throws(() => generator.validateHistory(history, "1.0.0"));
 assert.throws(() => generator.validateHistory([history[0], history[0]], version));
 assert.throws(() => generator.validateHistory([{ ...history[0], version: "01.2.3" }], "01.2.3"));
 assert.throws(() => generator.validateHistory([{ ...history[0], es: { title: "x", changes: [] } }], version));
-assert.throws(() => generator.validateHistory([{ ...history[0], es: { title: "x", changes: ["x"] } }], version));
+assert.throws(() => generator.validateHistory([{ ...history[0], es: { title: "x", changes: ["x", "y", "z"] } }], version));
 assert(generator.compareVersions("1.10.0", "1.9.9") > 0);
 assert(generator.compareVersions("0.9.0", "1.0.0") < 0);
+assert(generator.compareVersions("0.9.5", "0.9.51") < 0);
+assert(generator.compareVersions("0.9.52", "0.9.53") < 0);
+assert(generator.compareVersions("0.9.53", "0.9.6") < 0);
 const older = { ...history[0], version: "0.8.0" };
 const ordered = [history[0], older];
 generator.validateHistory(ordered, version);
 assert.throws(() => generator.validateHistory([older, history[0]], "0.8.0"));
 const enSite = generator.siteLines(ordered, "en").join("\n");
 assert(enSite.indexOf(version) < enSite.indexOf("0.8.0"));
+assert(enSite.includes('id="version-0-9-52"'));
 assert(!generator.appLines(history[0]).join("\n").includes("0.8.0"));
-assert(generator.siteLines([{ ...history[0], en: { title: "<test>", changes: ["A & B"] } }], "en")
-  .join("\n").includes("&lt;test&gt;"));
+assert(generator.siteLines([{ ...history[0], en: { title: "Test", changes: ["<test> & B"] } }], "en")
+  .join("\n").includes("&lt;test&gt; &amp; B"));
 assert.throws(() => generator.replaceBlock("no markers", [], ""));
 execFileSync(process.execPath, [path.join(root, "scripts", "release-history.js"), "--check"]);
 
@@ -55,8 +62,11 @@ if (site) {
     assert(page.includes("assets/css/styles.css"));
     assert(page.includes("assets/js/language-menu.js"));
     assert(page.includes(language === "en" ? "es/version-history.html" : "../version-history.html"));
+    assert(page.includes(language === "en" ? '<h1>What\'s New</h1>' : "<h1>Novedades</h1>"));
+    assert(page.includes('id="version-0-9-52"'));
     const home = fs.readFileSync(path.join(site, language === "en" ? "" : "es", "index.html"), "utf8");
     assert(home.includes('href="version-history.html"'));
+    assert(home.includes(language === "en" ? ">What's New</a>" : ">Novedades</a>"));
   }
   console.log("PASS  website pages match shared notes and existing layout/language links");
 } else {

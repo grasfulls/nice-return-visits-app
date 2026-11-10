@@ -56,10 +56,11 @@
       hidden
     >
       <div class="install-screen-card">
-        <h1 id="launch-choice-title" tabindex="-1" data-i18n="launch.title">Let's put NRV on your device</h1>
+        <h1 id="launch-choice-title" tabindex="-1" data-i18n="launch.title">How would you like to use NRV?</h1>
         <p data-i18n="launch.recommend">
-          This part can be a little confusing. Sorry about that. We'll stay with
-          you and try to clearly explain each step.
+          You can use NRV in this browser. For regular use, we recommend its
+          icon. Installing can be confusing, so we'll stay with you and explain
+          each step.
         </p>
         <div class="install-screen-actions">
           <button type="button" id="btn-choose-install" data-i18n="launch.installButton">
@@ -71,13 +72,14 @@
             class="install-screen-secondary"
             data-i18n="launch.browserButton"
           >
-            See how NRV works in this browser
+            Use NRV in this browser
           </button>
         </div>
         <p data-i18n="launch.storageNote">
-          Your contacts are saved separately in each browser or app icon. If
-          you're moving existing contacts, first make a backup and restore it
-          in the new copy. Dropbox backup is optional.
+          Each browser or app icon may keep a separate copy of your NRV
+          information. If you want it in another copy, make a
+          backup and restore it there. Your original copy stays in place.
+          Dropbox is optional.
         </p>
         <p>
           <a href="./help.html#install-guide" data-help-link data-i18n="launch.whyLink">
@@ -91,6 +93,56 @@
         </p>
         <p id="launch-choice-error" role="alert" hidden></p>
         <p id="launch-install-status" role="status" hidden></p>
+      </div>
+    </section>
+    <section
+      id="install-preservation-screen"
+      class="install-screen"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="install-preservation-title"
+      hidden
+    >
+      <div class="install-screen-card">
+        <h1 id="install-preservation-title" data-i18n="install.preserve.title">Keep your NRV information</h1>
+        <section id="install-preservation-choice">
+          <p data-i18n="install.preserve.choice">
+            You have information saved in this browser. Do you want to keep it when you move to the NRV icon? Your browser information will not be erased either way.
+          </p>
+          <p data-i18n="install.preserve.backupNote">
+            The backup includes your NRV information. Keep the downloaded file somewhere private. Dropbox is not required.
+          </p>
+          <div class="install-screen-actions">
+            <button type="button" id="btn-preservation-save" data-i18n="install.preserve.save">Yes, keep it</button>
+            <button type="button" id="btn-preservation-skip" class="install-screen-secondary" data-i18n="install.preserve.skip">No, I don't need it</button>
+            <button type="button" id="btn-preservation-cancel" class="install-screen-secondary" data-i18n="install.preserve.cancel">Stay in this browser</button>
+          </div>
+        </section>
+        <section id="install-preservation-backup" hidden>
+          <p id="install-preservation-status" role="status" aria-live="polite"></p>
+          <a id="btn-preservation-download" class="install-preservation-download" data-i18n="install.preserve.download">Download your NRV backup</a>
+          <label class="agreement-checkbox" for="install-preservation-saved">
+            <input type="checkbox" id="install-preservation-saved" disabled />
+            <span data-i18n="install.preserve.saved">I downloaded and saved the backup file.</span>
+          </label>
+          <p data-i18n="install.preserve.restoreNote">
+          Open NRV from its new icon and check whether your information is already there; if it is, no restore is needed. If setup is shown, choose Restore from a backup file and select this file. Otherwise, choose Restore from Backup in Settings. Wait for NRV to confirm that the restore succeeded. The original browser information stays in place.
+          </p>
+          <p id="install-preservation-error" role="alert" hidden></p>
+          <div class="install-screen-actions">
+            <button type="button" id="btn-preservation-continue" disabled data-i18n="install.preserve.continue">Continue to installation</button>
+            <button type="button" id="btn-preservation-cancel-backup" class="install-screen-secondary" data-i18n="install.preserve.cancel">Stay in this browser</button>
+          </div>
+        </section>
+        <section id="install-preservation-no-data" hidden>
+          <p data-i18n="install.preserve.noData">
+            No saved NRV information needs to be copied. Continue to the installation steps when you are ready.
+          </p>
+          <div class="install-screen-actions">
+            <button type="button" id="btn-preservation-empty-continue" data-i18n="install.preserve.continue">Continue to installation</button>
+            <button type="button" id="btn-preservation-empty-cancel" class="install-screen-secondary" data-i18n="install.preserve.cancel">Stay in this browser</button>
+          </div>
+        </section>
       </div>
     </section>
     <section
@@ -259,8 +311,8 @@
 
     <div id="app-container" inert aria-hidden="true">
       <header>
-        <h1 id="app-title">NRV - Contacts</h1>
-        <span id="app-version-badge"></span>
+        <h1 id="app-title" tabindex="-1">NRV - Contacts</h1>
+        <a id="app-version-badge" href="https://nicereturnvisits.org/version-history.html"></a>
         <img
           class="app-header-logo"
           src="./icons/header-watermark.png"
@@ -330,7 +382,7 @@
             <a id="copy-notice-link" href="./help.html#install-guide" data-help-link data-i18n="contacts.seeSteps">See the steps</a>
             <button type="button" id="btn-copy-notice-install" data-i18n="install.installButton" hidden>Install NRV on this device</button>
             <p id="copy-notice-install-status" aria-live="polite" hidden></p>
-            <button type="button" id="btn-copy-notice-dismiss" data-i18n="contacts.gotIt">Got it</button>
+            <button type="button" id="btn-copy-notice-dismiss" data-i18n="contacts.keepUsingBrowser">Keep using browser</button>
           </aside>
           <div class="contact-list-actions">
             <button
@@ -1079,13 +1131,12 @@
               <summary data-i18n="settings.updates">App Updates</summary>
               <p id="app-current-version"></p>
               <details class="settings-section">
-                <summary data-i18n="update.whatsNew">What's new</summary>
+                <summary data-i18n="update.whatsNew">What's New</summary>
                 <!-- release-notes:start -->
-                <p data-i18n="release.current.title">Development release</p>
+                <p data-i18n="release.current.title">Keep your information when installing</p>
                 <ul>
-                  <li data-i18n="release.current.change1">Choose interface language and Country Addressing independently, including per-contact countries.</li>
-                  <li data-i18n="release.current.change2">Organize Working Need Greater contacts, focus the map, filter results, and export only the contacts shown.</li>
-                  <li data-i18n="release.current.change3">Create personal ministry goals, choose methods and milestones, track progress, and preserve achievements.</li>
+                  <li data-i18n="release.current.change1">Use NRV in your browser, or add its icon for regular use.</li>
+                  <li data-i18n="release.current.change2">Back up existing NRV information before moving it to an installed copy; the original is not erased.</li>
                 </ul>
                 <!-- release-notes:end -->
               </details>
@@ -1796,10 +1847,11 @@
 
     <dialog id="app-updated-dialog" aria-labelledby="app-updated-title">
       <h2 id="app-updated-title" data-i18n="update.doneTitle">App refreshed</h2>
-      <p data-i18n="update.done">Nice Return Visits has refreshed. Your saved contacts remain on this device.</p>
+      <p id="app-updated-message"></p>
       <div class="restore-dialog-actions">
         <button type="button" id="btn-ok-updated" data-i18n="common.ok">OK</button>
       </div>
+      <p><a id="app-updated-whats-new" href="https://nicereturnvisits.org/version-history.html" data-i18n="update.whatsNew">What's New</a></p>
     </dialog>
 
     <dialog id="app-no-update-dialog" aria-labelledby="app-no-update-title">
