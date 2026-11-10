@@ -91,14 +91,50 @@ html.show-launch-choice #launch-choice-screen[hidden] {
     margin: 0.75em 0;
 }
 
-.install-device-choices {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+#browser-install-correction {
+    margin: 12px 0 20px;
 }
 
-.install-device-choices button {
+#browser-install-correction summary {
+    color: #004080;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+#browser-install-correction label,
+#browser-install-correction select {
+    display: block;
+    width: 100%;
+}
+
+#browser-install-correction label {
+    margin-top: 12px;
+}
+
+#browser-install-correction select {
     min-height: 44px;
+    margin-top: 4px;
+}
+
+#browser-install-steps {
+    padding-left: 1.4em;
+}
+
+#browser-install-steps li {
+    margin: 0.65em 0;
+    line-height: 1.45;
+}
+
+.install-handoff {
+    margin: 18px 0;
+    padding: 12px;
+    border-left: 4px solid #004080;
+    border-radius: 4px;
+    background: #eef4fb;
+}
+
+.install-handoff p {
+    margin-bottom: 0 !important;
 }
 
 .install-screen-actions {
@@ -110,6 +146,15 @@ html.show-launch-choice #launch-choice-screen[hidden] {
 
 .install-screen-actions button {
     min-height: 44px;
+}
+
+#btn-choose-install,
+#browser-install-native {
+    min-height: 48px;
+    border: 1px solid #004080;
+    background: #004080;
+    color: white;
+    font-weight: 600;
 }
 
 .install-preservation-download {
@@ -930,7 +975,7 @@ main {
 
 .contact-list-actions {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr);
     gap: 8px;
     align-items: center;
     margin-bottom: 12px;
@@ -957,82 +1002,31 @@ main {
     height: 22px;
 }
 
-.contact-toolbar-actions {
-    grid-column: 3;
-    grid-row: 1;
-    justify-self: end;
-    display: flex;
-    gap: 8px;
-}
-
-.contact-toolbar-actions .contact-backup-button {
-    box-sizing: border-box;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    width: auto;
-    min-width: 0;
-    padding: 0 8px;
-    font-size: 14px;
-    white-space: nowrap;
-}
-
-.contact-backup-label-short {
-    display: none;
-}
-
 .install-banner:not([hidden]) + .contact-list-actions .contact-add-button,
-.install-banner:not([hidden]) + .contact-list-actions .contact-toolbar-actions {
+.install-banner:not([hidden]) + .contact-list-actions #btn-time-toggle {
     display: none !important;
 }
 
 #btn-time-toggle {
-    grid-column: 2;
+    grid-column: 3;
     grid-row: 1;
-    justify-self: center;
+    justify-self: end;
     margin: 0;
 }
 
 @media (max-width: 560px) {
     .contact-list-actions {
-        grid-template-columns: minmax(98px, 1fr) 48px minmax(124px, 1fr);
+        grid-template-columns: minmax(98px, 1fr) 1fr minmax(98px, 1fr);
         gap: 4px;
-    }
-
-    .contact-toolbar-actions {
-        grid-column: 3;
-        width: 100%;
-        gap: 4px;
-    }
-
-    .contact-toolbar-actions .contact-backup-button {
-        flex: 1 1 0;
-        width: 0;
-        padding: 0 3px;
-        gap: 2px;
-        font-size: 12px;
-    }
-
-    .contact-backup-label-full {
-        display: none;
-    }
-
-    .contact-backup-label-short {
-        display: inline;
-    }
-
-    .contact-toolbar-actions .icon-action {
-        box-sizing: border-box;
     }
 
     #btn-time-toggle:not([hidden]) {
-        grid-column: 2;
+        grid-column: 3;
         grid-row: 1;
         width: 64px;
         min-width: 0;
         padding: 4px;
-        justify-self: center;
+        justify-self: end;
         white-space: normal;
         text-align: center;
         line-height: 1.1;
@@ -1051,13 +1045,7 @@ main {
 
 @media (max-width: 340px) {
     .contact-list-actions {
-        grid-template-columns: minmax(82px, 0.8fr) 44px minmax(110px, 1.2fr);
-    }
-
-    .contact-toolbar-actions .contact-backup-button {
-        padding: 0 2px;
-        gap: 2px;
-        font-size: 11px;
+        grid-template-columns: minmax(82px, 0.8fr) 1fr minmax(82px, 1.2fr);
     }
 
     #btn-time-toggle:not([hidden]) {

@@ -1,16 +1,16 @@
 [
   {
-    "version": "0.9.53",
+    "version": "0.9.54",
     "en": {
-      "title": "More room for your contacts",
+      "title": "A smoother installation experience",
       "changes": [
-        "NRV uses the top of the screen more efficiently, giving your contacts more room."
+        "Install NRV with a clearer device-specific guide, a safe handoff to the new icon, and a cleaner Contacts toolbar."
       ]
     },
     "es": {
-      "title": "Más espacio para tus contactos",
+      "title": "Una instalación más sencilla",
       "changes": [
-        "NRV aprovecha mejor la parte superior de la pantalla para dar más espacio a tus contactos."
+        "Instala NRV con instrucciones según tu dispositivo, una transición segura al nuevo icono y una vista de Contactos más despejada."
       ]
     }
   },

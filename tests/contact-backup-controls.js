@@ -1,3 +1,4 @@
+// Run with: node tests/contact-backup-controls.js
 const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
@@ -9,28 +10,36 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const en = JSON.parse(fs.readFileSync(path.join(root, "locales/en.json"), "utf8"));
 const es = JSON.parse(fs.readFileSync(path.join(root, "locales/es.json"), "utf8"));
 
-const contactActions = html.match(/<div class="contact-toolbar-actions">([\s\S]*?)<\/div>/)?.[1];
+const contactActions = html.match(/<div class="contact-list-actions">([\s\S]*?)<\/div>/)?.[1];
 assert(contactActions);
-assert.match(contactActions, /id="btn-contacts-backup"[\s\S]*?aria-hidden="true">↑<\/span>[\s\S]*?data-i18n="backup\.contactsBackup">Backup/);
-assert.match(contactActions, /id="btn-contacts-restore"[\s\S]*?aria-hidden="true">↓<\/span>[\s\S]*?data-i18n="backup\.contactsRestore">Restore/);
-assert.strictEqual((contactActions.match(/<button\b/g) || []).length, 2);
-assert(!html.includes('class="contact-backup-actions"'));
-assert(!html.includes('id="btn-import-contact"'));
-assert(!html.includes('id="btn-export-visible"'));
-assert.match(html, /id="contacts-backup-file-input"[\s\S]*?accept="application\/json,\.json"[\s\S]*?hidden/);
-assert.strictEqual(en["backup.contactsBackup"], "Backup");
-assert.strictEqual(en["backup.contactsBackupShort"], "Backup");
-assert.strictEqual(en["backup.contactsRestore"], "Restore");
-assert.strictEqual(en["backup.contactsRestoreShort"], "Restore");
-assert.strictEqual(es["backup.contactsBackup"], "Copia de seguridad");
-assert.strictEqual(es["backup.contactsBackupShort"], "Copia");
-assert.strictEqual(es["backup.contactsRestore"], "Restaurar");
-assert.strictEqual(es["backup.contactsRestoreShort"], "Restaurar");
-assert.match(css, /\.contact-backup-button[\s\S]*?font-size: 14px;[\s\S]*?white-space: nowrap;/);
-assert.match(css, /@media \(max-width: 560px\) \{\s+\.contact-list-actions \{\s+grid-template-columns: minmax\(98px, 1fr\) 48px minmax\(124px, 1fr\)/);
-assert.match(css, /@media \(max-width: 340px\) \{\s+\.contact-list-actions \{\s+grid-template-columns: minmax\(82px, 0\.8fr\) 44px minmax\(110px, 1\.2fr\)/);
-assert.match(app, /getElementById\("btn-contacts-backup"\)[\s\S]*?getElementById\("btn-export-backup"\)\.click\(\)/);
-assert.match(app, /getElementById\("btn-contacts-restore"\)[\s\S]*?contactsBackupFileInput\.click\(\)/);
-assert.match(app, /contactsBackupFileInput\.addEventListener\("change", async \(\) => \{[\s\S]*?await restoreBackupFile\(file\)/);
+assert.match(contactActions, /id="btn-open-modal"/);
+assert.match(contactActions, /id="btn-time-toggle"/);
+assert(!contactActions.includes("backup"));
+assert(!html.includes('id="btn-contacts-backup"'));
+assert(!html.includes('id="btn-contacts-restore"'));
+assert(!html.includes('id="contacts-backup-file-input"'));
+assert(!app.includes("btn-contacts-backup"));
+assert(!app.includes("btn-contacts-restore"));
+assert(!app.includes("contacts-backup-file-input"));
+for (const key of [
+  "backup.contactsBackup",
+  "backup.contactsBackupShort",
+  "backup.contactsRestore",
+  "backup.contactsRestoreShort",
+]) {
+  assert.strictEqual(en[key], undefined);
+  assert.strictEqual(es[key], undefined);
+}
+assert.match(css, /\.contact-list-actions\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\) 48px minmax\(0, 1fr\)/);
+assert.match(css, /#btn-time-toggle\s*\{[^}]*grid-column: 3;[^}]*justify-self: end;/);
+assert.match(css, /@media \(max-width: 560px\) \{[\s\S]*?#btn-time-toggle:not\(\[hidden\]\)\s*\{[^}]*grid-column: 3;[^}]*justify-self: end;/);
+assert.match(html, /id="btn-export-backup"[\s\S]*?data-i18n="backup\.everything"/);
+assert.match(html, /id="backup-file-input"[\s\S]*?accept="application\/json,\.json"/);
+assert.match(html, /id="btn-restore-backup"[\s\S]*?data-i18n="backup\.restoreSelected"/);
+assert.match(app, /getElementById\("btn-export-backup"\)[\s\S]*?downloadEncryptedBackup\(\)/);
+assert.match(app, /getElementById\("btn-restore-backup"\)[\s\S]*?restoreBackupFile\(backupFileInput\.files\[0\]\)/);
+assert.match(app, /const restoreBackupFile = async \(file\) => \{[\s\S]*?await reportRestoreError\(error\)/);
+assert.match(html, /id="btn-time-toggle" class="time-toggle"/);
+assert.match(app, /timeToggleButton\.textContent = tracking\.runningSince \? "Stop Time" : "Start Time"/);
 
-console.log("PASS Contacts full-backup shortcuts, localization, styling, and behavior");
+console.log("PASS Contacts has no backup/restore shortcuts; timer is right-aligned; Settings backup/restore remains wired");

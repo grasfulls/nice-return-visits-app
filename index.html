@@ -56,15 +56,12 @@
       hidden
     >
       <div class="install-screen-card">
-        <h1 id="launch-choice-title" tabindex="-1" data-i18n="launch.title">How would you like to use NRV?</h1>
-        <p data-i18n="launch.recommend">
-          You can use NRV in this browser. For regular use, we recommend its
-          icon. Installing can be confusing, so we'll stay with you and explain
-          each step.
-        </p>
+        <h1 id="launch-choice-title" tabindex="-1" data-i18n="launch.title">Install Nice Return Visits app</h1>
+        <p data-i18n="launch.tagline">No more, “Oh, I have a return visit around here!”</p>
+        <p data-i18n="launch.recommend">Keep your return visits organized and ready when you need them.</p>
         <div class="install-screen-actions">
           <button type="button" id="btn-choose-install" data-i18n="launch.installButton">
-            Install NRV
+            Install NRV Icon
           </button>
           <button
             type="button"
@@ -75,17 +72,7 @@
             Use NRV in this browser
           </button>
         </div>
-        <p data-i18n="launch.storageNote">
-          Each browser or app icon may keep a separate copy of your NRV
-          information. If you want it in another copy, make a
-          backup and restore it there. Your original copy stays in place.
-          Dropbox is optional.
-        </p>
-        <p>
-          <a href="./help.html#install-guide" data-help-link data-i18n="launch.whyLink">
-            Why we recommend using the app icon
-          </a>
-        </p>
+        <p data-i18n="launch.storageNote">Your saved information stays in this browser unless you choose to transfer or back it up.</p>
         <p>
           <a href="https://nicereturnvisits.org/index.html" data-i18n="launch.websiteLink" data-i18n-attr="href:launch.websiteUrl">
             ← Back to NRV website
@@ -259,51 +246,50 @@
       hidden
     >
       <div class="install-screen-card">
-        <h1 id="browser-install-title" data-i18n="install.title">Install Nice Return Visits</h1>
-        <p data-i18n="install.guidance">
-          We’ll stay with you and explain each step. After opening the icon,
-          follow the setup or recovery instructions.
-        </p>
-        <div id="browser-install-selection">
-          <h2 id="browser-install-select-title" tabindex="-1" data-i18n="install.chooseDevice">Choose your device</h2>
-          <div class="install-device-choices">
-            <button type="button" data-install-device="iphone">iPhone</button>
-            <button type="button" data-install-device="ipad">iPad</button>
-            <button type="button" data-install-device="android">Android</button>
-            <button type="button" data-install-device="windows">Windows</button>
-            <button type="button" data-install-device="mac">Mac</button>
-            <button type="button" data-install-device="chromebook" data-i18n="install.chromebook">Chromebook</button>
-            <button type="button" data-install-device="computer" data-i18n="install.otherComputer">Other computer</button>
-          </div>
-        </div>
-        <section id="browser-install-browser-selection" hidden>
-          <h2 id="browser-install-browser-title" tabindex="-1" data-i18n="install.chooseBrowser">Which browser are you using?</h2>
-          <p id="browser-install-detected"></p>
-          <div class="install-device-choices">
-            <button type="button" data-install-browser="chrome">Google Chrome</button>
-            <button type="button" data-install-browser="edge">Microsoft Edge</button>
-            <button type="button" data-install-browser="safari">Safari</button>
-            <button type="button" data-install-browser="firefox">Firefox</button>
-            <button type="button" data-install-browser="samsung">Samsung Internet</button>
-            <button type="button" data-install-browser="other" data-i18n="install.otherBrowser">Another browser / I don't know</button>
-          </div>
-        </section>
-        <section id="browser-install-instructions" hidden>
-          <h2 id="browser-install-step-title" tabindex="-1"></h2>
-          <p id="browser-install-step" aria-live="polite"></p>
-          <p id="browser-install-tip" role="status" hidden></p>
-          <p id="browser-install-more-tip" role="status" hidden></p>
-          <div class="install-screen-actions">
-            <button type="button" id="browser-install-next" data-i18n="install.next">I found it - what's next?</button>
-            <button type="button" id="browser-install-help" class="install-screen-secondary" aria-expanded="false" aria-controls="browser-install-tip" data-i18n="install.cantFind">I don't see it</button>
-            <button type="button" id="browser-install-more-help" class="install-screen-secondary" aria-expanded="false" aria-controls="browser-install-more-tip" data-i18n="install.moreHelp" hidden>I'm still stuck</button>
-            <button type="button" id="browser-install-wrong-browser" class="install-screen-secondary" data-i18n="install.wrongBrowser" hidden>That's not my browser</button>
-            <button type="button" id="browser-install-manual" class="install-screen-secondary" data-i18n="install.differentDevice">That's not my device</button>
-          </div>
+        <h1 id="browser-install-title" tabindex="-1" data-i18n="install.title">Install Nice Return Visits app</h1>
+        <p id="browser-install-detected" role="status" aria-live="polite"></p>
+        <details id="browser-install-correction">
+          <summary data-i18n="install.correction">Wrong device or browser? Change it</summary>
+          <label for="browser-install-device" data-i18n="install.deviceLabel">Device</label>
+          <select id="browser-install-device">
+            <option value="iphone">iPhone</option>
+            <option value="ipad">iPad</option>
+            <option value="android" data-i18n="install.device.android">Android phone or tablet</option>
+            <option value="windows" data-i18n="install.device.windows">Windows computer</option>
+            <option value="mac">Mac</option>
+            <option value="chromebook" data-i18n="install.chromebook">Chromebook</option>
+            <option value="computer" data-i18n="install.device.computer">Other computer</option>
+          </select>
+          <label for="browser-install-browser" data-i18n="install.browserLabel">Browser</label>
+          <select id="browser-install-browser">
+            <option value="chrome">Google Chrome</option>
+            <option value="edge">Microsoft Edge</option>
+            <option value="safari">Safari</option>
+            <option value="firefox">Firefox</option>
+            <option value="samsung">Samsung Internet</option>
+            <option value="other" data-i18n="install.otherBrowser">Another browser / I don't know</option>
+          </select>
+        </details>
+        <section id="browser-install-instructions" aria-labelledby="browser-install-instructions-title">
+          <h2 id="browser-install-instructions-title" data-i18n="install.instructionsTitle">Install NRV</h2>
+          <section id="browser-install-why" hidden>
+            <h3 data-i18n="install.appleWhyTitle">Why the manual steps?</h3>
+            <p data-i18n="install.appleWhy">Apple requires installation to be completed through Safari’s Add to Home Screen process.</p>
+          </section>
+          <aside id="browser-install-handoff" class="install-handoff" hidden>
+            <strong data-i18n="install.handoffHeading">Before you continue</strong>
+            <p id="browser-install-handoff-text"></p>
+          </aside>
+          <button type="button" id="browser-install-native" data-i18n="launch.installButton" hidden>Install NRV Icon</button>
+          <p id="browser-install-status" role="status" aria-live="polite" tabindex="-1" hidden></p>
+          <ol id="browser-install-steps"></ol>
+          <details id="browser-install-help" hidden>
+            <summary data-i18n="install.helpSummary">Can't find an option?</summary>
+            <p id="browser-install-help-text"></p>
+          </details>
         </section>
         <div class="install-screen-actions">
-          <button type="button" id="browser-install-back" class="install-screen-secondary" data-i18n="install.back">Back</button>
-          <button type="button" id="browser-install-cancel" class="install-screen-secondary" data-i18n="install.cancel">Cancel installation</button>
+          <button type="button" id="browser-install-cancel" class="install-screen-secondary" data-i18n="install.cancel">Back</button>
           <a href="https://nicereturnvisits.org/index.html" data-i18n="launch.websiteLink" data-i18n-attr="href:launch.websiteUrl">← Back to NRV website</a>
         </div>
       </div>
@@ -383,7 +369,7 @@
           <aside id="copy-notice" class="copy-notice" role="status" hidden>
             <p id="copy-notice-text"></p>
             <a id="copy-notice-link" href="./help.html#install-guide" data-help-link data-i18n="contacts.seeSteps">See the steps</a>
-            <button type="button" id="btn-copy-notice-install" data-i18n="install.installButton" hidden>Install NRV on this device</button>
+            <button type="button" id="btn-copy-notice-install" data-i18n="install.installButton" hidden>Install NRV Icon</button>
             <p id="copy-notice-install-status" aria-live="polite" hidden></p>
             <button type="button" id="btn-copy-notice-dismiss" data-i18n="contacts.keepUsingBrowser">Keep using browser</button>
           </aside>
@@ -400,38 +386,6 @@
               <span data-i18n="contacts.add">Add a Contact</span>
             </button>
             <button type="button" id="btn-time-toggle" class="time-toggle" hidden></button>
-            <div class="contact-toolbar-actions">
-              <button
-                type="button"
-                id="btn-contacts-backup"
-                class="icon-action contact-backup-button"
-                title="Backup"
-                aria-label="Backup"
-                data-i18n-attr="title:backup.contactsBackup;aria-label:backup.contactsBackup"
-              >
-                <span aria-hidden="true">↑</span>
-                <span class="contact-backup-label-full" data-i18n="backup.contactsBackup">Backup</span>
-                <span class="contact-backup-label-short" data-i18n="backup.contactsBackupShort">Backup</span>
-              </button>
-              <button
-                type="button"
-                id="btn-contacts-restore"
-                class="icon-action contact-backup-button"
-                title="Restore"
-                aria-label="Restore"
-                data-i18n-attr="title:backup.contactsRestore;aria-label:backup.contactsRestore"
-              >
-                <span aria-hidden="true">↓</span>
-                <span class="contact-backup-label-full" data-i18n="backup.contactsRestore">Restore</span>
-                <span class="contact-backup-label-short" data-i18n="backup.contactsRestoreShort">Restore</span>
-              </button>
-              <input
-                type="file"
-                id="contacts-backup-file-input"
-                accept="application/json,.json"
-                hidden
-              />
-            </div>
             <input
               type="file"
               id="contact-file-input"
@@ -968,8 +922,7 @@
                 Back up everything
               </button>
               <p data-i18n="backup.encryptionNote">
-                Encrypted if a passphrase is on. You can also export from the
-                Contacts page footer.
+                Encrypted if a passphrase is on.
               </p>
               <p data-i18n="backup.localSurvives">
                 A downloaded Local backup survives Erase All Data. For a
@@ -1120,7 +1073,7 @@
             <details class="settings-section">
               <summary data-i18n="settings.help">Help</summary>
               <p class="settings-group-note" data-i18n="settings.helpNote">User guides and privacy information.</p>
-              <button type="button" id="btn-settings-install" data-i18n="install.installButton" hidden>Install NRV on this device</button>
+              <button type="button" id="btn-settings-install" data-i18n="install.installButton" hidden>Install NRV Icon</button>
               <p id="settings-install-status" role="status" hidden></p>
               <details class="settings-section">
                 <summary data-i18n="settings.guidePrivacy">User Guide &amp; Privacy Notice</summary>
@@ -1145,9 +1098,9 @@
               <details class="settings-section">
                 <summary data-i18n="update.whatsNew">What's New</summary>
                 <!-- release-notes:start -->
-                <p data-i18n="release.current.title">More room for your contacts</p>
+                <p data-i18n="release.current.title">A smoother installation experience</p>
                 <ul>
-                  <li data-i18n="release.current.change1">NRV uses the top of the screen more efficiently, giving your contacts more room.</li>
+                  <li data-i18n="release.current.change1">Install NRV with a clearer device-specific guide, a safe handoff to the new icon, and a cleaner Contacts toolbar.</li>
                 </ul>
                 <!-- release-notes:end -->
               </details>

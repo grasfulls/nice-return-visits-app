@@ -134,6 +134,7 @@ async function main() {
     i18n._setCurrent(language);
     for (const key of [
       "launch.recommend",
+      "launch.tagline",
       "launch.browserButton",
       "launch.storageNote",
       "contacts.browserCopy",
@@ -148,12 +149,13 @@ async function main() {
       "install.preserve.continue",
       "backup.installTransferRestored",
       "backup.installTransferRestoredNoRecovery",
-      "install.wizard.setup",
+      "install.appleWhy",
+      "install.handoff.apple",
     ]) {
       assert.notStrictEqual(i18n.t(key), key, `${language}: ${key}`);
     }
     assert(i18n.t("launch.recommend").includes(
-      language === "en" ? "browser" : "navegador",
+      language === "en" ? "organized" : "organizadas",
     ));
   }
   assert(english["contacts.keepUsingBrowser"].toLowerCase().includes("keep using browser"));

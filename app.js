@@ -17,8 +17,8 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
-const APP_VERSION = "0.9.53";
-const APP_BUILD_REVISION = "sha256:a8c6cf8ee12b58f55841547aa8c5c994e2367f1f095d3f65b7aab4b5bd60bd32";
+const APP_VERSION = "0.9.54";
+const APP_BUILD_REVISION = "sha256:c06a0d2c745d0c4e44fddb66e9d7d9bd93b8bc8d9682e3f57743393d958f0973";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -434,41 +434,16 @@ class NewerDataVersionError extends Error {
 const APP_UPDATE_PENDING_KEY = "return_visits_app_update_pending";
 const INSTALLED_SETUP_COMPLETE_KEY = "nrv_installed_setup_completed";
 const LAUNCH_MODE_KEY = "nrv_launch_mode";
-const INSTALL_GUIDE_STATE_KEY = "nrv_install_guide_state";
 const INSTALL_TRANSFER_PENDING_KEY = "nrv_install_transfer_pending";
 const isInstalledApp = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
   navigator.standalone === true;
-const launchInstall = async ({ returnToApp = false, statusElement, buttonElement } = {}) => {
-  const prompt = window.nrvDeferredInstallPrompt;
-  if (!prompt) {
-    showBrowserInstallGuide({ returnToApp });
-    return;
+const launchInstall = ({ returnToApp = false, statusElement } = {}) => {
+  if (statusElement) {
+    statusElement.textContent = "";
+    statusElement.hidden = true;
   }
-  window.nrvDeferredInstallPrompt = null;
-  const installButton = buttonElement || document.getElementById(
-    returnToApp ? "btn-settings-install" : "btn-choose-install",
-  );
-  installButton.disabled = true;
-  const status = statusElement || document.getElementById("launch-install-status");
-  status.hidden = true;
-  try {
-    await prompt.prompt();
-    const choice = await prompt.userChoice;
-    if (choice.outcome === "accepted") {
-      showBrowserInstallGuide({ native: true, returnToApp });
-    } else {
-      status.textContent = appText("install.nativeDismissed", "Installation was not completed. You can try the step-by-step instructions or see how NRV works in this browser.");
-      status.hidden = false;
-    }
-  } catch (error) {
-    console.error("Unable to open the installation prompt:", error);
-    status.textContent = appText("install.nativeFailed", "The installation window could not be opened. Select Install NRV again for step-by-step instructions.");
-    status.hidden = false;
-  } finally {
-    installButton.disabled = false;
-    if (!status.hidden) installButton.focus();
-  }
+  showBrowserInstallGuide({ returnToApp });
 };
 const showLaunchChoice = () => {
   document.getElementById("unlock-screen").hidden = true;
@@ -536,7 +511,6 @@ const showLaunchChoice = () => {
         return;
       }
       try {
-        sessionStorage.removeItem(INSTALL_GUIDE_STATE_KEY);
         sessionStorage.removeItem(INSTALL_TRANSFER_PENDING_KEY);
       } catch (error) {
         console.error("Unable to clear installation session state:", error);
@@ -566,7 +540,7 @@ const detectInstallEnvironment = (userAgent, maxTouchPoints) => {
   }
   return { device, browser, embedded };
 };
-const showBrowserInstallGuide = ({ native = false, returnToApp = false } = {}) => {
+const showBrowserInstallGuide = ({ returnToApp = false } = {}) => {
   document.getElementById("launch-choice-screen").hidden = true;
   const unlockScreen = document.getElementById("unlock-screen");
   if (unlockScreen) unlockScreen.hidden = true;
@@ -576,67 +550,183 @@ const showBrowserInstallGuide = ({ native = false, returnToApp = false } = {}) =
   appContainer.hidden = true;
   appContainer.inert = true;
   appContainer.setAttribute("aria-hidden", "true");
-  document.title = appText("install.title", "Install Nice Return Visits");
+  document.title = appText("install.title", "Install Nice Return Visits app");
   const screen = document.getElementById("browser-install-screen");
   screen.hidden = false;
-  const environment = detectInstallEnvironment(navigator.userAgent || "", navigator.maxTouchPoints);
-  const selection = document.getElementById("browser-install-selection");
-  const browserSelection = document.getElementById("browser-install-browser-selection");
-  const instructions = document.getElementById("browser-install-instructions");
-  const title = document.getElementById("browser-install-step-title");
-  const text = document.getElementById("browser-install-step");
-  const tip = document.getElementById("browser-install-tip");
-  const next = document.getElementById("browser-install-next");
-  const help = document.getElementById("browser-install-help");
-  const moreHelp = document.getElementById("browser-install-more-help");
-  const moreTip = document.getElementById("browser-install-more-tip");
-  const manual = document.getElementById("browser-install-manual");
-  const wrongBrowser = document.getElementById("browser-install-wrong-browser");
+
+  const environment = detectInstallEnvironment(
+    navigator.userAgent || "",
+    navigator.maxTouchPoints,
+  );
+  const deviceSelect = document.getElementById("browser-install-device");
+  const browserSelect = document.getElementById("browser-install-browser");
   const detected = document.getElementById("browser-install-detected");
-  const names = { chrome: "Google Chrome", edge: "Microsoft Edge", safari: "Safari", firefox: "Firefox", samsung: "Samsung Internet" };
-  let savedState = null;
-  try {
-    const rawState = sessionStorage.getItem(INSTALL_GUIDE_STATE_KEY);
-    if (rawState) savedState = JSON.parse(rawState);
-  } catch (error) {
-    console.error("Unable to read installation guide progress:", error);
-  }
-  native = native || savedState?.native === true;
-  let device = savedState?.device || environment.device;
-  let steps = [];
-  let step = Number.isInteger(savedState?.step) ? savedState.step : 0;
-  let selectedManually = savedState?.selectedManually === true;
-  let tipOpen = savedState?.tipOpen === true;
-  let moreHelpOpen = savedState?.moreHelpOpen === true;
-  let stage = savedState?.stage || null;
-  let currentBrowser = savedState?.browser || environment.browser;
-  const persistState = () => {
-    try {
-      sessionStorage.setItem(INSTALL_GUIDE_STATE_KEY, JSON.stringify({
-        device,
-        browser: currentBrowser,
-        step,
-        native,
-        selectedManually,
-        tipOpen,
-        moreHelpOpen,
-        stage,
-      }));
-    } catch (error) {
-      console.error("Unable to save installation guide progress:", error);
-    }
+  const instructions = document.getElementById("browser-install-steps");
+  const handoff = document.getElementById("browser-install-handoff");
+  const handoffText = document.getElementById("browser-install-handoff-text");
+  const why = document.getElementById("browser-install-why");
+  const nativeButton = document.getElementById("browser-install-native");
+  const status = document.getElementById("browser-install-status");
+  const correction = document.getElementById("browser-install-correction");
+  const help = document.getElementById("browser-install-help");
+  const helpText = document.getElementById("browser-install-help-text");
+  const deviceNames = {
+    iphone: appText("install.device.display.iphone", "an iPhone"),
+    ipad: appText("install.device.display.ipad", "an iPad"),
+    android: appText("install.device.display.android", "an Android phone or tablet"),
+    windows: appText("install.device.display.windows", "a Windows computer"),
+    mac: appText("install.device.display.mac", "a Mac"),
+    chromebook: appText("install.device.display.chromebook", "a Chromebook"),
+    computer: appText("install.device.display.computer", "a computer"),
   };
-  const clearState = () => {
-    try {
-      sessionStorage.removeItem(INSTALL_GUIDE_STATE_KEY);
-    } catch (error) {
-      console.error("Unable to clear installation guide progress:", error);
-    }
+  const browserNames = {
+    chrome: "Google Chrome",
+    edge: "Microsoft Edge",
+    safari: "Safari",
+    firefox: "Firefox",
+    samsung: "Samsung Internet",
+    other: appText("install.otherBrowser", "another browser"),
   };
-  const returnFromGuide = (clearProgress = false) => {
-    if (clearProgress) clearState();
+  const locations = {
+    iphone: appText("install.location.iphone", "your Home Screen"),
+    ipad: appText("install.location.ipad", "your Home Screen"),
+    android: appText("install.location.android", "your Home Screen or app list"),
+    windows: appText("install.location.windows", "the Start menu or app list"),
+    mac: appText("install.location.mac", "the Dock or Applications"),
+    chromebook: appText("install.location.chromebook", "the Chromebook Launcher"),
+    computer: appText("install.location.computer", "your app list"),
+  };
+  deviceSelect.value = environment.device || "computer";
+  browserSelect.value = environment.browser || "other";
+  if (!environment.device || !environment.browser) correction.open = true;
+  let routeCorrected = false;
+
+  const planFor = (device, browser) => {
+    const mobileApple = device === "iphone" || device === "ipad";
+    const desktop = ["windows", "mac", "computer", "chromebook"].includes(device);
+    if (mobileApple && browser === "safari") {
+      return {
+        supported: true,
+        apple: true,
+        steps: [
+          appText("install.wizard.normalSafari", "Use a normal Safari tab, not a Private tab. If this is a Private tab, close it and reopen NRV in a normal Safari tab before continuing."),
+          appText("install.wizard.safariShare", "Tap Share: the square with an arrow pointing up."),
+          appText("install.wizard.safariHome", "Scroll down and tap Add to Home Screen."),
+          appText("install.wizard.safariAdd", "Turn on Open as Web App if offered, then tap Add."),
+        ],
+        help: appText("install.wizard.safariHomeMore", "In the Share menu, scroll past the suggestions and actions. If Add to Home Screen is missing, look in Edit Actions or View More. If Share is hidden, tap the page once to show the browser controls."),
+        handoff: appText("install.handoff.apple", "These steps may hide this page. Before tapping Add, turn on Open as Web App if offered. NRV will appear on your Home Screen. Open its new icon to continue in NRV; any required Terms/Privacy, setup, or recovery will happen there. You do not need to return to this website."),
+      };
+    }
+    if (device === "android" && ["chrome", "edge", "firefox", "samsung"].includes(browser)) {
+      const menu = browser === "edge"
+        ? appText("install.wizard.edgeAndroidMenu", "Tap the three-line menu at the bottom of Microsoft Edge.")
+        : browser === "samsung"
+          ? appText("install.wizard.samsungMenu", "Tap the three-line menu at the bottom of Samsung Internet.")
+          : appText("install.wizard.androidMenu", "Tap the three dots in the browser, near the address bar.");
+      const action = {
+        chrome: appText("install.wizard.chromeAndroidAction", "Tap Install app. If you see Add to Home screen instead, tap that."),
+        edge: appText("install.wizard.edgeAndroidAction", "Tap Add to phone. If asked, choose Install app rather than Create shortcut."),
+        firefox: appText("install.wizard.firefoxAndroidAction", "Tap Install in the Firefox menu."),
+        samsung: appText("install.wizard.samsungAction", "Tap Add page to, then tap Home screen."),
+      }[browser];
+      return {
+        supported: true,
+        steps: [menu, action, appText("install.wizard.androidConfirm", "If a confirmation appears, tap Install or Add to finish.")],
+        help: appText("install.wizard.androidActionMore", "Look for Install app, Add to Home screen, or Add to phone. Menu buttons can be three dots or three lines at the top or bottom of the browser."),
+        handoff: appText("install.handoff.android", "The next action may cover this page. NRV should appear on your Home Screen or in your app list. Open its new icon to continue in NRV; any required Terms/Privacy, setup, or recovery will happen there. You do not need to return to this website."),
+      };
+    }
+    if (desktop && ["chrome", "edge"].includes(browser)) {
+      return {
+        supported: true,
+        steps: [
+          browser === "edge"
+            ? appText("install.wizard.edgeMenu", "Click the three dots at the top right of Microsoft Edge.")
+            : appText("install.wizard.chromeMenu", "Click the three dots at the top right of Google Chrome."),
+          browser === "edge"
+            ? appText("install.wizard.edgeApps", "Click Apps, then click Install this site as an app.")
+            : appText("install.wizard.chromeApps", "Click Cast, save, and share, then click Install page as app."),
+          appText("install.wizard.desktopConfirm", "In the confirmation window, click Install."),
+        ],
+        help: appText("install.wizard.desktopInstallMore", "If the menu option is missing, look for an install icon at the right end of the address bar. In Chrome, look for Install page as app; in Edge, look under Apps."),
+        handoff: appText("install.handoff.desktop", "The browser may open NRV separately and hide this page. If offered, choose only the optional taskbar, Start, or desktop shortcuts you want; none are required. NRV will appear in {location}. Open its new icon to continue in NRV; any required Terms/Privacy, setup, or recovery will happen there. You do not need to return to this website.", { location: locations[device] }),
+      };
+    }
+    if (device === "mac" && browser === "safari") {
+      return {
+        supported: true,
+        steps: [
+          appText("install.wizard.macSafari", "At the top of your Mac screen, click File, then click Add to Dock."),
+          appText("install.wizard.macSafariAdd", "In the window that appears, click Add."),
+        ],
+        help: appText("install.wizard.macSafariTip", "If Add to Dock is missing, update macOS and Safari, or open NRV in Google Chrome instead."),
+        handoff: appText("install.handoff.mac", "Adding NRV may open it in a new app window and hide this page. If offered, choose Open at login only if you want NRV to start automatically. NRV will appear in the Dock. Open its new icon to continue in NRV; any required Terms/Privacy, setup, or recovery will happen there. You do not need to return to this website."),
+      };
+    }
+    return {
+      supported: false,
+      steps: [mobileApple
+        ? appText("install.wizard.unsupportedApple", "For installation on an iPhone or iPad, use Safari in a normal tab and open this site there.")
+        : appText("install.wizard.unsupported", "This device and browser combination is not covered here. Use Google Chrome or Microsoft Edge on a computer, or a supported browser on your device."),
+      ],
+      help: "",
+      handoff: "",
+    };
+  };
+
+  const render = () => {
+    const device = deviceSelect.value;
+    const browser = browserSelect.value;
+    const detectedDevice = Boolean(environment.device);
+    const detectedBrowser = Boolean(environment.browser);
+    const unchanged = device === environment.device && browser === environment.browser;
+    detected.textContent = detectedDevice && detectedBrowser && unchanged
+      ? appText("install.wizard.detected", "It looks like you're using {browser} on {device}.", {
+          browser: browserNames[browser],
+          device: deviceNames[device],
+        })
+      : routeCorrected
+        ? appText("install.routeSelected", "Installation instructions for {browser} on {device}.", {
+            browser: browserNames[browser],
+            device: deviceNames[device],
+          })
+        : detectedDevice && !detectedBrowser
+          ? appText("install.detectedDevice", "It looks like you're using {device}, but NRV couldn't identify your browser.", {
+              device: deviceNames[device],
+            })
+          : detectedBrowser && !detectedDevice
+            ? appText("install.detectedBrowser", "NRV detected {browser}, but couldn't identify your device.", {
+                browser: browserNames[browser],
+              })
+            : appText("install.wizard.unknown", "We couldn't identify your device or browser. Choose them below to see the right instructions.");
+    const plan = planFor(device, browser);
+    const nativePromptAvailable = Boolean(window.nrvDeferredInstallPrompt);
+    const location = locations[device];
+    instructions.replaceChildren();
+    plan.steps.forEach((text) => {
+      const item = document.createElement("li");
+      item.textContent = text;
+      instructions.appendChild(item);
+    });
+    why.hidden = !plan.apple;
+    help.hidden = !plan.help;
+    helpText.textContent = plan.help;
+    handoff.hidden = !plan.supported && !nativePromptAvailable;
+    handoffText.textContent = plan.handoff || appText("install.handoff.generic", "This page may disappear when you install. NRV will appear in {location}. Open its new icon to continue in the installed app; setup or recovery will happen there.", { location });
+    nativeButton.hidden = !nativePromptAvailable;
+    nativeButton.setAttribute("aria-label", appText("launch.installButton", "Install NRV Icon"));
+    status.hidden = true;
+    status.textContent = "";
+    return plan;
+  };
+
+  const returnFromGuide = () => {
     screen.hidden = true;
     document.title = originalTitle;
+    deviceSelect.removeEventListener("change", onRouteChange);
+    browserSelect.removeEventListener("change", onRouteChange);
+    window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
     if (returnToApp) {
       appContainer.hidden = false;
       appContainer.inert = false;
@@ -650,170 +740,54 @@ const showBrowserInstallGuide = ({ native = false, returnToApp = false } = {}) =
       document.getElementById("btn-choose-install").focus();
     }
   };
-  const show = (part) => {
-    stage = part;
-    selection.hidden = part !== "device";
-    browserSelection.hidden = part !== "browser";
-    instructions.hidden = part !== "steps";
-    wrongBrowser.hidden = part !== "steps" || native || !environment.browser;
-    const focus = part === "device" ? "browser-install-select-title" :
-      part === "browser" ? "browser-install-browser-title" : "browser-install-step-title";
-    document.getElementById(focus).focus();
-    persistState();
-  };
-  const render = () => {
-    step = Math.max(0, Math.min(step, steps.length - 1));
-    const current = steps[step];
-    title.textContent = appText("install.wizard.stepTitle", "Step {number} of {total}", { number: step + 1, total: steps.length });
-    text.textContent = current.text;
-    tip.hidden = !tipOpen;
-    tip.textContent = current.tip || "";
-    moreTip.hidden = !moreHelpOpen || !current.moreHelp;
-    moreTip.textContent = current.moreHelp || "";
-    help.setAttribute("aria-expanded", String(tipOpen));
-    help.hidden = !current.tip;
-    help.textContent = current.helpLabel || appText("install.cantFind", "I don't see it");
-    moreHelp.hidden = !tipOpen || !current.moreHelp;
-    moreHelp.setAttribute("aria-expanded", String(moreHelpOpen));
-    next.hidden = step === steps.length - 1;
-    manual.hidden = native;
-    show("steps");
-    persistState();
-  };
-  const start = (browser) => {
-    const mobileApple = device === "iphone" || device === "ipad";
-    const desktop = ["windows", "mac", "computer", "chromebook"].includes(device);
-    steps = [];
-    currentBrowser = browser;
-    if (mobileApple && browser === "safari") {
-      steps.push(
-        { text: appText("install.wizard.normalSafari", "Use a normal Safari tab, not a Private tab. If this is a Private tab, close it and reopen NRV in a normal Safari tab before continuing.") },
-        { text: appText("install.wizard.safariShare", "Tap Share: the square with an arrow pointing up.", { }), tip: appText("install.wizard.safariShareTip", "If Share is hidden, tap the three dots near the address bar, then tap Share. On iPad, look at the top of the screen."), moreHelp: appText("install.wizard.safariShareMore", "On iPhone, look along the bottom browser toolbar. On iPad, look near the top of the screen. If the toolbar is hidden, tap the page once to show it."), helpLabel: appText("install.shareHelp", "I can't find Share") },
-        { text: appText("install.wizard.safariHome", "Scroll down and tap Add to Home Screen."), tip: appText("install.wizard.safariHomeTip", "Scroll to the bottom of the Share menu. Tap Edit Actions to add Add to Home Screen if necessary; on iPad, tap View More if shown."), moreHelp: appText("install.wizard.safariHomeMore", "In the Share menu, scroll down past the suggestions and actions. If Add to Home Screen is not listed, use Edit Actions or View More to look for it."), helpLabel: appText("install.homeHelp", "I can't find Add to Home Screen") },
-        { text: appText("install.wizard.safariAdd", "Turn on Open as Web App if offered, then tap Add.") },
-      );
-    } else if (device === "android" && ["chrome", "edge", "firefox", "samsung"].includes(browser)) {
-      const menuText = browser === "edge"
-        ? appText("install.wizard.edgeAndroidMenu", "Tap the three-line menu at the bottom of Microsoft Edge.")
-        : browser === "samsung"
-          ? appText("install.wizard.samsungMenu", "Tap the three-line menu at the bottom of Samsung Internet.")
-          : appText("install.wizard.androidMenu", "Tap the three dots in the browser, near the address bar.");
-      const action = {
-        chrome: appText("install.wizard.chromeAndroidAction", "Tap Install app. If you see Add to Home screen instead, tap that."),
-        edge: appText("install.wizard.edgeAndroidAction", "Tap Add to phone. If asked, choose Install app rather than Create shortcut."),
-        firefox: appText("install.wizard.firefoxAndroidAction", "Tap Install in the Firefox menu."),
-        samsung: appText("install.wizard.samsungAction", "Tap Add page to, then tap Home screen."),
-      };
-      steps.push(
-        { text: menuText, tip: appText("install.wizard.androidMenuTip", "Look at the top or bottom edge of the browser. Tap once on the page if the browser controls are hidden."), moreHelp: appText("install.wizard.androidMenuMore", "The menu button may be three dots or three lines, and its position can vary. Look along the browser's top and bottom bars.") },
-        { text: action[browser], tip: appText("install.wizard.androidActionTip", "Scroll through the menu or swipe its rows to find the option. If it is unavailable, try Chrome in a normal tab and open NRV from nicereturnvisits.org."), moreHelp: appText("install.wizard.androidActionMore", "Look for Install app, Add to Home screen, or Add to phone. If none appears, use the browser correction button to try another supported browser.") },
-        { text: appText("install.wizard.androidConfirm", "If a confirmation appears, tap Install or Add to finish.") },
-      );
-    } else if (desktop && ["chrome", "edge"].includes(browser)) {
-      steps.push(
-        { text: browser === "edge" ? appText("install.wizard.edgeMenu", "Click the three dots at the top right of Microsoft Edge.") : appText("install.wizard.chromeMenu", "Click the three dots at the top right of Google Chrome."),
-          tip: appText("install.wizard.desktopMenuTip", "Look at the far right of the browser window, above this page."),
-          moreHelp: appText("install.wizard.desktopMenuMore", "The browser menu is usually at the upper-right. If the window is narrow, maximize it and look again.") },
-        { text: browser === "edge" ? appText("install.wizard.edgeApps", "Click Apps, then click Install this site as an app.") : appText("install.wizard.chromeApps", "Click Cast, save, and share, then click Install page as app."),
-          tip: appText("install.wizard.desktopInstallTip", "If the option is missing, check for an install icon at the right end of the address bar. If neither appears, try a normal browser window and reload NRV."),
-          moreHelp: appText("install.wizard.desktopInstallMore", "In Chrome, look for Install page as app. In Edge, look under Apps for Install this site as an app. The address-bar install icon may also be available.") },
-        { text: appText("install.wizard.desktopConfirm", "In the confirmation window, click Install.") },
-      );
-    } else if (device === "mac" && browser === "safari") {
-      steps.push(
-        { text: appText("install.wizard.macSafari", "At the top of your Mac screen, click File, then click Add to Dock."),
-          tip: appText("install.wizard.macSafariTip", "If Add to Dock is missing, update macOS and Safari, or open NRV in Google Chrome instead.") },
-        { text: appText("install.wizard.macSafariAdd", "In the window that appears, click Add.") },
-      );
-    } else {
-      steps.push({ text: mobileApple
-        ? appText("install.wizard.unsupportedApple", "For a reliable installed icon, open Safari in a normal tab, visit nicereturnvisits.org, choose Open NRV, and start this guide again.")
-        : appText("install.wizard.unsupported", "This browser and device combination is not covered by this guide. Open Google Chrome in a normal window, visit nicereturnvisits.org, choose Open NRV, and start this guide again.") });
-      render();
-      return;
-    }
-    steps.push(
-      { text: appText("install.wizard.close", "After installing, close this browser page. Then open NRV from its new icon and follow the setup or recovery prompts. If an NRV app window opened automatically, continue there instead. Select Next now for help finding the icon.") },
-      { text: device === "chromebook"
-        ? appText("install.wizard.openChromeOs", "Open NRV from its new icon in the Chromebook Launcher.")
-        : desktop
-          ? appText("install.wizard.openComputer", "Open Nice Return Visits from its new icon: look in the Start menu on Windows, the Dock or Applications on a Mac, or your computer's app launcher.")
-          : appText("install.wizard.openMobile", "Find the new NRV icon on your Home Screen and tap it."),
-        tip: device === "chromebook"
-          ? appText("install.wizard.openChromeOsTip", "Open the Launcher at the bottom-left of the screen and search for NRV.")
-          : desktop ? appText("install.wizard.openComputerTip", "Search your computer for NRV or Nice Return Visits. If you cannot find it, go Back and check that installation finished.") : appText("install.wizard.openMobileTip", "Swipe through your Home Screens or search for NRV. If it is not there, go Back and check that installation finished.") },
-      { text: appText("install.wizard.setup", "In the installed NRV window, follow the prompts to continue setup or restore your previous information. If your contacts are in another copy, back up that copy and restore it here; check your contacts before removing the original.") },
-    );
-    const resumeSamePath = savedState &&
-      savedState.device === device &&
-      savedState.browser === browser &&
-      savedState.native !== true;
-    step = resumeSamePath ? Math.min(savedState.step || 0, steps.length - 1) : 0;
-    tipOpen = resumeSamePath && savedState.tipOpen === true;
-    native = false;
+
+  const onRouteChange = () => {
+    routeCorrected = true;
     render();
   };
-  const selectDevice = () => {
-    selectedManually = true;
-    native = false;
-    savedState = null;
-    show("device");
-    persistState();
+  deviceSelect.addEventListener("change", onRouteChange);
+  browserSelect.addEventListener("change", onRouteChange);
+  const onBeforeInstallPrompt = () => {
+    nativeButton.hidden = false;
+    handoff.hidden = false;
   };
-  const selectBrowser = () => {
-    selectedManually = true;
-    currentBrowser = null;
-    detected.textContent = appText("install.wizard.chooseDetectedBrowser", "Choose the browser you are using. The first instructions followed the browser NRV detected.", {});
-    show("browser");
-    persistState();
-  };
-  document.querySelectorAll("[data-install-device]").forEach((button) => {
-    button.onclick = () => {
-      selectedManually = true;
-      device = button.dataset.installDevice;
-      detected.textContent = environment.browser
-        ? appText("install.wizard.detected", "It looks like you're using {browser}. Select it below to confirm, or choose another browser.", { browser: names[environment.browser] })
-        : appText("install.wizard.unknown", "We couldn't identify your browser. Select it below, or choose Another browser / I don't know.");
-      show("browser");
-      persistState();
-    };
-  });
-  document.querySelectorAll("[data-install-browser]").forEach((button) => {
-    button.onclick = () => { selectedManually = true; step = 0; savedState = null; start(button.dataset.installBrowser); };
-  });
-  next.onclick = () => {
-    if (step < steps.length - 1) {
-      step++;
-      tipOpen = false;
-      moreHelpOpen = false;
-      render();
+  window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+  document.getElementById("browser-install-cancel").onclick = returnFromGuide;
+  nativeButton.onclick = async () => {
+    const prompt = window.nrvDeferredInstallPrompt;
+    if (!prompt) {
+      nativeButton.hidden = true;
+      status.textContent = appText("install.nativeUnavailable", "Use the installation steps below.");
+      status.hidden = false;
+      return;
+    }
+    window.nrvDeferredInstallPrompt = null;
+    nativeButton.disabled = true;
+    try {
+      await prompt.prompt();
+      const choice = await prompt.userChoice;
+      status.textContent = choice.outcome === "accepted"
+        ? appText("install.nativeAccepted", "Installation is starting. If NRV does not open automatically, open its new icon and continue there.")
+        : appText("install.nativeDismissed", "Installation was not completed. You can use the steps below.");
+      status.hidden = false;
+    } catch (error) {
+      console.error("Unable to open the installation prompt:", error);
+      status.textContent = appText("install.nativeFailed", "The installation prompt could not be opened. You can use the steps below.");
+      status.hidden = false;
+    } finally {
+      nativeButton.disabled = false;
+      nativeButton.hidden = true;
+      status.focus();
     }
   };
-  help.onclick = () => {
-    tipOpen = true;
-    moreHelpOpen = false;
-    tip.hidden = false;
-    help.setAttribute("aria-expanded", "true");
-    moreHelp.hidden = !steps[step].moreHelp;
-    persistState();
-  };
-  moreHelp.onclick = () => {
-    moreHelpOpen = !moreHelpOpen;
-    moreTip.hidden = !moreHelpOpen;
-    moreTip.textContent = steps[step].moreHelp || "";
-    moreHelp.setAttribute("aria-expanded", String(moreHelpOpen));
-    persistState();
-  };
-  manual.onclick = selectDevice;
-  wrongBrowser.onclick = selectBrowser;
   screen.onkeydown = (event) => {
     if (event.key === "Escape") {
       event.preventDefault();
-      returnFromGuide(true);
+      returnFromGuide();
       return;
     }
     if (event.key !== "Tab") return;
-    const focusable = [...screen.querySelectorAll('button:not([hidden]):not(:disabled), a[href]')]
+    const focusable = [...screen.querySelectorAll('button:not([hidden]):not(:disabled), a[href], select:not(:disabled), summary')]
       .filter((element) => element.getClientRects().length > 0);
     if (!focusable.length) return;
     const first = focusable[0];
@@ -826,52 +800,9 @@ const showBrowserInstallGuide = ({ native = false, returnToApp = false } = {}) =
       first.focus();
     }
   };
-  document.getElementById("browser-install-back").onclick = () => {
-    if (!instructions.hidden && step > 0) { step--; tipOpen = false; moreHelpOpen = false; render(); }
-    else if (!instructions.hidden && selectedManually) show("browser");
-    else if (!instructions.hidden) returnFromGuide();
-    else if (!browserSelection.hidden) show("device");
-    else returnFromGuide();
-  };
-  document.getElementById("browser-install-cancel").onclick = () => {
-    returnFromGuide(true);
-  };
-  if (savedState?.stage === "device" && !native) {
-    show("device");
-  } else if (savedState?.stage === "browser" && selectedManually && !native) {
-    detected.textContent = appText("install.wizard.chooseDetectedBrowser", "Choose the browser you are using. The first instructions followed the browser NRV detected.");
-    show("browser");
-  } else if (native) {
-    const desktop = ["windows", "mac", "computer", "chromebook"].includes(device);
-    steps = [
-      { text: appText("install.wizard.nativeOpen", "If NRV opened in its own window, continue there. Otherwise, open NRV from its new icon, then follow setup or recovery.") },
-      { text: device === "chromebook"
-        ? appText("install.wizard.openChromeOs", "Open NRV from its new icon in the Chromebook Launcher.")
-        : desktop
-          ? appText("install.wizard.openComputer", "Open Nice Return Visits from its new icon: look in the Start menu on Windows, the Dock or Applications on a Mac, or your computer's app launcher.")
-        : device
-          ? appText("install.wizard.openMobile", "Find the new NRV icon on your Home Screen and tap it.")
-          : appText("install.wizard.openUnknown", "Find and open NRV from its new icon."),
-        tip: device === "chromebook"
-          ? appText("install.wizard.openChromeOsTip", "Open the Launcher at the bottom-left of the screen and search for NRV.")
-          : desktop
-            ? appText("install.wizard.openComputerTip", "Search your computer for NRV or Nice Return Visits. If you cannot find it, go Back and check that installation finished.")
-          : device
-            ? appText("install.wizard.openMobileTip", "Swipe through your Home Screens or search for NRV. If it is not there, go Back and check that installation finished.")
-            : appText("install.wizard.openUnknownTip", "Search your device for NRV or Nice Return Visits. If you cannot find it, go Back and check that installation finished.") },
-      { text: appText("install.wizard.setup", "In the installed NRV window, follow the prompts to continue setup or restore your previous information. If your contacts are in another copy, back up that copy and restore it here; check your contacts before removing the original.") },
-    ];
-    render();
-  } else if (device && environment.embedded) {
-    start("other");
-  } else if (device && (savedState?.browser || environment.browser)) {
-    start(savedState?.device === device && savedState.browser ? savedState.browser : environment.browser);
-  } else if (device) {
-    detected.textContent = appText("install.wizard.unknown", "We couldn't identify your browser. Select it below, or choose Another browser / I don't know.");
-    show("browser");
-  } else {
-    show("device");
-  }
+  render();
+  screen.hidden = false;
+  document.getElementById("browser-install-title").focus();
 };
 const markInstalledSetupComplete = () => {
   try {
@@ -10750,12 +10681,6 @@ const initializeApp = async () => {
   document
     .getElementById("btn-export-backup")
     .addEventListener("click", () => downloadEncryptedBackup());
-  document
-    .getElementById("btn-contacts-backup")
-    .addEventListener("click", () =>
-      document.getElementById("btn-export-backup").click(),
-    );
-
   const contactTransferDialog = document.getElementById(
     "contact-transfer-dialog",
   );
@@ -11207,18 +11132,6 @@ const initializeApp = async () => {
     .addEventListener("click", () =>
       restoreBackupFile(backupFileInput.files[0]),
     );
-  const contactsBackupFileInput = document.getElementById(
-    "contacts-backup-file-input",
-  );
-  document
-    .getElementById("btn-contacts-restore")
-    .addEventListener("click", () => contactsBackupFileInput.click());
-  contactsBackupFileInput.addEventListener("change", async () => {
-    const file = contactsBackupFileInput.files[0];
-    if (!file) return;
-    await restoreBackupFile(file);
-    contactsBackupFileInput.value = "";
-  });
   const clearRestoreFileButton = document.getElementById(
     "btn-clear-restore-file",
   );

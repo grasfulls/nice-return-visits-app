@@ -53,10 +53,10 @@ async function main() {
   await installation;
   assert.strictEqual(cache.name, `return-visits-shell-${revision.slice(7)}`);
   const cachedIndex = entries.get(normalize("./index.html")).body;
-  assert(cachedIndex.includes('id="btn-contacts-backup"'));
-  assert(cachedIndex.includes('id="btn-contacts-restore"'));
-  assert(entries.get(normalize("./locales/en.json")).body.includes('"backup.contactsBackup": "Backup"'));
-  assert(entries.get(normalize("./locales/es.json")).body.includes('"backup.contactsBackup": "Copia de seguridad"'));
+  assert(!cachedIndex.includes('id="btn-contacts-backup"'));
+  assert(!cachedIndex.includes('id="btn-contacts-restore"'));
+  assert(cachedIndex.includes('id="btn-export-backup"'));
+  assert(cachedIndex.includes('id="btn-restore-backup"'));
   assert(!source.includes("NRV-Privacy-Notice.pdf"));
   assert(!entries.has(normalize("./docs/NRV-Privacy-Notice.pdf")));
   console.log("PASS  service-worker installation does not require the removed local PDF");
@@ -78,8 +78,8 @@ async function main() {
     const response = await offline(`./locales/${lang}.json`);
     const catalog = JSON.parse(response.body);
     assert(catalog["contacts.add"]);
-    assert(catalog["backup.contactsBackup"]);
-    assert(catalog["backup.contactsRestore"]);
+    assert(catalog["backup.everything"]);
+    assert(catalog["backup.restoreSelected"]);
     assert(catalog["goals.path.beginMinistry"]);
     console.log(`PASS  ${lang} catalog is available offline`);
     const shell = await offline(`./?lang=${lang}`, "navigate");
