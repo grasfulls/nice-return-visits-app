@@ -6,10 +6,26 @@ const vm = require("vm");
 
 const root = path.join(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const catalogs = Object.fromEntries(["en", "es"].map((language) => [
   language,
   JSON.parse(fs.readFileSync(path.join(root, "locales", `${language}.json`), "utf8")),
 ]));
+const defaultsSection = index.slice(
+  index.indexOf('id="defaults-section"'),
+  index.indexOf('id="your-details-section"'),
+);
+assert(defaultsSection.includes('data-i18n="addressing.label">Address Format</label>'));
+assert(defaultsSection.includes('data-i18n="addressing.explanation">Which country’s addressing format should NRV use?</small>'));
+assert(defaultsSection.includes('data-i18n="defaults.countryLabel">Default Country</label>'));
+assert(defaultsSection.includes('data-i18n="defaults.countryExplanation">Which country should NRV use for your default location and new contacts?</small>'));
+assert.strictEqual(catalogs.en["addressing.label"], "Address Format");
+assert.strictEqual(catalogs.en["defaults.countryLabel"], "Default Country");
+assert.strictEqual(catalogs.es["addressing.label"], "Formato de dirección");
+assert.strictEqual(catalogs.es["defaults.countryLabel"], "País predeterminado");
+assert(source.includes('settings.country = me.country;'));
+assert(source.includes('settings.addressingCountry = normalizeCountry('));
+console.log("PASS  Defaults & Your Details country controls retain their functions with clarified labels");
 const declaration = (name) => {
   const start = source.indexOf(`const ${name} =`);
   assert.notStrictEqual(start, -1, `${name} exists`);

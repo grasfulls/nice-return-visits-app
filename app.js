@@ -18,7 +18,7 @@ const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
 const APP_VERSION = "0.9.55";
-const APP_BUILD_REVISION = "sha256:a90714c217a9cf31ecfc1c92009926a2712ed0b7530e397ec5c7a0937bf58acc";
+const APP_BUILD_REVISION = "sha256:596418e585e4642594d67d456d9196bf0a39f78474d9559c32f41d471e93f85f";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {

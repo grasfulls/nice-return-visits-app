@@ -82,6 +82,16 @@ const unknown = [...usedKeys].filter((k) => !(k in en));
 check(unknown.length === 0, `index.html uses only keys defined in en.json${unknown.length ? ` (${unknown.join(", ")})` : ""}`);
 check(textMismatch.length === 0, `index.html English text equals en.json${textMismatch.length ? ` (${textMismatch.join(", ")})` : ""}`);
 check(usedKeys.size > 0, `index.html uses ${usedKeys.size} i18n keys`);
+check(en["agreement.notice.small"] ===
+  "Dropbox, contact sharing, and address searches are used only when you choose to use those features." &&
+  catalogs.es["agreement.notice.small"] ===
+  "Dropbox, el uso compartido de contactos y las búsquedas de direcciones solo se utilizan cuando eliges usar esas funciones.",
+  "privacy feature-choice wording is equivalent in English and Spanish");
+check(en["backup.strategy"].includes("use Dropbox to help keep your NRV contacts synchronized across devices") &&
+  catalogs.es["backup.strategy"].includes("usa Dropbox para ayudar a mantener sincronizados tus contactos de NRV entre dispositivos") &&
+  en["setup.securityDetails"].includes("use Dropbox to help keep your NRV contacts synchronized across devices") &&
+  catalogs.es["setup.securityDetails"].includes("usa Dropbox para ayudar a mantener sincronizados tus contactos de NRV entre dispositivos"),
+  "Dropbox wording avoids promising automatic or error-free synchronization");
 
 const runtimeKeys = new Set();
 for (const filename of ["app.js", "dropbox.js", "i18n.js"]) {

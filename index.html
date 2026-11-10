@@ -211,8 +211,8 @@
               wherever you choose.
             </p>
             <small data-i18n="agreement.notice.small">
-              Continuing does not connect Dropbox or send a contact or address
-              search.
+              Dropbox, contact sharing, and address searches are used only when
+              you choose to use those features.
             </small>
           </aside>
           <p>
@@ -603,10 +603,12 @@
               <details class="settings-section" id="defaults-section">
               <summary data-i18n="settings.defaults">Defaults</summary>
               <form id="settings-form">
-                <label for="settings-address-country" data-i18n="addressing.label">Country Addressing</label>
+                <label for="settings-address-country" data-i18n="addressing.label">Address Format</label>
                 <select id="settings-address-country"></select>
-                <label for="me-country" data-i18n="contacts.country">Country:</label>
+                <small data-i18n="addressing.explanation">Which country’s addressing format should NRV use?</small>
+                <label for="me-country" data-i18n="defaults.countryLabel">Default Country</label>
                 <select id="me-country"></select>
+                <small data-i18n="defaults.countryExplanation">Which country should NRV use for your default location and new contacts?</small>
                 <div id="new-me-country-container" hidden>
                   <label for="input-new-me-country" data-i18n="location.newCountry">New country name:</label>
                   <input type="text" id="input-new-me-country" placeholder="Enter country name..." data-i18n-attr="placeholder:location.enterCountry" />
@@ -965,8 +967,8 @@
               </p>
               <p data-i18n="backup.strategy">
                 One device: Local backup is normally sufficient. Multiple
-                devices: use Dropbox when you want NRV to coordinate them
-                automatically. Keep a separate recovery copy somewhere NRV
+                devices: use Dropbox to help keep your NRV contacts synchronized
+                across devices. Keep a separate recovery copy somewhere NRV
                 cannot manage.
               </p>
               <p id="backup-mode-status" role="status"></p>
@@ -1221,8 +1223,9 @@
             <option value="en">English</option>
             <option value="es">Español</option>
           </select>
-          <label for="setup-address-country" data-i18n="addressing.label">Country Addressing</label>
+          <label for="setup-address-country" data-i18n="addressing.label">Address Format</label>
           <select id="setup-address-country"></select>
+          <small data-i18n="addressing.explanation">Which country’s addressing format should NRV use?</small>
           <p data-i18n="setup.locationIntro">
             You can set default location details and optional information
             about yourself whenever you like. These choices prepare contact
@@ -1272,7 +1275,8 @@
           <p data-i18n="setup.securityDetails">
             Passphrase protection is optional. Set it now or later under
             Settings → Data/Security. One-device use normally needs only Local
-            backup; use Dropbox for automatic coordination across devices.
+            backup; use Dropbox to help keep your NRV contacts synchronized
+            across devices.
           </p>
           <div class="install-screen-actions">
             <button type="button" id="btn-dismiss-install-banner" data-i18n="setup.defaultsDetails">
