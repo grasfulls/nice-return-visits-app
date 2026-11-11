@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 const root = path.join(__dirname, "..");
-const versionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*|058|059)(?![\s\S])/;
+const versionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(?:0|0(?:5[89]|[6-9]\d)|[1-9]\d*)(?![\s\S])/;
 
 const canonicalVersion = (source) => {
   const declarations = [...source.matchAll(/^const APP_VERSION = "([^"]*)";$/gm)];
@@ -16,7 +16,7 @@ const compareVersions = (left, right) => {
   const order = (version) => {
     const parts = version.split(".");
     const patch = Number(parts[2]);
-    if (parts[0] === "0" && parts[1] === "9" && patch >= 51 && patch <= 59) {
+    if (parts[0] === "0" && parts[1] === "9" && patch >= 51) {
       return [parts[0], parts[1], "5", String(patch - 50)];
     }
     return [parts[0], parts[1], parts[2], "0"];

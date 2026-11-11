@@ -63,7 +63,7 @@ assert.notStrictEqual(
 assert.match(checkBuildFiles(), /^sha256:[a-f0-9]{64}$/);
 assert.strictEqual(
   JSON.parse(fs.readFileSync(path.join(root, "version.json"), "utf8")).version,
-  "0.9.059",
+  "0.9.060",
 );
 
 console.log("PASS generated asset revision covers app assets and remains stable across regeneration");

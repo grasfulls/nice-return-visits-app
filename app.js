@@ -16,8 +16,8 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 // Set to true to require a passphrase when no encryption has been set up yet.
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
-const APP_VERSION = "0.9.059";
-const APP_BUILD_REVISION = "sha256:67f1459a2672ecda3c1c6562e14599baff546e9564a46c072d671b40a1a6197b";
+const APP_VERSION = "0.9.060";
+const APP_BUILD_REVISION = "sha256:50485d8d46da4160812c94568e1f311f5c595ccaf581a34915123f72ac5ed60c";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -30,7 +30,7 @@ const updatePublicVersionLink = (link) => {
   link.href = publicVersionHistoryUrl(APP_VERSION, window.NRVI18n.getLanguage());
 };
 const parseAppVersion = (version) => {
-  if (typeof version !== "string" || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*|058|059)(?![\s\S])/.test(version)) {
+  if (typeof version !== "string" || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(?:0|0(?:5[89]|[6-9]\d)|[1-9]\d*)(?![\s\S])/.test(version)) {
     throw new Error("Invalid app version; expected MAJOR.MINOR.PATCH.");
   }
   return version.split(".");
@@ -45,8 +45,8 @@ const parseAppBuildRevision = (revision) => {
 const appVersionOrder = (version) => {
   const parts = parseAppVersion(version);
   const patch = Number(parts[2]);
-  // 0.9.51-0.9.59 are small updates to 0.9.5, before the larger 0.9.6 release.
-  if (parts[0] === "0" && parts[1] === "9" && patch >= 51 && patch <= 59) {
+  // 0.9.51 and later are small updates to 0.9.5, before the larger 0.9.6 release.
+  if (parts[0] === "0" && parts[1] === "9" && patch >= 51) {
     return [parts[0], parts[1], "5", String(patch - 50)];
   }
   return [parts[0], parts[1], parts[2], "0"];

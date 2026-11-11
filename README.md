@@ -357,9 +357,10 @@ NRV uses `MAJOR.MINOR.PATCH`: increment PATCH for backward-compatible fixes,
 MINOR for backward-compatible features, and MAJOR for incompatible or
 fundamental changes. Versions beginning with `0` are development releases;
 `1.0.0` is reserved for the first completed public release.
-For this release series, `0.9.51` through `0.9.59` are minor updates after
-`0.9.5` and before `0.9.6`. The app and release-history comparators preserve
-that order.
+For this release series, `0.9.51` and later are minor updates after `0.9.5`
+and before `0.9.6`. Starting with `0.9.060`, keep the final version component
+three digits and increment it sequentially for each changed production
+release. The app and release-history comparators preserve that order.
 
 For each release:
 
@@ -370,8 +371,9 @@ For each release:
 3. After approval, update `APP_VERSION` in `app.js`. Run
    `node scripts/build-revision.js --write` to generate `version.json` and the
    matching internal revision in `app.js` and `service-worker.js`, then run
-   `node scripts/build-revision.js --check` to verify them. Routine changes do
-   not require changing `APP_VERSION`.
+   `node scripts/build-revision.js --check` to verify them. Each production
+   deployment that changes delivered app code must use the next sequential
+   approved `APP_VERSION`; the generated asset revision remains separate.
 4. Add a newest-first entry to `release-history.json` with the approved version
    and concise, verified English and Spanish user-facing notes. It is the
    single source for the app's current-release notes and the website's history.
