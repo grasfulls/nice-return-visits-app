@@ -75,7 +75,7 @@ async function main() {
 
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
   assert(html.includes('id="setup-language"'), "setup offers a language preference");
-  assert(html.includes('id="settings-language"'), "Settings offers a language preference");
+  assert(!html.includes('id="settings-language"'), "Settings has no app language selector");
   assert(html.includes('id="setup-address-country"'), "setup offers Country Addressing");
   assert(html.includes('id="settings-address-country"'), "Settings offers Country Addressing");
   assert(!source.includes("data-language-selector"));

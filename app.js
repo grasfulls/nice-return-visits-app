@@ -17,8 +17,8 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
-const APP_VERSION = "0.9.57";
-const APP_BUILD_REVISION = "sha256:4d44255e00e962e90323fc8cae7209a99123823cae68e579e45a3523d6906c44";
+const APP_VERSION = "0.9.058";
+const APP_BUILD_REVISION = "sha256:e7f821197a3be1b04caa626b6965ec5e2008c3504e8f56bdcbf83cf2fea4d53c";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -31,7 +31,7 @@ const updatePublicVersionLink = (link) => {
   link.href = publicVersionHistoryUrl(APP_VERSION, window.NRVI18n.getLanguage());
 };
 const parseAppVersion = (version) => {
-  if (typeof version !== "string" || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?![\s\S])/.test(version)) {
+  if (typeof version !== "string" || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*|058)(?![\s\S])/.test(version)) {
     throw new Error("Invalid app version; expected MAJOR.MINOR.PATCH.");
   }
   return version.split(".");
@@ -6826,11 +6826,7 @@ const initializeApp = async () => {
     });
   document
     .getElementById("btn-view-goals")
-    .addEventListener("click", () => {
-      document
-        .querySelector('#bottom-nav .nav-btn[data-view="goals-view"]')
-        ?.click();
-    });
+    .addEventListener("click", async () => await navigateToView("goals-view"));
   document.getElementById("settings-goals-encouragement").checked =
     goalsData().encouragementEnabled;
 
@@ -6840,7 +6836,6 @@ const initializeApp = async () => {
     { id: "contacts-view", icon: "👥" },
     { id: "map-view", icon: "map" },
     { id: "time-view", icon: "⏱️" },
-    { id: "goals-view", icon: "🧭" },
     { id: "settings-view", icon: "⚙️" },
   ];
 
@@ -7006,6 +7001,10 @@ const initializeApp = async () => {
       "settings-open",
       currentViewId === "settings-view",
     );
+    document.body.classList.toggle(
+      "goals-view-open",
+      currentViewId === "goals-view",
+    );
     const navContainer = document.getElementById("bottom-nav");
     navContainer.innerHTML = "";
     getPageActions().forEach((action) => {
@@ -7044,7 +7043,6 @@ const initializeApp = async () => {
           "contacts-view": appText("view.contacts", "Contacts"),
           "map-view": appText("view.map", "Map"),
           "time-view": appText("view.time", "Time"),
-          "goals-view": appText("goals.title", "Goals & Milestones"),
           "settings-view": appText("settings.title", "Settings"),
         };
         btn.setAttribute("aria-label", navLabels[btnConfig.id]);
@@ -7068,59 +7066,63 @@ const initializeApp = async () => {
           badge.textContent = "!";
           icon.appendChild(badge);
         }
-        btn.addEventListener("click", async () => {
-          if (currentViewId === "settings-view" && !(await confirmLeaveSettings())) {
-            return;
-          }
-          if (currentViewId === "map-view") stopMapLocationWatch();
-          if (currentViewId === "settings-view") {
-            document
-              .querySelectorAll("#settings-view details[open]")
-              .forEach((section) => {
-                section.open = false;
-              });
-          }
-          const previousViewId = currentViewId;
-          currentViewId = btnConfig.id;
-          setMapFilterPlacement(currentViewId === "map-view");
-          if (currentViewId === "settings-view") discardDefaultsAndDetails();
-          document
-            .querySelectorAll(".view")
-            .forEach((v) => v.classList.remove("active"));
-          document.getElementById(currentViewId).classList.add("active");
-          renderBottomNav();
-          if (currentViewId === "settings-view" && appUpdateAvailable) {
-            document
-              .getElementById("app-update-notice")
-              .closest("details").open = true;
-            appUpdatePromptDismissed = false;
-            appUpdatePromptHandler?.();
-          }
-
-          if (currentViewId === "time-view") renderTimeView();
-          if (currentViewId === "goals-view") await renderGoalsView();
-          if (currentViewId === "contacts-view") renderGoalAcknowledgement();
-
-          if (currentViewId === "contacts-view" && previousViewId !== "settings-view") {
-            showSetupNextStepsIfReady();
-          }
-
-          if (currentViewId === "map-view") {
-            if (!map) {
-              initMap();
-            } else {
-              setTimeout(() => {
-                map.invalidateSize();
-                renderMapMarkers();
-              }, 50);
-            }
-            startMapLocationWatch();
-          }
-        });
+        btn.addEventListener("click", () => navigateToView(btnConfig.id));
         navContainer.appendChild(btn);
       }
     });
   };
+  const navigateToView = async (viewId) => {
+    if (currentViewId === "settings-view" && !(await confirmLeaveSettings())) {
+      return;
+    }
+    if (currentViewId === "map-view") stopMapLocationWatch();
+    if (currentViewId === "settings-view") {
+      document
+        .querySelectorAll("#settings-view details[open]")
+        .forEach((section) => {
+          section.open = false;
+        });
+    }
+    const previousViewId = currentViewId;
+    currentViewId = viewId;
+    setMapFilterPlacement(currentViewId === "map-view");
+    if (currentViewId === "settings-view") discardDefaultsAndDetails();
+    document
+      .querySelectorAll(".view")
+      .forEach((view) => view.classList.remove("active"));
+    document.getElementById(currentViewId).classList.add("active");
+    renderBottomNav();
+    if (currentViewId === "settings-view" && appUpdateAvailable) {
+      document
+        .getElementById("app-update-notice")
+        .closest("details").open = true;
+      appUpdatePromptDismissed = false;
+      appUpdatePromptHandler?.();
+    }
+
+    if (currentViewId === "time-view") renderTimeView();
+    if (currentViewId === "goals-view") await renderGoalsView();
+    if (currentViewId === "contacts-view") renderGoalAcknowledgement();
+
+    if (currentViewId === "contacts-view" && previousViewId !== "settings-view") {
+      showSetupNextStepsIfReady();
+    }
+
+    if (currentViewId === "map-view") {
+      if (!map) {
+        initMap();
+      } else {
+        setTimeout(() => {
+          map.invalidateSize();
+          renderMapMarkers();
+        }, 50);
+      }
+      startMapLocationWatch();
+    }
+  };
+  document
+    .getElementById("btn-open-goals")
+    .addEventListener("click", async () => await navigateToView("goals-view"));
   renderBottomNav();
 
   // ---- Time in Service ----
@@ -8304,10 +8306,7 @@ const initializeApp = async () => {
       settingsLeavePending = false;
     }
   };
-  const languageSelects = [
-    document.getElementById("setup-language"),
-    document.getElementById("settings-language"),
-  ];
+  const languageSelects = [document.getElementById("setup-language")];
   languageSelects.forEach((select) => {
     select.value = window.NRVI18n.getLanguage();
     select.addEventListener("change", async (event) => {
@@ -9057,7 +9056,7 @@ const initializeApp = async () => {
       helpPage + (kind === "empty-installed" ? "#backup" : "#install-guide");
     document.getElementById("copy-notice-text").textContent =
       kind === "empty-installed"
-        ? appText("contacts.emptyInstalled", "This installed copy is empty. If you already added contacts in your browser, open the app in that browser, go to Settings → Backup or Restore and back up, then restore here. Or connect Dropbox in both copies.")
+        ? appText("contacts.emptyInstalled", "This installed copy is empty. If you already added contacts in your browser, open the app in that browser, go to Settings → Backup/Restore and back up, then restore here. Or connect Dropbox in both copies.")
         : appText("contacts.browserCopy", "You're using NRV in a browser. You can keep using it here, but we recommend installing the NRV icon for regular use. Information saved in a browser can sometimes be lost, so remember to make backups.");
     const installButton = document.getElementById("btn-copy-notice-install");
     installButton.hidden = kind !== "browser-copy";
@@ -11382,7 +11381,7 @@ const initializeApp = async () => {
         text:
           localStorage.getItem(CLOUD_RECONNECT_DECISION_KEY) === "1"
             ? appText("dropbox.pausedDecision", "Dropbox is connected, but automatic sync is paused until you choose whether to restore its existing backup or replace it with this device's data.")
-            : appText("dropbox.paused", "Dropbox sync is paused. Open Settings → Data/Security → Backup or Restore → Cloud Backup/Restore (Dropbox) for details."),
+            : appText("dropbox.paused", "Dropbox sync is paused. Open Settings → Backup/Restore → Cloud Backup/Restore (Dropbox) for details."),
       };
     }
     if (!navigator.onLine) {

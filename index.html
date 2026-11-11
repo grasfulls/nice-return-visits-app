@@ -571,33 +571,6 @@
         <div id="settings-view" class="view">
           <div class="settings-container">
             <h2 data-i18n="settings.title">Settings</h2>
-            <details class="settings-section" id="preferences-section">
-              <summary data-i18n="settings.preferences">Preferences</summary>
-              <label for="settings-language" data-i18n="language.label">Language</label>
-              <select id="settings-language">
-                <option value="en">English</option>
-                <option value="es">Español</option>
-              </select>
-              <label class="checkbox-row">
-                <input type="checkbox" id="settings-goals-encouragement" />
-                <span data-i18n="goals.encouragementToggle">Encouragement messages</span>
-              </label>
-              <label for="settings-working-need-enabled" data-i18n="workingNeed.label">Working Need Greater</label>
-              <div class="working-need-toggle">
-                <input type="checkbox" id="settings-working-need-enabled" />
-                <label for="settings-working-need-enabled" data-i18n="workingNeed.onOff">Enable Working Need Greater</label>
-              </div>
-              <label for="settings-working-need-designation" data-i18n="workingNeed.designation">Working designation</label>
-              <select id="settings-working-need-designation">
-                <option value="" data-i18n="workingNeed.chooseDesignation">Choose a designation</option>
-                <option value="country" data-i18n="workingNeed.country">Country</option>
-                <option value="unassigned" data-i18n="workingNeed.unassigned">Unassigned</option>
-                <option value="seldomWorked" data-i18n="workingNeed.seldomWorked">Seldom Worked</option>
-              </select>
-              <label for="settings-working-need-country" data-i18n="workingNeed.countryName">Working country</label>
-              <select id="settings-working-need-country"></select>
-              <p id="working-need-status" role="status" aria-live="polite"></p>
-            </details>
             <details class="settings-section" id="defaults-your-details-section">
               <summary data-i18n="settings.defaultsDetails">Defaults &amp; Your Details</summary>
               <details class="settings-section" id="defaults-section">
@@ -805,28 +778,6 @@
                 any combination.
               </small>
             </details>
-            <details class="settings-section" id="time-tracking-section">
-              <summary data-i18n="time.title">Time in Service</summary>
-              <label class="checkbox-row">
-                <input type="checkbox" id="setting-time-tracking" />
-                <span data-i18n="time.track">Track Time in Service</span>
-              </label>
-              <small data-i18n="time.trackNote">
-                Adds a Time button to the bottom bar with a Start/Stop timer and
-                manual entry. Turning this off erases all recorded time.
-              </small>
-              <div id="time-tracking-options" hidden>
-                <label class="checkbox-row">
-                  <input type="checkbox" id="setting-time-monthly" />
-                  <span data-i18n="time.monthly">Show hours to go each month (goal: 50 hours)</span>
-                </label>
-                <label class="checkbox-row">
-                  <input type="checkbox" id="setting-time-yearly" />
-                  <span data-i18n="time.yearly">Show hours to go for the service year (goal: 600 hours)</span>
-                </label>
-                <small data-i18n="time.yearNote">The service year runs September 1 to August 31.</small>
-              </div>
-            </details>
             <details class="settings-section" id="choices-section">
               <summary data-i18n="settings.dataSecurity">Data/Security</summary>
               <details class="settings-section" id="passphrase-section">
@@ -954,8 +905,24 @@
                   </form>
                 </div>
               </details>
-            <details class="settings-section">
-              <summary data-i18n="backup.orRestore">Backup or Restore</summary>
+              <details class="settings-section">
+                <summary data-i18n="settings.eraseTitle">Erase All Data / Start Fresh</summary>
+                <p data-i18n="settings.eraseWarning">
+                  Before erasing, create or verify a current backup and preserve
+                  a separate recovery copy outside NRV’s normal storage or
+                  Dropbox app folder. Erasing removes this copy’s contacts,
+                  settings, passphrase/security data, setup choices, and local
+                  Dropbox connection. Downloaded backup files and Dropbox files
+                  are not deleted. Removing the Home Screen icon alone does not
+                  necessarily erase NRV data.
+                </p>
+                <button type="button" id="btn-erase-all-data" data-i18n="settings.eraseButton">
+                  Erase All Data on This Device
+                </button>
+              </details>
+            </details>
+            <details class="settings-section" id="backup-section">
+              <summary data-i18n="backup.orRestore">Backup/Restore</summary>
               <p class="settings-group-note" data-i18n="backup.protects">
                 Backups protect you from losing your contacts.
               </p>
@@ -1107,22 +1074,6 @@
             </details>
             </details>
             <details class="settings-section">
-              <summary data-i18n="settings.eraseTitle">Erase All Data / Start Fresh</summary>
-              <p data-i18n="settings.eraseWarning">
-                Before erasing, create or verify a current backup and preserve
-                a separate recovery copy outside NRV’s normal storage or
-                Dropbox app folder. Erasing removes this copy’s contacts,
-                settings, passphrase/security data, setup choices, and local
-                Dropbox connection. Downloaded backup files and Dropbox files
-                are not deleted. Removing the Home Screen icon alone does not
-                necessarily erase NRV data.
-              </p>
-              <button type="button" id="btn-erase-all-data" data-i18n="settings.eraseButton">
-                Erase All Data on This Device
-              </button>
-            </details>
-            </details>
-            <details class="settings-section">
               <summary data-i18n="settings.help">Help</summary>
               <p class="settings-group-note" data-i18n="settings.helpNote">User guides and privacy information.</p>
               <button type="button" id="btn-settings-install" data-i18n="install.installButton" hidden>Install NRV Icon</button>
@@ -1150,10 +1101,10 @@
               <details class="settings-section">
                 <summary data-i18n="update.whatsNew">What's New</summary>
                 <!-- release-notes:start -->
-                <p data-i18n="release.current.title">Country-scoped locations and reliable updates</p>
+                <p data-i18n="release.current.title">Optional features organized in Settings</p>
                 <ul>
-                  <li data-i18n="release.current.change1">Each country now keeps its own independent Cities, Regions, and Areas lists, so one country&#39;s entries are never offered for another country&#39;s contacts.</li>
-                  <li data-i18n="release.current.change2">The app update prompt now checks the actual build and no longer repeats after you update.</li>
+                  <li data-i18n="release.current.change1">Time in Service, Goals &amp; Milestones, Encouragement Messages, and Working Need Greater are now grouped under Settings → Options.</li>
+                  <li data-i18n="release.current.change2">Open Goals &amp; Milestones from Options; its page no longer shows Contacts search and filters.</li>
                 </ul>
                 <!-- release-notes:end -->
               </details>
@@ -1168,6 +1119,59 @@
                 Check for Updates &amp; Refresh
               </button>
               <p id="app-update-status" role="status" aria-live="polite"></p>
+            </details>
+            <details class="settings-section" id="options-section">
+              <summary data-i18n="settings.options">Options</summary>
+              <details class="settings-section" id="time-tracking-section">
+                <summary data-i18n="time.title">Time in Service</summary>
+                <label class="checkbox-row">
+                  <input type="checkbox" id="setting-time-tracking" />
+                  <span data-i18n="time.track">Track Time in Service</span>
+                </label>
+                <small data-i18n="time.trackNote">
+                  Adds a Time button to the bottom bar with a Start/Stop timer and
+                  manual entry. Turning this off erases all recorded time.
+                </small>
+                <div id="time-tracking-options" hidden>
+                  <label class="checkbox-row">
+                    <input type="checkbox" id="setting-time-monthly" />
+                    <span data-i18n="time.monthly">Show hours to go each month (goal: 50 hours)</span>
+                  </label>
+                  <label class="checkbox-row">
+                    <input type="checkbox" id="setting-time-yearly" />
+                    <span data-i18n="time.yearly">Show hours to go for the service year (goal: 600 hours)</span>
+                  </label>
+                  <small data-i18n="time.yearNote">The service year runs September 1 to August 31.</small>
+                </div>
+              </details>
+              <details class="settings-section" id="goals-option-section">
+                <summary data-i18n="goals.title">Goals &amp; Milestones</summary>
+                <button type="button" id="btn-open-goals" data-i18n="goals.view">View Goals</button>
+              </details>
+              <details class="settings-section" id="encouragement-option-section">
+                <summary data-i18n="goals.encouragementToggle">Encouragement messages</summary>
+                <label class="checkbox-row">
+                  <input type="checkbox" id="settings-goals-encouragement" />
+                  <span data-i18n="goals.encouragementToggle">Encouragement messages</span>
+                </label>
+              </details>
+              <details class="settings-section" id="working-need-option-section">
+                <summary data-i18n="workingNeed.label">Working Need Greater</summary>
+                <div class="working-need-toggle">
+                  <input type="checkbox" id="settings-working-need-enabled" />
+                  <label for="settings-working-need-enabled" data-i18n="workingNeed.onOff">Enable Working Need Greater</label>
+                </div>
+                <label for="settings-working-need-designation" data-i18n="workingNeed.designation">Working designation</label>
+                <select id="settings-working-need-designation">
+                  <option value="" data-i18n="workingNeed.chooseDesignation">Choose a designation</option>
+                  <option value="country" data-i18n="workingNeed.country">Country</option>
+                  <option value="unassigned" data-i18n="workingNeed.unassigned">Unassigned</option>
+                  <option value="seldomWorked" data-i18n="workingNeed.seldomWorked">Seldom Worked</option>
+                </select>
+                <label for="settings-working-need-country" data-i18n="workingNeed.countryName">Working country</label>
+                <select id="settings-working-need-country"></select>
+                <p id="working-need-status" role="status" aria-live="polite"></p>
+              </details>
             </details>
           </div>
         </div>

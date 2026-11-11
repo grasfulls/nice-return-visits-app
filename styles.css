@@ -2772,6 +2772,10 @@ body.settings-open #filters-bar {
     display: none;
 }
 
+body.goals-view-open #filters-bar {
+    display: none;
+}
+
 .checkbox-row {
     display: flex;
     align-items: center;

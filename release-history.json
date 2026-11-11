@@ -1,5 +1,22 @@
 [
   {
+    "version": "0.9.058",
+    "en": {
+      "title": "Optional features organized in Settings",
+      "changes": [
+        "Time in Service, Goals & Milestones, Encouragement Messages, and Working Need Greater are now grouped under Settings → Options.",
+        "Open Goals & Milestones from Options; its page no longer shows Contacts search and filters."
+      ]
+    },
+    "es": {
+      "title": "Funciones opcionales organizadas en Configuración",
+      "changes": [
+        "Tiempo en el ministerio, Metas e hitos, Mensajes de ánimo y Necesidad de trabajar donde hay mayor necesidad ahora están agrupados en Configuración → Opciones.",
+        "Abre Metas e hitos desde Opciones; su página ya no muestra la búsqueda ni los filtros de Contactos."
+      ]
+    }
+  },
+  {
     "version": "0.9.57",
     "en": {
       "title": "Country-scoped locations and reliable updates",

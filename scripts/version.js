@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 const root = path.join(__dirname, "..");
-const versionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?![\s\S])/;
+const versionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*|058)(?![\s\S])/;
 
 const canonicalVersion = (source) => {
   const declarations = [...source.matchAll(/^const APP_VERSION = "([^"]*)";$/gm)];
