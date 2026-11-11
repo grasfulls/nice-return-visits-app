@@ -100,8 +100,11 @@ async function main() {
   assert(transferCode.includes('sessionStorage.removeItem(INSTALL_ROUTE_KEY)'));
   assert(transferCode.includes("const cancelInstallation ="));
   const browserPreviewDeclaration = app.indexOf("let browserPreview = false;");
-  const domReadyStart = app.indexOf('document.addEventListener("DOMContentLoaded", async () => {');
-  assert(browserPreviewDeclaration >= 0 && browserPreviewDeclaration < domReadyStart);
+  const setupInitializer = app.indexOf("const initializeInstallSetup = async () => {");
+  assert(browserPreviewDeclaration >= 0 && browserPreviewDeclaration < setupInitializer);
+  assert(app.includes(
+    'if (document.readyState === "loading") {\n  document.addEventListener("DOMContentLoaded", initializeInstallSetup, {\n    once: true,\n  });\n} else {\n  initializeInstallSetup();\n}',
+  ));
   assert(app.includes("if (transferPending && browserPreview)"));
   assert(transferCode.includes('document.getElementById("btn-preservation-save").disabled = false'));
   assert(!transferCode.includes("deleteDatabase"));

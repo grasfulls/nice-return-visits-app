@@ -12309,7 +12309,7 @@ const initializeApp = async () => {
   }, 500);
 };
 
-document.addEventListener("DOMContentLoaded", async () => {
+const initializeInstallSetup = async () => {
   await window.nrvI18nReady;
   if (window.NRVI18n?.getLanguage() === "es") {
     document.querySelectorAll("[data-help-link]").forEach((link) => {
@@ -12655,7 +12655,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   document
     .getElementById("btn-setup-contacts")
     .addEventListener("click", () => goToView("contacts-view"));
-});
+};
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeInstallSetup, {
+    once: true,
+  });
+} else {
+  initializeInstallSetup();
+}
 
 const updateStorageProtectionStatus = async () => {
   const statusEl = document.getElementById("storage-protection-status");

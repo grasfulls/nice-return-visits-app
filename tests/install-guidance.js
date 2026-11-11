@@ -651,6 +651,20 @@ assert(setupFlow.includes('id="agreement-panel"'));
 assert(setupFlow.includes('id="setup-wizard-step-1"'));
 assert(setupFlow.includes('id="setup-existing-data"'));
 assert(setupFlow.includes('id="installed-welcome"'));
+assert(!setupFlow.includes('data-i18n="setup.installedWelcome"'));
+assert.strictEqual(
+  (setupFlow.match(/data-i18n="setup\.welcome"/g) || []).length,
+  1,
+  "setup screen has one Welcome heading",
+);
+const continueButton = setupFlow.match(
+  /<button type="button" id="btn-setup-wizard-next"[^>]*>/,
+);
+assert(continueButton, "setup screen has a Continue button");
+assert(!/\sdisabled(?:\s|=|>)/.test(continueButton[0]), "Continue is not disabled");
+assert(app.includes(
+  '.getElementById("btn-setup-wizard-next")\n    .addEventListener("click", continueWizard)',
+));
 assert(setupFlow.includes('id="btn-install-restore"'));
 assert(setupFlow.includes('id="btn-install-open-existing"'));
 assert(app.includes("showInstallScreen(\"install\")"));
