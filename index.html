@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title data-i18n="page.welcome">NRV-Welcome</title>
-    <meta name="nrv-build-revision" content="sha256:04d4c18461d8c00f2560e68c007becd1fa439b7a926497fab59d945f13f90fd9" />
+    <meta name="nrv-build-revision" content="sha256:67f1459a2672ecda3c1c6562e14599baff546e9564a46c072d671b40a1a6197b" />
     <meta name="theme-color" content="#004080" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NRV" />
@@ -17,6 +17,8 @@
     <!-- Leaflet CSS -->
     <link
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
     <link rel="stylesheet" href="styles.css" />
@@ -198,11 +200,83 @@
         <p id="startup-recovery-message" data-i18n="startup.checking">
           Verifying this app before opening your saved information. Your information will not be changed.
         </p>
+        <p id="startup-recovery-code" hidden></p>
+        <button type="button" id="startup-recovery-continue" data-i18n="startup.continueOffline" hidden>
+          Continue Offline
+        </button>
         <button type="button" id="startup-recovery-retry" data-i18n="startup.retry" hidden>
-          Check Again
+          Check for Updates
         </button>
       </div>
     </section>
+    <script>
+      window.NRVStartupFallback = (() => {
+        const screen = document.getElementById("startup-recovery-screen");
+        const title = document.getElementById("startup-recovery-title");
+        const message = document.getElementById("startup-recovery-message");
+        const code = document.getElementById("startup-recovery-code");
+        const retry = document.getElementById("startup-recovery-retry");
+        let gateStarted = false;
+        let gateFinished = false;
+        let failed = false;
+        let timer;
+        const language = () => {
+          const requested = new URLSearchParams(window.location.search).get("lang");
+          if (requested === "en" || requested === "es") return requested;
+          try {
+            return window.localStorage.getItem("nrv_language") === "es" ? "es" : "en";
+          } catch {
+            return "en";
+          }
+        };
+        const show = () => {
+          if (gateFinished || !screen) return;
+          failed = true;
+          const spanish = language() === "es";
+          title.textContent = spanish
+            ? "NRV está protegiendo tu información"
+            : "NRV is keeping your information safe";
+          message.textContent = spanish
+            ? "NRV tuvo un problema al comprobar esta aplicación. Elige Buscar actualizaciones para intentarlo otra vez. Si el problema continúa, anota el código de error y solicita ayuda con NRV. No se ha abierto ni modificado tu información guardada."
+            : "NRV encountered a problem while checking this app. Choose Check for Updates to retry. If the problem continues, write down the error code and ask for NRV help. Your saved information has not been opened or changed.";
+          code.textContent = spanish ? "Código de error: NRV-V15" : "Error code: NRV-V15";
+          code.hidden = false;
+          retry.textContent = spanish ? "Buscar actualizaciones" : "Check for Updates";
+          retry.hidden = false;
+          retry.disabled = false;
+          screen.hidden = false;
+          window.NRVStartupFallback?.disarm();
+        };
+        const arm = (delay) => {
+          window.clearTimeout(timer);
+          timer = window.setTimeout(show, delay);
+        };
+        retry.addEventListener("click", () => {
+          if (!gateStarted) window.location.reload();
+        });
+        window.addEventListener("error", (event) => {
+          if (event.target?.tagName === "SCRIPT" && event.target.id !== "leaflet-script") {
+            show();
+          }
+        }, true);
+        window.addEventListener("unhandledrejection", () => show());
+        arm(8000);
+        return {
+          show,
+          gateStarted() {
+            gateStarted = true;
+            arm(8000);
+          },
+          gateFinished() {
+            gateFinished = true;
+            window.clearTimeout(timer);
+          },
+          extend(delay) { arm(delay); },
+          disarm() { window.clearTimeout(timer); },
+          hasFailed() { return failed; },
+        };
+      })();
+    </script>
     <section
       id="unlock-screen"
       hidden
@@ -1276,6 +1350,11 @@
               hidden
             />
           </div>
+          <p id="setup-wizard-continue-error" role="alert" aria-live="assertive" tabindex="-1" hidden>
+            <span data-i18n="setup.continueFailure">NRV couldn’t continue setup. Your saved information has not been changed. Close and reopen NRV. If the problem continues, write down the error code and ask for NRV help.</span>
+            <br />
+            <strong data-i18n="setup.continueFailureCode">Error code: NRV-A01</strong>
+          </p>
         </section>
         <section
           id="setup-wizard-step-2"
@@ -1945,197 +2024,860 @@
     <script src="nrv-dialog.js"></script>
     <script src="i18n.js"></script>
     <script>
+      window.nrvI18nError = null;
       if (window.NRVI18n) {
-        window.nrvI18nReady = NRVI18n.init().catch(async (error) => {
-          console.error("Language setup failed; using built-in English:", error);
-          await NRVDialogs.alert("Could not load the selected language. NRV will use English. / No se pudo cargar el idioma seleccionado. NRV usará inglés.");
-        }).finally(() => {
-          document.documentElement.classList.remove("i18n-loading");
+        window.nrvI18nReady = NRVI18n.init({ deferExplicitSave: true }).catch((error) => {
+          window.nrvI18nError = error;
+          console.error("Language setup failed:", error);
         });
       } else {
-        console.error("Language setup failed: i18n.js could not be loaded.");
-        window.nrvI18nReady = NRVDialogs.alert(
-          "Could not load language support. NRV will use English. / No se pudo cargar la función de idiomas. NRV usará inglés.",
-        ).finally(() => {
-          document.documentElement.classList.remove("i18n-loading");
-        });
+        window.nrvI18nError = new Error("Language support could not be loaded.");
+        window.nrvI18nReady = Promise.resolve();
       }
     </script>
     <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script id="leaflet-script" async src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script id="nrv-build-gate">
       window.NRVBuildGate = (() => {
+        const WORKER_TRANSITION_TIMEOUT_MS = 60000;
+        const WORKER_REPLY_TIMEOUT_MS = 1500;
+        const FETCH_TIMEOUT_MS = 3000;
+        const CACHE_READ_TIMEOUT_MS = 500;
+        const UPDATE_TIMEOUT_MS = 5000;
+        const RELOAD_MARKER = "nrv-startup-reload-target";
+        const verificationCodes = Object.freeze({
+          serviceWorkerUnavailable: "NRV-V01",
+          registrationFailed: "NRV-V02",
+          updateFailed: "NRV-V03",
+          activationTimeout: "NRV-V04",
+          controllerUnavailable: "NRV-V05",
+          workerUnresponsive: "NRV-V06",
+          workerResponseInvalid: "NRV-V07",
+          assetFetchFailed: "NRV-V08",
+          verificationDataInvalid: "NRV-V09",
+          pageRevisionMismatch: "NRV-V10",
+          assetRevisionMismatch: "NRV-V11",
+          activeWorkerRevisionMismatch: "NRV-V12",
+          controllerRevisionMismatch: "NRV-V13",
+          appVersionMismatch: "NRV-V14",
+          unexpectedVerificationFailure: "NRV-V15",
+          registrationTimeout: "NRV-V16",
+          updateTimeout: "NRV-V17",
+          workerQueryUnavailable: "NRV-V18",
+          responseUnreadable: "NRV-V19",
+          assetFetchTimeout: "NRV-V20",
+        });
         const pageRevision = document.querySelector(
           'meta[name="nrv-build-revision"]',
         )?.content;
         const screen = document.getElementById("startup-recovery-screen");
         const title = document.getElementById("startup-recovery-title");
         const message = document.getElementById("startup-recovery-message");
+        const diagnosticCode = document.getElementById("startup-recovery-code");
         const retryButton = document.getElementById("startup-recovery-retry");
-        const retryParameter = "nrv-build-recovery";
+        const continueButton = document.getElementById("startup-recovery-continue");
         let appLoaded = false;
+        let checking = false;
+        let pendingBuild = null;
         const translate = (key, fallback) =>
           window.NRVI18n?.t(key, {}, fallback) || fallback;
-        const showMessage = (titleKey, titleFallback, messageKey, messageFallback) => {
-          title.textContent = translate(titleKey, titleFallback);
-          message.textContent = translate(messageKey, messageFallback);
-          retryButton.hidden = false;
-          retryButton.disabled = false;
+        const showFailure = (error) => {
+          const requestedLanguage = new URLSearchParams(window.location.search).get("lang");
+          const spanishFallback = window.nrvI18nError &&
+            (requestedLanguage === "es" || document.documentElement.lang === "es");
+          title.textContent = translate(
+            "startup.safeTitle",
+            "NRV is keeping your information safe",
+          );
+          message.textContent = error.code === verificationCodes.unexpectedVerificationFailure &&
+            window.nrvI18nError
+            ? spanishFallback
+              ? "NRV tuvo un problema al comprobar esta aplicación. Elige Buscar actualizaciones para intentarlo otra vez. Si el problema continúa, anota el código de error y solicita ayuda con NRV. No se ha abierto ni modificado tu información guardada."
+              : "NRV encountered a problem while checking this app. Choose Check for Updates to retry. If the problem continues, write down the error code and ask for NRV help. Your saved information has not been opened or changed."
+            : translate(
+              `startup.verify.${error.code}`,
+              "NRV could not verify this app. Your saved information has not been changed. Choose Check for Updates to try again.",
+            );
+          diagnosticCode.textContent =
+            `${translate("startup.errorCode", "Error code")}: ${error.code}`;
+          diagnosticCode.hidden = false;
+          continueButton.hidden = true;
+          retryButton.hidden = error.code === verificationCodes.serviceWorkerUnavailable;
+          retryButton.disabled = retryButton.hidden;
           screen.hidden = false;
+          window.NRVStartupFallback?.disarm();
         };
+        class VerificationFailure extends Error {
+          constructor(code, detail = "") {
+            super(detail || code);
+            this.code = code;
+          }
+        }
+        const fail = (code, detail) => {
+          throw new VerificationFailure(code, detail);
+        };
+        const withTimeout = (promise, timeoutMs, code, detail) =>
+          new Promise((resolve, reject) => {
+            const timer = window.setTimeout(
+              () => reject(new VerificationFailure(code, detail)),
+              timeoutMs,
+            );
+            Promise.resolve(promise).then(
+              (value) => {
+                window.clearTimeout(timer);
+                resolve(value);
+              },
+              (error) => {
+                window.clearTimeout(timer);
+                reject(error);
+              },
+            );
+          });
+        const isRevision = (value) =>
+          typeof value === "string" &&
+          /^sha256:[a-f0-9]{64}(?![\s\S])/.test(value);
+        const isInstalledApp = () =>
+          navigator.standalone === true ||
+          Boolean(window.matchMedia?.("(display-mode: standalone)").matches);
         const workerRevision = (worker) =>
           new Promise((resolve) => {
             if (!worker || typeof MessageChannel !== "function") {
-              resolve(null);
+              resolve({ status: "unavailable" });
               return;
             }
-            const channel = new MessageChannel();
+            let channel;
+            try {
+              channel = new MessageChannel();
+            } catch (error) {
+              resolve({ status: "unavailable", error });
+              return;
+            }
             const timer = window.setTimeout(() => {
               channel.port1.close();
-              resolve(null);
-            }, 3000);
+              resolve({ status: "timeout" });
+            }, WORKER_REPLY_TIMEOUT_MS);
             channel.port1.onmessage = (event) => {
               window.clearTimeout(timer);
               channel.port1.close();
-              resolve(typeof event.data?.revision === "string" ? event.data.revision : null);
+              const revision = event.data?.revision;
+              resolve(
+                isRevision(revision)
+                  ? { status: "ok", revision }
+                  : { status: "malformed" },
+              );
             };
-            worker.postMessage({ type: "nrv-get-revision" }, [channel.port2]);
+            try {
+              worker.postMessage({ type: "nrv-get-revision" }, [channel.port2]);
+            } catch (error) {
+              window.clearTimeout(timer);
+              channel.port1.close();
+              resolve({ status: "send-failed", error });
+            }
           });
-        const fetchText = async (path) => {
-          const response = await fetch(new URL(path, document.baseURI), {
-            cache: "no-store",
+        const codeForWorkerResult = (result) => {
+          if (result.status === "timeout") return verificationCodes.workerUnresponsive;
+          if (result.status === "malformed") return verificationCodes.workerResponseInvalid;
+          return verificationCodes.workerQueryUnavailable;
+        };
+        const fetchText = async (
+          path,
+          {
+            fetchCode = verificationCodes.assetFetchFailed,
+            timeoutCode = verificationCodes.assetFetchTimeout,
+            offline = false,
+            preferNetwork = false,
+            allowCacheFallback = true,
+          } = {},
+        ) => {
+          const readResponseText = async (response, source) => {
+            if (!response?.ok) return null;
+            try {
+              const text = await withTimeout(
+                response.text(),
+                FETCH_TIMEOUT_MS,
+                verificationCodes.responseUnreadable,
+                `${source}: response body timed out`,
+              );
+              return typeof text === "string" ? text : null;
+            } catch (error) {
+              console.error(`Unable to read ${source}:`, error);
+              return null;
+            }
+          };
+          let cachedText = null;
+          if (typeof caches !== "undefined" && caches.match) {
+            try {
+              const cached = await withTimeout(
+                caches.match(new URL(path, document.baseURI)),
+                CACHE_READ_TIMEOUT_MS,
+                fetchCode,
+                `${path}: local cache lookup timed out`,
+              );
+              cachedText = await readResponseText(cached, `cached ${path}`);
+              if (cachedText !== null && !preferNetwork) return cachedText;
+            } catch (error) {
+              console.error(`Unable to check the local copy of ${path}:`, error);
+            }
+          }
+          if (offline) {
+            if (cachedText !== null) return cachedText;
+            fail(fetchCode, `${path}: no valid local copy is available`);
+          }
+          const controller = typeof AbortController === "function"
+            ? new AbortController()
+            : null;
+          let response;
+          try {
+            response = await withTimeout(
+              fetch(
+                new URL(path, document.baseURI),
+                { cache: "no-store", ...(controller ? { signal: controller.signal } : {}) },
+              ),
+              FETCH_TIMEOUT_MS,
+              timeoutCode,
+              `${path}: request timed out`,
+            );
+          } catch (error) {
+            controller?.abort();
+            if (allowCacheFallback && cachedText !== null) return cachedText;
+            if (error instanceof VerificationFailure) throw error;
+            fail(fetchCode, `${path}: ${error.message || error}`);
+          }
+          if (!response.ok) {
+            if (allowCacheFallback && cachedText !== null) return cachedText;
+            fail(fetchCode, `${path}: HTTP ${response.status}`);
+          }
+          const text = await readResponseText(response, path);
+          if (text === null) {
+            if (allowCacheFallback && cachedText !== null) return cachedText;
+            fail(verificationCodes.responseUnreadable, `${path}: response body was not text`);
+          }
+          return text;
+        };
+        const readMetadata = async ({ online = true } = {}) => {
+          if (!online) return { metadata: null, unavailable: true };
+          try {
+            const metadataText = await fetchText("version.json", {
+              preferNetwork: true,
+              allowCacheFallback: false,
+            });
+            let metadata;
+            try {
+              metadata = JSON.parse(metadataText);
+            } catch (error) {
+              return {
+                unavailable: true,
+                error: new VerificationFailure(
+                  verificationCodes.verificationDataInvalid,
+                  `version.json: ${error.message || error}`,
+                ),
+              };
+            }
+            if (
+              !metadata ||
+              typeof metadata !== "object" ||
+              Array.isArray(metadata) ||
+              typeof metadata.version !== "string" ||
+              !/^\d+\.\d+\.\d+(?![\s\S])/.test(metadata.version) ||
+              !isRevision(metadata.revision)
+            ) {
+              return {
+                unavailable: true,
+                error: new VerificationFailure(
+                  verificationCodes.verificationDataInvalid,
+                  "version.json is missing valid build fields.",
+                ),
+              };
+            }
+            return { metadata, unavailable: false };
+          } catch (error) {
+            return { unavailable: true, error };
+          }
+        };
+        const updateState = {
+          registration: null,
+          transitionDetected: false,
+          transitionCompleted: false,
+          error: null,
+          promise: null,
+          metadataPromise: null,
+          metadataResult: null,
+          updateSettled: false,
+          metadataSettled: false,
+        };
+        const markTransition = () => {
+          updateState.transitionDetected = true;
+          window.NRVStartupFallback?.extend(WORKER_TRANSITION_TIMEOUT_MS + 5000);
+        };
+        let workerTransitionCheck = null;
+        const observeWorker = (worker) => {
+          if (!worker) return;
+          if (worker.state === "installing" || worker.state === "activating") {
+            markTransition();
+          }
+          worker.addEventListener?.("statechange", () => {
+            if (worker.state === "installing" || worker.state === "activating") {
+              markTransition();
+            }
+            workerTransitionCheck?.();
           });
-          if (!response.ok) throw new Error(`${path} returned ${response.status}.`);
-          return response.text();
-        };
-        const readBuild = async () => {
-          const [metadataText, appSource, workerSource, dropboxSource, mergeSource] = await Promise.all([
-            fetchText("version.json"),
-            fetchText("app.js"),
-            fetchText("service-worker.js"),
-            fetchText("dropbox.js"),
-            fetchText("merge.js"),
-          ]);
-          const metadata = JSON.parse(metadataText);
-          const appVersion = appSource.match(/^const APP_VERSION = "([^"]+)";$/m)?.[1];
-          const appRevision = appSource.match(/^const APP_BUILD_REVISION = "([^"]+)";$/m)?.[1];
-          const workerBuildRevision = workerSource.match(/^const BUILD_REVISION = "([^"]+)";$/m)?.[1];
-          const consistent =
-            metadata &&
-            typeof metadata.version === "string" &&
-            typeof metadata.revision === "string" &&
-            /^sha256:[a-f0-9]{64}$/.test(pageRevision || "") &&
-            pageRevision === appRevision &&
-            pageRevision === workerBuildRevision &&
-            pageRevision === metadata.revision &&
-            appVersion === metadata.version;
-          return { appSource, dropboxSource, mergeSource, metadata, consistent };
-        };
-        const reloadOnce = (targetRevision) => {
-          const url = new URL(window.location.href);
-          if (url.searchParams.get(retryParameter) === targetRevision) return false;
-          url.searchParams.set(retryParameter, targetRevision || "unverified");
-          window.location.replace(url.href);
-          return true;
         };
         const updateRegistration = async () => {
-          if (!("serviceWorker" in navigator)) return null;
-          const registration = await navigator.serviceWorker.register(
-            "./service-worker.js",
-            { updateViaCache: "none" },
-          );
-          await registration.update();
-          return registration;
-        };
-        const verifyWorker = async (registration, expectedRevision) => {
-          if (!registration) return;
-          const deadline = Date.now() + 15000;
-          while (Date.now() < deadline) {
-            const activeRevision = await workerRevision(registration.active);
-            const controller = navigator.serviceWorker.controller;
-            const controllerBuildRevision = controller
-              ? await workerRevision(controller)
-              : expectedRevision;
-            if (
-              activeRevision === expectedRevision &&
-              controllerBuildRevision === expectedRevision
-            ) {
-              return;
-            }
-            await new Promise((resolve) => window.setTimeout(resolve, 100));
+          if (navigator.onLine === false || !navigator.serviceWorker) return;
+          const deadline = Date.now() + UPDATE_TIMEOUT_MS;
+          const remaining = () => Math.max(0, deadline - Date.now());
+          try {
+            updateState.registration = await withTimeout(
+              navigator.serviceWorker.register(
+                "./service-worker.js",
+                { updateViaCache: "none" },
+              ),
+              remaining(),
+              verificationCodes.registrationTimeout,
+              "Service-worker registration timed out.",
+            );
+          } catch (error) {
+            updateState.error = error instanceof VerificationFailure
+              ? error
+              : new VerificationFailure(verificationCodes.registrationFailed, error.message || error);
+            return;
           }
-          throw new Error("The active app service worker does not match this build.");
+          const registration = updateState.registration;
+          registration.addEventListener?.("updatefound", () => {
+            observeWorker(registration.installing);
+          });
+          observeWorker(registration.installing);
+          observeWorker(registration.waiting);
+          observeWorker(registration.active);
+          if (typeof registration.update !== "function") {
+            updateState.error = new VerificationFailure(
+              verificationCodes.updateFailed,
+              "The service-worker update check is unavailable.",
+            );
+            return;
+          }
+          try {
+            await withTimeout(
+              registration.update(),
+              remaining(),
+              verificationCodes.updateTimeout,
+              "Service-worker update check timed out.",
+            );
+          } catch (error) {
+            updateState.error = error instanceof VerificationFailure
+              ? error
+              : new VerificationFailure(verificationCodes.updateFailed, error.message || error);
+          }
         };
-        const clearRetryMarker = () => {
-          const url = new URL(window.location.href);
-          if (!url.searchParams.has(retryParameter)) return;
-          url.searchParams.delete(retryParameter);
-          window.history.replaceState(null, "", url.href);
+        const startIndependentChecks = (online) => {
+          if (!online) return;
+          if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.addEventListener?.("controllerchange", markTransition);
+            updateState.promise = updateRegistration().finally(() => {
+              updateState.updateSettled = true;
+            });
+          } else {
+            updateState.updateSettled = true;
+          }
+          updateState.metadataPromise = readMetadata({ online: true }).then((result) => {
+            updateState.metadataResult = result;
+            return result;
+          }).finally(() => {
+            updateState.metadataSettled = true;
+          });
+        };
+        const getLocalRegistration = async () => {
+          if (!navigator.serviceWorker) return null;
+          const controller = navigator.serviceWorker.controller;
+          if (typeof navigator.serviceWorker.getRegistration !== "function") {
+            return controller ? { active: controller } : null;
+          }
+          try {
+            return await withTimeout(
+              navigator.serviceWorker.getRegistration(),
+              1000,
+              verificationCodes.registrationTimeout,
+              "The existing service-worker registration could not be read in time.",
+            );
+          } catch (error) {
+            if (controller) return { active: controller };
+            throw error;
+          }
+        };
+        const waitForWorkerTransition = (registration) =>
+          new Promise((resolve) => {
+            let finished = false;
+            const finish = (result) => {
+              if (finished) return;
+              finished = true;
+              window.clearTimeout(timer);
+              if (workerTransitionCheck === check) workerTransitionCheck = null;
+              navigator.serviceWorker.removeEventListener?.("controllerchange", check);
+              registration?.removeEventListener?.("updatefound", onUpdateFound);
+              resolve(result);
+            };
+            const check = async () => {
+              if (registration?.installing || registration?.waiting) return;
+              const active = registration?.active || navigator.serviceWorker.controller;
+              if (!active || active.state !== "activated") return;
+              const controller = navigator.serviceWorker.controller;
+              if (!controller) return;
+              const [activeResult, controllerResult] = await Promise.all([
+                workerRevision(active),
+                workerRevision(controller),
+              ]);
+              if (activeResult.status !== "ok") {
+                finish({ failure: codeForWorkerResult(activeResult) });
+                return;
+              }
+              if (controllerResult.status !== "ok") {
+                finish({ failure: codeForWorkerResult(controllerResult) });
+                return;
+              }
+              if (activeResult.revision !== controllerResult.revision) return;
+              finish({
+                active,
+                activeRevision: activeResult.revision,
+                controllerRevision: controllerResult.revision,
+              });
+            };
+            const onUpdateFound = () => {
+              observeWorker(registration?.installing);
+              check();
+            };
+            const timer = window.setTimeout(() => {
+              const active = registration?.active || navigator.serviceWorker.controller;
+              finish({
+                failure: active?.state === "activated"
+                  ? verificationCodes.controllerUnavailable
+                  : verificationCodes.activationTimeout,
+              });
+            }, WORKER_TRANSITION_TIMEOUT_MS);
+            navigator.serviceWorker.addEventListener?.("controllerchange", check);
+            registration?.addEventListener?.("updatefound", onUpdateFound);
+            workerTransitionCheck = check;
+            observeWorker(registration?.installing);
+            check();
+          });
+        const getWorkerState = async (registration) => {
+          const active = registration?.active || navigator.serviceWorker?.controller;
+          if (!active || active.state !== "activated") {
+            return { failure: verificationCodes.activationTimeout };
+          }
+          const controller = navigator.serviceWorker.controller;
+          if (!controller) return { failure: verificationCodes.controllerUnavailable };
+          const [activeResult, controllerResult] = await Promise.all([
+            workerRevision(active),
+            workerRevision(controller),
+          ]);
+          if (activeResult.status !== "ok") return { failure: codeForWorkerResult(activeResult) };
+          if (controllerResult.status !== "ok") return { failure: codeForWorkerResult(controllerResult) };
+          return { active, activeRevision: activeResult.revision, controllerRevision: controllerResult.revision };
+        };
+        const maybeReloadIntoWorker = async (workerState) => {
+          if (
+            !isRevision(pageRevision) ||
+            !workerState.activeRevision ||
+            workerState.activeRevision === pageRevision ||
+            workerState.controllerRevision !== workerState.activeRevision
+          ) {
+            return false;
+          }
+          let reloadTarget = null;
+          try {
+            reloadTarget = window.sessionStorage.getItem(RELOAD_MARKER);
+          } catch (error) {
+            fail(
+              verificationCodes.unexpectedVerificationFailure,
+              `The one-time update reload could not be checked: ${error.message || error}`,
+            );
+          }
+          if (reloadTarget) return false;
+          try {
+            window.sessionStorage.setItem(RELOAD_MARKER, workerState.activeRevision);
+          } catch {
+            fail(
+              verificationCodes.unexpectedVerificationFailure,
+              "The one-time update reload could not be recorded.",
+            );
+          }
+          let onPageHide;
+          const pagehide = new Promise((resolve) => {
+            onPageHide = resolve;
+            window.addEventListener("pagehide", onPageHide, { once: true });
+          });
+          try {
+            window.location.reload();
+            await withTimeout(
+              pagehide,
+              3000,
+              verificationCodes.unexpectedVerificationFailure,
+              "The controlled update reload did not begin.",
+            );
+          } finally {
+            window.removeEventListener("pagehide", onPageHide);
+          }
+          return true;
+        };
+        const readBuild = async ({
+          metadata = null,
+          offline = false,
+          preferNetwork = false,
+        } = {}) => {
+          const sources = await Promise.all([
+            fetchText("app.js", { offline, preferNetwork }),
+            fetchText("dropbox.js", { offline, preferNetwork }),
+            fetchText("merge.js", { offline, preferNetwork }),
+            "serviceWorker" in navigator
+              ? fetchText("service-worker.js", { offline, preferNetwork })
+              : Promise.resolve(null),
+          ]);
+          const [appSource, dropboxSource, mergeSource, workerSource] = sources;
+          if (!isRevision(pageRevision)) {
+            fail(verificationCodes.verificationDataInvalid, "The page is missing a valid build revision.");
+          }
+          const appVersion = appSource.match(/^const APP_VERSION = "([^"]+)";$/m)?.[1];
+          const appRevision = appSource.match(/^const APP_BUILD_REVISION = "([^"]+)";$/m)?.[1];
+          if (
+            typeof appVersion !== "string" ||
+            !/^\d+\.\d+\.\d+(?![\s\S])/.test(appVersion) ||
+            !isRevision(appRevision)
+          ) {
+            fail(verificationCodes.verificationDataInvalid, "The fetched app source is missing valid build fields.");
+          }
+          if (metadata) {
+            if (pageRevision !== metadata.revision) {
+              fail(verificationCodes.pageRevisionMismatch, "The page and deployment metadata revisions differ.");
+            }
+            if (appRevision !== metadata.revision) {
+              fail(verificationCodes.assetRevisionMismatch, "The app and deployment metadata revisions differ.");
+            }
+            if (appVersion !== metadata.version) {
+              fail(verificationCodes.appVersionMismatch, "The app and deployment metadata versions differ.");
+            }
+          }
+          if (appRevision !== pageRevision) {
+            fail(verificationCodes.assetRevisionMismatch, "The page and app asset revisions differ.");
+          }
+          if (workerSource !== null) {
+            const workerSourceRevision = workerSource.match(/^const BUILD_REVISION = "([^"]+)";$/m)?.[1];
+            if (!isRevision(workerSourceRevision)) {
+              fail(verificationCodes.verificationDataInvalid, "The service-worker source is missing a valid build revision.");
+            }
+            if (workerSourceRevision !== pageRevision) {
+              fail(verificationCodes.assetRevisionMismatch, "The page and service-worker asset revisions differ.");
+            }
+          }
+          return {
+            appSource,
+            dropboxSource,
+            mergeSource,
+            appVersion,
+            appRevision,
+          };
+        };
+        let localVerificationPassed = false;
+        let launching = false;
+        const verifyWorker = async (registration) => {
+          if (!("serviceWorker" in navigator)) return false;
+          const workerState = await getWorkerState(registration);
+          if (workerState.failure) {
+            if (
+              workerState.failure === verificationCodes.controllerUnavailable &&
+              navigator.onLine !== false &&
+              registration?.active?.state === "activated"
+            ) {
+              markTransition();
+            }
+            fail(workerState.failure);
+          }
+          if (
+            workerState.activeRevision === workerState.controllerRevision &&
+            workerState.activeRevision !== pageRevision &&
+            await maybeReloadIntoWorker(workerState)
+          ) {
+            return true;
+          }
+          if (workerState.activeRevision !== pageRevision) {
+            fail(verificationCodes.activeWorkerRevisionMismatch);
+          }
+          if (workerState.controllerRevision !== pageRevision) {
+            fail(verificationCodes.controllerRevisionMismatch);
+          }
+          return false;
+        };
+        const verifyLocalBuild = async (registration, online, preferNetwork = false) => {
+          if (!isRevision(pageRevision)) {
+            fail(verificationCodes.verificationDataInvalid, "The page is missing a valid build revision.");
+          }
+          if (await verifyWorker(registration)) return null;
+          const metadataResult = updateState.metadataResult;
+          const metadata = online && metadataResult && !metadataResult.unavailable
+            ? metadataResult.metadata
+            : null;
+          const build = await readBuild({ metadata, offline: !online, preferNetwork });
+          return build;
+        };
+        const showOfflineReady = () => {
+          title.textContent = translate(
+            "startup.safeTitle",
+            "NRV is keeping your information safe",
+          );
+          message.textContent = translate(
+            "startup.offlineReady",
+            "You appear to be offline. NRV can’t check for updates right now. You can continue using NRV offline.",
+          );
+          continueButton.textContent = translate(
+            "startup.continueOffline",
+            "Continue Offline",
+          );
+          diagnosticCode.hidden = true;
+          continueButton.hidden = false;
+          continueButton.disabled = false;
+          retryButton.hidden = false;
+          retryButton.disabled = false;
+          screen.hidden = false;
+          window.NRVStartupFallback?.disarm();
+        };
+        const showUpdateUnavailableReady = () => {
+          title.textContent = translate(
+            "startup.safeTitle",
+            "NRV is keeping your information safe",
+          );
+          message.textContent = translate(
+            "startup.updateUnavailable",
+            "NRV couldn’t check for updates right now. Your installed copy passed its local checks, so you can continue using NRV.",
+          );
+          diagnosticCode.hidden = true;
+          continueButton.textContent = translate("common.continue", "Continue");
+          continueButton.hidden = false;
+          continueButton.disabled = false;
+          retryButton.hidden = false;
+          retryButton.disabled = false;
+          screen.hidden = false;
+          window.NRVStartupFallback?.disarm();
+        };
+        const launchBuild = async () => {
+          if (!pendingBuild || !localVerificationPassed || appLoaded || launching) return;
+          launching = true;
+          try {
+            if (window.NRVStartupFallback?.hasFailed()) {
+              fail(verificationCodes.unexpectedVerificationFailure);
+            }
+            await window.NRVI18n?.persistPendingLanguagePreference?.();
+            window.sessionStorage.removeItem(RELOAD_MARKER);
+            let startupScriptError = null;
+            const scriptError = (event) => {
+              startupScriptError = new VerificationFailure(
+                verificationCodes.unexpectedVerificationFailure,
+                event.message || "A verified app script could not be started.",
+              );
+            };
+            window.addEventListener("error", scriptError, true);
+            try {
+              [
+                pendingBuild.dropboxSource,
+                pendingBuild.mergeSource,
+                pendingBuild.appSource,
+              ].forEach((source) => {
+                const appScript = document.createElement("script");
+                appScript.textContent = source;
+                document.body.appendChild(appScript);
+              });
+            } finally {
+              window.removeEventListener("error", scriptError, true);
+            }
+            if (startupScriptError) throw startupScriptError;
+            appLoaded = true;
+            screen.hidden = true;
+            diagnosticCode.hidden = true;
+            continueButton.hidden = true;
+            retryButton.hidden = true;
+            document.documentElement.classList.remove("i18n-loading");
+            window.NRVStartupFallback?.gateFinished();
+          } catch (error) {
+            console.error("Unable to start the verified NRV app:", error);
+            showFailure(
+              error instanceof VerificationFailure
+                ? error
+                : new VerificationFailure(
+                  verificationCodes.unexpectedVerificationFailure,
+                  error.message || error,
+                ),
+            );
+          } finally {
+            launching = false;
+          }
         };
         const start = async () => {
+          if (checking) return;
+          if (appLoaded) {
+            window.location.reload();
+            return;
+          }
+          checking = true;
+          localVerificationPassed = false;
+          pendingBuild = null;
           retryButton.disabled = true;
-          await window.nrvI18nReady;
+          continueButton.disabled = true;
           try {
-            const registration = await updateRegistration();
-            let build = await readBuild();
-            if (!build.consistent) {
-              if (registration && /^sha256:[a-f0-9]{64}$/.test(build.metadata?.revision || "")) {
-                await verifyWorker(registration, build.metadata.revision);
+            window.NRVStartupFallback?.gateStarted();
+            if (window.NRVStartupFallback?.hasFailed()) {
+              fail(verificationCodes.unexpectedVerificationFailure);
+            }
+            const installed = isInstalledApp();
+            const hasServiceWorker = "serviceWorker" in navigator;
+            if (!hasServiceWorker && installed) {
+              fail(verificationCodes.serviceWorkerUnavailable);
+            }
+            const online = navigator.onLine !== false;
+            startIndependentChecks(online);
+            const registrationPromise = hasServiceWorker
+              ? getLocalRegistration()
+              : Promise.resolve(null);
+            let registration = null;
+            let registrationReadError = null;
+            try {
+              registration = await registrationPromise;
+            } catch (error) {
+              registrationReadError = error instanceof VerificationFailure
+                ? error
+                : new VerificationFailure(
+                  verificationCodes.unexpectedVerificationFailure,
+                  error.message || error,
+                );
+            }
+            if (!registration && navigator.serviceWorker?.controller) {
+              registration = { active: navigator.serviceWorker.controller };
+            }
+            observeWorker(registration?.installing);
+            observeWorker(registration?.waiting);
+
+            let verificationError = registrationReadError;
+            if (!verificationError) {
+              try {
+                pendingBuild = await verifyLocalBuild(registration, online);
+                if (!pendingBuild) return;
+              } catch (error) {
+                verificationError = error instanceof VerificationFailure
+                  ? error
+                  : new VerificationFailure(
+                    verificationCodes.unexpectedVerificationFailure,
+                    error.message || error,
+                  );
               }
-              if (navigator.onLine && reloadOnce(build.metadata?.revision)) return;
-              showMessage(
-                "startup.safeTitle",
-                "NRV is keeping your information safe",
-                "startup.buildMismatch",
-                "The app files are not from the same build. Connect to the internet and choose Check Again. Your saved information has not been opened or changed.",
-              );
+            }
+
+            if (verificationError && online) {
+              window.NRVStartupFallback?.extend(UPDATE_TIMEOUT_MS + 2500);
+              await Promise.all([
+                updateState.promise,
+                updateState.metadataPromise,
+              ]);
+              registration = updateState.registration || registration;
+              if (updateState.transitionDetected) {
+                const transition = await waitForWorkerTransition(registration);
+                if (transition.failure) {
+                  fail(transition.failure);
+                }
+                updateState.transitionCompleted = true;
+                if (await maybeReloadIntoWorker(transition)) return;
+              }
+              const updateFailure = [
+                verificationCodes.activationTimeout,
+                verificationCodes.controllerUnavailable,
+              ].includes(verificationError.code)
+                ? updateState.error
+                : null;
+              if (
+                updateFailure
+              ) {
+                verificationError = updateFailure;
+              }
+              try {
+                pendingBuild = await verifyLocalBuild(registration, online, true);
+                if (!pendingBuild) return;
+                verificationError = null;
+              } catch (error) {
+                const refreshedError = error instanceof VerificationFailure
+                  ? error
+                  : new VerificationFailure(
+                    verificationCodes.unexpectedVerificationFailure,
+                    error.message || error,
+                  );
+                verificationError = updateFailure &&
+                  [
+                    verificationCodes.activationTimeout,
+                    verificationCodes.controllerUnavailable,
+                  ].includes(refreshedError.code)
+                  ? updateFailure
+                  : refreshedError;
+              }
+            }
+
+            if (verificationError) throw verificationError;
+            if (updateState.transitionDetected && !updateState.transitionCompleted) {
+              if (updateState.promise) await updateState.promise;
+              registration = updateState.registration || registration;
+              const transition = await waitForWorkerTransition(registration);
+              if (transition.failure) fail(transition.failure);
+              updateState.transitionCompleted = true;
+              if (await maybeReloadIntoWorker(transition)) return;
+              if (transition.activeRevision !== pageRevision) {
+                fail(verificationCodes.activeWorkerRevisionMismatch);
+              }
+              if (transition.controllerRevision !== pageRevision) {
+                fail(verificationCodes.controllerRevisionMismatch);
+              }
+            }
+            localVerificationPassed = true;
+            if (!online) {
+              showOfflineReady();
               return;
             }
-            await verifyWorker(registration, build.metadata.revision);
-            build = await readBuild();
-            if (!build.consistent) {
-              if (navigator.onLine && reloadOnce(build.metadata?.revision)) return;
-              showMessage(
-                "startup.safeTitle",
-                "NRV is keeping your information safe",
-                "startup.buildMismatch",
-                "The app files are not from the same build. Connect to the internet and choose Check Again. Your saved information has not been opened or changed.",
-              );
+            if (
+              updateState.updateSettled &&
+              (updateState.error ||
+                (updateState.metadataSettled && updateState.metadataResult?.unavailable))
+            ) {
+              showUpdateUnavailableReady();
               return;
             }
-            clearRetryMarker();
-            screen.hidden = true;
-            if (appLoaded) {
-              window.location.reload();
-              return;
-            }
-            appLoaded = true;
-            [build.dropboxSource, build.mergeSource, build.appSource].forEach((source) => {
-              const appScript = document.createElement("script");
-              appScript.textContent = source;
-              document.body.appendChild(appScript);
-            });
+            await launchBuild();
           } catch (error) {
             console.error("Unable to verify the NRV app build:", error);
-            if (navigator.onLine && reloadOnce(pageRevision)) return;
-            showMessage(
-              "startup.safeTitle",
-              "NRV is keeping your information safe",
-              "startup.buildUnavailable",
-              "NRV could not verify this app before opening your saved information. Connect to the internet and choose Check Again. Your information has not been changed.",
+            showFailure(
+              error instanceof VerificationFailure
+                ? error
+                : new VerificationFailure(
+                  verificationCodes.unexpectedVerificationFailure,
+                  error.message || error,
+                ),
             );
+          } finally {
+            checking = false;
+            retryButton.disabled = false;
+            continueButton.disabled = false;
           }
         };
         retryButton.addEventListener("click", start);
+        continueButton.addEventListener("click", launchBuild);
         return {
           start,
           showFutureSchema() {
-            showMessage(
+            title.textContent = translate(
               "startup.safeTitle",
               "NRV is keeping your information safe",
-              "startup.futureData",
-              "This saved information needs a newer compatible NRV version. No information was changed. Connect to the internet and choose Check Again.",
             );
+            message.textContent = translate(
+              "startup.futureData",
+              "This saved information needs a newer compatible NRV version. No information was changed. Connect to the internet and choose Check for Updates.",
+            );
+            diagnosticCode.hidden = true;
+            continueButton.hidden = true;
+            retryButton.hidden = false;
+            retryButton.disabled = false;
+            screen.hidden = false;
           },
         };
       })();

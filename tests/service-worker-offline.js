@@ -11,6 +11,7 @@ const base = "https://example.test/app/";
 const entries = new Map();
 const deletedCaches = [];
 const handlers = {};
+let networkResponse = null;
 const normalize = (url) => new URL(typeof url === "string" ? url : url.url, base).href;
 const cache = {
   async addAll(paths) {
@@ -37,7 +38,10 @@ const self = {
 };
 vm.runInNewContext(source, {
   URL, self, caches,
-  fetch: async () => { throw new Error("offline"); },
+  fetch: async () => {
+    if (networkResponse) return networkResponse;
+    throw new Error("offline");
+  },
   Response: { error: () => ({ error: true }) },
 });
 
@@ -93,6 +97,10 @@ async function main() {
     assert((await offline(file)).body.length > 0);
     console.log(`PASS  ${file} is available offline`);
   }
+  networkResponse = { ok: false, status: 503 };
+  assert((await offline("./app.js")).body.length > 0);
+  networkResponse = null;
+  console.log("PASS  unsuccessful network responses fall back to a valid cached app asset");
   assert((await offline("./merge.js")).body.includes("mergeGoalsAndMilestones"));
   console.log("PASS  Goals merge logic is cached for offline operation");
   assert((await offline("./nrv-dialog.js")).body.length > 0);

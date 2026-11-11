@@ -662,9 +662,9 @@ const continueButton = setupFlow.match(
 );
 assert(continueButton, "setup screen has a Continue button");
 assert(!/\sdisabled(?:\s|=|>)/.test(continueButton[0]), "Continue is not disabled");
-assert(app.includes(
-  '.getElementById("btn-setup-wizard-next")\n    .addEventListener("click", continueWizard)',
-));
+assert(
+  /\.getElementById\("btn-setup-wizard-next"\)\s*\.addEventListener\("click", continueWizard\)/.test(app),
+);
 assert(setupFlow.includes('id="btn-install-restore"'));
 assert(setupFlow.includes('id="btn-install-open-existing"'));
 assert(app.includes("showInstallScreen(\"install\")"));

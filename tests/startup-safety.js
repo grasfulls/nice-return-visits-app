@@ -14,7 +14,7 @@ const catalogs = Object.fromEntries(["en", "es"].map((language) => [
 ]));
 
 const initStart = app.indexOf("const initializeAppData = async () => {");
-const initEnd = app.indexOf("\n\nconst showStorageError =", initStart);
+const initEnd = app.indexOf("const showStorageError =", initStart);
 assert(initStart >= 0 && initEnd > initStart);
 const initSource = app.slice(initStart, initEnd);
 
@@ -138,10 +138,14 @@ class FakeMessageChannel {
 const extractGate = () => {
   const script = html.match(/<script id="nrv-build-gate">([\s\S]*?)<\/script>/);
   assert(script, "index.html includes the pre-initialization build gate");
-  return script[1].replace(
-    "window.NRVBuildGate.start();",
-    "window.NRVBuildGate.ready = window.NRVBuildGate.start();",
-  );
+  return script[1]
+    .replace("const WORKER_TRANSITION_TIMEOUT_MS = 60000;", "const WORKER_TRANSITION_TIMEOUT_MS = 10;")
+    .replace("const WORKER_REPLY_TIMEOUT_MS = 3000;", "const WORKER_REPLY_TIMEOUT_MS = 5;")
+    .replace("window.setTimeout(resolve, 250)", "window.setTimeout(resolve, 1)")
+    .replace(
+      "window.NRVBuildGate.start();",
+      "window.NRVBuildGate.ready = window.NRVBuildGate.start();",
+    );
 };
 
 const runBuildGate = async ({
@@ -150,6 +154,7 @@ const runBuildGate = async ({
   workerSourceRevision = revision,
   metadataRevision = revision,
   workerRevision = revision,
+  reloadTarget = null,
   url = "https://example.test/app/",
   language = "en",
 }) => {
@@ -165,10 +170,21 @@ const runBuildGate = async ({
   const appendedScripts = [];
   const replacedUrls = [];
   let reloads = 0;
+  let languagePreferenceWrites = 0;
+  const sessionValues = new Map(
+    reloadTarget ? [["nrv-startup-reload-target", reloadTarget]] : [],
+  );
+  const windowListeners = new Map();
   const elements = new Map([
     ["startup-recovery-screen", { hidden: false }],
     ["startup-recovery-title", { textContent: "" }],
     ["startup-recovery-message", { textContent: "" }],
+    ["startup-recovery-code", { textContent: "", hidden: true }],
+    ["startup-recovery-continue", {
+      hidden: true,
+      disabled: false,
+      addEventListener(_type, handler) { this.handler = handler; },
+    }],
     ["startup-recovery-retry", {
       hidden: true,
       disabled: false,
@@ -176,6 +192,7 @@ const runBuildGate = async ({
     }],
   ]);
   const activeWorker = {
+    state: "activated",
     postMessage(_message, ports) {
       setTimeout(() => {
         ports[0].peer.onmessage({ data: { revision: workerRevision } });
@@ -192,18 +209,42 @@ const runBuildGate = async ({
   };
   const window = {
     nrvI18nReady: Promise.resolve(),
-    NRVI18n: { t: (key, _vars, fallback) => catalogs[language][key] || fallback },
+    NRVI18n: {
+      t: (key, _vars, fallback) => catalogs[language][key] || fallback,
+      async persistPendingLanguagePreference() { languagePreferenceWrites += 1; },
+    },
     location: {
       href: url,
+      search: new URL(url).search,
       replace(value) { replacedUrls.push(value); },
-      reload() { reloads += 1; },
+      reload() {
+        reloads += 1;
+        (windowListeners.get("pagehide") || []).forEach((handler) => handler());
+      },
     },
     history: { replaceState() {} },
     setTimeout,
     clearTimeout,
+    addEventListener(type, handler) {
+      const listeners = windowListeners.get(type) || [];
+      listeners.push(handler);
+      windowListeners.set(type, listeners);
+    },
+    removeEventListener(type, handler) {
+      windowListeners.set(
+        type,
+        (windowListeners.get(type) || []).filter((item) => item !== handler),
+      );
+    },
+    sessionStorage: {
+      getItem: (key) => sessionValues.get(key) || null,
+      setItem: (key, value) => sessionValues.set(key, value),
+      removeItem: (key) => sessionValues.delete(key),
+    },
   };
   const document = {
     baseURI: "https://example.test/app/",
+    documentElement: { lang: language, classList: { remove() {} } },
     querySelector: () => ({ content: pageRevision }),
     getElementById: (id) => elements.get(id),
     createElement: () => ({ textContent: "" }),
@@ -217,6 +258,7 @@ const runBuildGate = async ({
     navigator: { onLine: true, serviceWorker },
     MessageChannel: FakeMessageChannel,
     URL,
+    URLSearchParams,
     Date,
     Promise,
     console: { error() {} },
@@ -236,7 +278,15 @@ const runBuildGate = async ({
   };
   vm.runInNewContext(extractGate(), context);
   await window.NRVBuildGate.ready;
-  return { appendedScripts, replacedUrls, elements, window, get reloads() { return reloads; } };
+  return {
+    appendedScripts,
+    replacedUrls,
+    elements,
+    window,
+    sessionValues,
+    get reloads() { return reloads; },
+    get languagePreferenceWrites() { return languagePreferenceWrites; },
+  };
 };
 
 async function main() {
@@ -347,6 +397,61 @@ async function main() {
   assert(app.includes('document.getElementById("change-passphrase-form")'));
   console.log("PASS first-time passphrase creation is no longer a startup fallback");
 
+  const continueStart = app.indexOf("const continueWizard = () => {");
+  const continueEnd = app.indexOf("\n  const openSettingsSection", continueStart);
+  assert(continueStart >= 0 && continueEnd > continueStart);
+  const continueSource = app.slice(continueStart, continueEnd);
+  const runContinueWizard = ({ failToAdvance = false } = {}) => {
+    const writes = [];
+    let focused = false;
+    const errorMessage = {
+      hidden: true,
+      focus() { focused = true; },
+    };
+    const stepTwo = { hidden: true };
+    const context = {
+      wizardStep: 1,
+      wizardStepKey: "setup-wizard-step",
+      document: {
+        getElementById(id) {
+          return id === "setup-wizard-continue-error" ? errorMessage : stepTwo;
+        },
+      },
+      localStorage: {
+        setItem: (key, value) => writes.push([key, value]),
+      },
+      showWizardStep(step) {
+        context.wizardStep = step;
+        if (!failToAdvance) stepTwo.hidden = false;
+      },
+      console: { error() {} },
+    };
+    vm.runInNewContext(
+      `${continueSource}\nthis.runContinueWizard = continueWizard;`,
+      context,
+    );
+    context.runContinueWizard();
+    return { writes, errorMessage, stepTwo, get focused() { return focused; } };
+  };
+  const continued = runContinueWizard();
+  assert.strictEqual(continued.stepTwo.hidden, false);
+  assert.deepStrictEqual(continued.writes, [["setup-wizard-step", "2"]]);
+  assert.strictEqual(continued.errorMessage.hidden, true);
+  const failedContinue = runContinueWizard({ failToAdvance: true });
+  assert.deepStrictEqual(failedContinue.writes, [], "failed advancement does not save setup progress");
+  assert.strictEqual(failedContinue.errorMessage.hidden, false);
+  assert.strictEqual(failedContinue.focused, true);
+  const continueFailureMarkup = html.match(
+    /<p id="setup-wizard-continue-error"[^>]*>([\s\S]*?)<\/p>/,
+  )?.[0];
+  assert(continueFailureMarkup?.includes('role="alert"'));
+  assert(continueFailureMarkup?.includes('data-i18n="setup.continueFailureCode"'));
+  for (const language of ["en", "es"]) {
+    assert(catalogs[language]["setup.continueFailure"].includes("NRV"));
+    assert(catalogs[language]["setup.continueFailureCode"].includes("NRV-A01"));
+  }
+  console.log("PASS setup Continue advances, and failed advancement shows NRV-A01 without saving progress");
+
   const consistent = await runBuildGate({ language: "en" });
   assert.strictEqual(consistent.appendedScripts.length, 3);
   assert.strictEqual(consistent.appendedScripts[0], "window.__dropboxLoaded = true;");
@@ -354,6 +459,7 @@ async function main() {
   assert(consistent.appendedScripts[2].includes(`const APP_BUILD_REVISION = "${revision}"`));
   assert.strictEqual(consistent.elements.get("startup-recovery-screen").hidden, true);
   assert.strictEqual(consistent.replacedUrls.length, 0);
+  assert.strictEqual(consistent.languagePreferenceWrites, 1);
   consistent.window.NRVBuildGate.showFutureSchema();
   await consistent.elements.get("startup-recovery-retry").handler();
   assert.strictEqual(consistent.reloads, 1);
@@ -369,44 +475,49 @@ async function main() {
     language: "es",
   });
   assert.strictEqual(mixed.appendedScripts.length, 0);
-  assert.strictEqual(mixed.replacedUrls.length, 1);
-  assert(mixed.replacedUrls[0].includes("nrv-build-recovery="));
-  console.log("PASS mixed page/app build does not execute app.js and initiates guarded update recovery");
+  assert.strictEqual(mixed.replacedUrls.length, 0);
+  assert.strictEqual(mixed.languagePreferenceWrites, 0);
+  assert.strictEqual(mixed.reloads, 1);
+  assert.strictEqual(
+    mixed.sessionValues.get("nrv-startup-reload-target"),
+    `sha256:${"b".repeat(64)}`,
+  );
+  assert.strictEqual(mixed.elements.get("startup-recovery-code").hidden, true);
+  console.log("PASS a coherent updated worker triggers one guarded reload before app startup");
 
   const guarded = await runBuildGate({
+    pageRevision: `sha256:${"b".repeat(64)}`,
     appRevision: `sha256:${"b".repeat(64)}`,
     workerSourceRevision: `sha256:${"b".repeat(64)}`,
     metadataRevision: `sha256:${"b".repeat(64)}`,
-    workerRevision: `sha256:${"b".repeat(64)}`,
-    url: `https://example.test/app/?nrv-build-recovery=${"sha256:" + "b".repeat(64)}`,
+    reloadTarget: revision,
   });
-  assert.strictEqual(guarded.replacedUrls.length, 0);
   assert.strictEqual(guarded.appendedScripts.length, 0);
   assert.strictEqual(guarded.elements.get("startup-recovery-screen").hidden, false);
+  assert.strictEqual(guarded.languagePreferenceWrites, 0);
   assert.strictEqual(
-    guarded.elements.get("startup-recovery-message").textContent,
-    catalogs.en["startup.buildMismatch"],
+    guarded.elements.get("startup-recovery-code").textContent,
+    "Error code: NRV-V12",
   );
   guarded.window.NRVBuildGate.showFutureSchema();
   assert.strictEqual(
     guarded.elements.get("startup-recovery-message").textContent,
     catalogs.en["startup.futureData"],
   );
-  console.log("PASS reload recovery does not loop and future-schema errors use a dedicated safe screen");
+  console.log("PASS verification retries stay behind the gate and future-schema errors use a dedicated safe screen");
 
   for (const language of ["en", "es"]) {
     const translated = await runBuildGate({
       pageRevision: revision,
-      appRevision: `sha256:${"b".repeat(64)}`,
-      workerSourceRevision: `sha256:${"b".repeat(64)}`,
+      appRevision: revision,
+      workerSourceRevision: revision,
       metadataRevision: `sha256:${"b".repeat(64)}`,
-      workerRevision: `sha256:${"b".repeat(64)}`,
-      url: `https://example.test/app/?nrv-build-recovery=${"sha256:" + "b".repeat(64)}`,
+      workerRevision: revision,
       language,
     });
     assert.strictEqual(
-      translated.elements.get("startup-recovery-message").textContent,
-      catalogs[language]["startup.buildMismatch"],
+      translated.elements.get("startup-recovery-code").textContent,
+      `${catalogs[language]["startup.errorCode"]}: NRV-V10`,
     );
     assert(catalogs[language]["startup.futureData"]);
   }

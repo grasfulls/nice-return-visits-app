@@ -1,4 +1,4 @@
-const BUILD_REVISION = "sha256:04d4c18461d8c00f2560e68c007becd1fa439b7a926497fab59d945f13f90fd9";
+const BUILD_REVISION = "sha256:67f1459a2672ecda3c1c6562e14599baff546e9564a46c072d671b40a1a6197b";
 const CACHE_NAME = `return-visits-shell-${BUILD_REVISION.slice(7)}`;
 const APP_SHELL = [
   "./",
@@ -68,10 +68,12 @@ self.addEventListener("fetch", (event) => {
     (async () => {
       try {
         const response = await fetch(event.request, { cache: "no-cache" });
-        if (response.ok) {
-          const cache = await caches.open(CACHE_NAME);
-          await cache.put(event.request, response.clone());
+        if (!response.ok) {
+          const cachedResponse = await caches.match(event.request);
+          return cachedResponse || response;
         }
+        const cache = await caches.open(CACHE_NAME);
+        await cache.put(event.request, response.clone());
         return response;
       } catch {
         const cachedResponse = await caches.match(event.request);

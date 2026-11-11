@@ -20,6 +20,8 @@ function makeApp(search, saved, values = new Map(saved === undefined ? [] : [["n
   };
   const window = {
     location,
+    setTimeout,
+    clearTimeout,
     localStorage: {
       getItem: (key) => values.get(key) || null,
       setItem: (key, value) => values.set(key, value),
@@ -87,6 +89,13 @@ async function main() {
   assert.strictEqual(selectable.values.get("nrv_language"), "es");
   assert.throws(() => selectable.window.NRVI18n.setLanguage("fr"), /Unsupported language/);
   console.log("PASS  language preference saves independently and rejects unsupported languages");
+
+  const deferred = makeApp("?lang=es", "en");
+  await deferred.window.NRVI18n.init({ deferExplicitSave: true });
+  assert.strictEqual(deferred.values.get("nrv_language"), "en");
+  await deferred.window.NRVI18n.persistPendingLanguagePreference();
+  assert.strictEqual(deferred.values.get("nrv_language"), "es");
+  console.log("PASS  startup can defer a URL language preference until after verification");
 
   const websiteLink = html.match(/<a\s+href="([^"]+)"\s+data-i18n="([^"]+)"\s+data-i18n-attr="([^"]+)"[^>]*>\s*([^<]+?)\s*<\/a>/g)
     .find((link) => link.includes('data-i18n="launch.websiteLink"'));

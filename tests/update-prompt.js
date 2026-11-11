@@ -45,7 +45,7 @@ assert.strictEqual(swReply, null, "unrelated messages are ignored");
 console.log("PASS  the service worker reports its generated build revision on request");
 
 // --- Extract the registration bootstrap from index.html. ---
-const bootStart = index.indexOf('if ("serviceWorker" in navigator) {');
+const bootStart = index.lastIndexOf('if ("serviceWorker" in navigator) {');
 const bootEnd = index.indexOf("</script>", bootStart);
 assert(bootStart >= 0 && bootEnd > bootStart);
 const bootstrap = index.slice(bootStart, bootEnd);

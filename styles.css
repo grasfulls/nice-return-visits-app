@@ -1,5 +1,13 @@
-html.i18n-loading body {
+html.i18n-loading #app-container,
+html.i18n-loading #launch-choice-screen,
+html.i18n-loading #browser-install-screen,
+html.i18n-loading #install-screen {
     visibility: hidden;
+}
+
+html.i18n-loading #startup-recovery-screen {
+    visibility: visible;
+    z-index: 4000;
 }
 
 body {

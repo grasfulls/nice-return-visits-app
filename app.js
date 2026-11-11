@@ -17,7 +17,7 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
 const APP_VERSION = "0.9.059";
-const APP_BUILD_REVISION = "sha256:04d4c18461d8c00f2560e68c007becd1fa439b7a926497fab59d945f13f90fd9";
+const APP_BUILD_REVISION = "sha256:67f1459a2672ecda3c1c6562e14599baff546e9564a46c072d671b40a1a6197b";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -12614,12 +12614,26 @@ const initializeInstallSetup = async () => {
     goToView("contacts-view");
   };
   const continueWizard = () => {
+    const errorMessage = document.getElementById("setup-wizard-continue-error");
+    errorMessage.hidden = true;
     try {
-      localStorage.setItem(wizardStepKey, "2");
+      showWizardStep(2, true);
+      if (
+        wizardStep !== 2 ||
+        document.getElementById("setup-wizard-step-2").hidden
+      ) {
+        throw new Error("The setup walkthrough did not advance.");
+      }
+      try {
+        localStorage.setItem(wizardStepKey, "2");
+      } catch (error) {
+        console.error("Unable to save the setup walkthrough progress:", error);
+      }
     } catch (error) {
-      console.error("Unable to save the setup walkthrough progress:", error);
+      console.error("Unable to continue the setup walkthrough:", error);
+      errorMessage.hidden = false;
+      errorMessage.focus();
     }
-    showWizardStep(2, true);
   };
   const openSettingsSection = async (sectionId) => {
     if (document.getElementById("settings-view").classList.contains("active") &&

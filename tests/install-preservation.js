@@ -6,7 +6,7 @@ const vm = require("vm");
 const i18n = require("../i18n.js");
 
 const root = path.join(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8").replace(/\r\n?/g, "\n");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const hasInformationStart = app.indexOf(
   "const hasMeaningfulUserInformation =",

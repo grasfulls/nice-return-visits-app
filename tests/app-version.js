@@ -9,7 +9,7 @@ const release = require("../scripts/version.js");
 const buildRevision = require("../scripts/build-revision.js");
 
 const root = path.join(__dirname, "..");
-const source = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const source = fs.readFileSync(path.join(root, "app.js"), "utf8").replace(/\r\n?/g, "\n");
 const start = source.indexOf('const APP_VERSION = "');
 const end = source.indexOf("const guardDetailsFocusScroll =", start);
 assert(start >= 0 && end > start);

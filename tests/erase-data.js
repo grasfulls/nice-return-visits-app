@@ -6,7 +6,7 @@ const vm = require("vm");
 const i18n = require("../i18n.js");
 
 const root = path.join(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8").replace(/\r\n?/g, "\n");
 const clearStart = app.indexOf("const clearNrvWorkingState =");
 const clearEnd = app.indexOf("\nconst runStartFreshFlow =", clearStart);
 const flowEnd = app.indexOf("\nlet appUpdateAvailable =", clearEnd);

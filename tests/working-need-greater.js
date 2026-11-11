@@ -5,7 +5,7 @@ const path = require("path");
 const vm = require("vm");
 
 const root = path.join(__dirname, "..");
-const source = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const source = fs.readFileSync(path.join(root, "app.js"), "utf8").replace(/\r\n?/g, "\n");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const locales = Object.fromEntries(["en", "es"].map((language) => [
   language,

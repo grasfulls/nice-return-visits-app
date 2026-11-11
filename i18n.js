@@ -6,6 +6,8 @@
   else root.NRVI18n = api;
 })(typeof window !== "undefined" ? window : globalThis, function (root) {
   const DEFAULT_LANGUAGE = "en";
+  const CATALOG_TIMEOUT_MS = 3000;
+  const CACHE_READ_TIMEOUT_MS = 500;
   const STORAGE_KEY = "nrv_language";
   // To add a language: add one entry here and one locales/<code>.json file.
   const LANGUAGES = [
@@ -15,6 +17,11 @@
 
   const catalogs = {};
   let current = DEFAULT_LANGUAGE;
+  let pendingLanguagePreference = null;
+  const setTimer = (callback, duration) =>
+    (root.setTimeout || setTimeout).call(root, callback, duration);
+  const clearTimer = (timer) =>
+    (root.clearTimeout || clearTimeout).call(root, timer);
 
   const isSupported = (code) => LANGUAGES.some((l) => l.code === code);
 
@@ -42,10 +49,61 @@
     if (catalogs[code]) return catalogs[code];
     const entry = LANGUAGES.find((l) => l.code === code);
     if (!entry) throw new Error(`Unsupported language: ${code}`);
-    const response = await root.fetch(entry.file);
+    if (root.caches && root.location) {
+      try {
+        const cached = await withTimeout(
+          root.caches.match(new URL(entry.file, root.location.href)),
+          CACHE_READ_TIMEOUT_MS,
+          `Reading the cached ${code} language catalog timed out.`,
+        );
+        if (cached?.ok) {
+          catalogs[code] = await withTimeout(
+            cached.json(),
+            CATALOG_TIMEOUT_MS,
+            `Reading the cached ${code} language catalog timed out.`,
+          );
+          return catalogs[code];
+        }
+      } catch (error) {
+        console.error(`Unable to read the cached ${code} language catalog:`, error);
+      }
+    }
+    const controller = typeof root.AbortController === "function"
+      ? new root.AbortController()
+      : null;
+    let timer;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimer(() => {
+        controller?.abort();
+        reject(new Error(`Loading the ${code} language catalog timed out.`));
+      }, CATALOG_TIMEOUT_MS);
+    });
+    let response;
+    try {
+      response = await Promise.race([
+        root.fetch(entry.file, controller ? { signal: controller.signal } : undefined),
+        timeout,
+      ]);
+    } finally {
+      clearTimer(timer);
+    }
     if (!response.ok) throw new Error(`Could not load ${entry.file}`);
-    catalogs[code] = await response.json();
+    catalogs[code] = await withTimeout(
+      response.json(),
+      CATALOG_TIMEOUT_MS,
+      `Reading the ${code} language catalog timed out.`,
+    );
     return catalogs[code];
+  }
+
+  function withTimeout(promise, duration, message) {
+    let timer;
+    return Promise.race([
+      Promise.resolve(promise),
+      new Promise((_, reject) => {
+        timer = setTimer(() => reject(new Error(message)), duration);
+      }),
+    ]).finally(() => clearTimer(timer));
   }
 
   function lookup(key, count) {
@@ -99,16 +157,21 @@
     }
   }
 
-  async function init() {
+  async function init({ deferExplicitSave = false } = {}) {
     const explicit = explicitLanguage();
     const code = explicit || readStoredLanguage();
     let languageSaveFailed = false;
     if (explicit) {
-      try {
-        root.localStorage.setItem(STORAGE_KEY, code);
-      } catch (error) {
-        console.error("Unable to save the selected language:", error);
-        languageSaveFailed = true;
+      if (deferExplicitSave) {
+        pendingLanguagePreference = code;
+      } else {
+        try {
+          root.localStorage.setItem(STORAGE_KEY, code);
+          pendingLanguagePreference = null;
+        } catch (error) {
+          console.error("Unable to save the selected language:", error);
+          languageSaveFailed = true;
+        }
       }
     }
     try {
@@ -130,6 +193,25 @@
     return current;
   }
 
+  async function persistPendingLanguagePreference() {
+    if (!pendingLanguagePreference) return true;
+    try {
+      root.localStorage.setItem(STORAGE_KEY, pendingLanguagePreference);
+      pendingLanguagePreference = null;
+      return true;
+    } catch (error) {
+      console.error("Unable to save the selected language:", error);
+      await root.NRVDialogs.alert(
+        t(
+          "language.saveError",
+          undefined,
+          "The language choice could not be saved on this device. Check your browser storage settings and try again.",
+        ),
+      );
+      return false;
+    }
+  }
+
   return {
     DEFAULT_LANGUAGE,
     STORAGE_KEY,
@@ -137,6 +219,7 @@
     t,
     apply,
     init,
+    persistPendingLanguagePreference,
     setLanguage,
     getLanguage: () => current,
     // Test hook: supplies a catalog without fetching.
