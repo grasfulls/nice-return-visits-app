@@ -10,9 +10,10 @@ const workflow = fs.readFileSync(
 );
 assert.match(workflow, /push:\s*\n\s+branches:\s*\n\s+- main/);
 assert(workflow.includes("node scripts/build-revision.js --write"));
+assert(workflow.includes("git add app.js index.html service-worker.js version.json"));
 assert(workflow.includes("git push origin HEAD:main"));
 const extensionAssets = [
-  ["index.html", "<main>one</main>"],
+  ["index.html", `<meta name="nrv-build-revision" content="sha256:${"a".repeat(64)}" />`],
   ["app.js", `const APP_BUILD_REVISION = "sha256:${"a".repeat(64)}";`],
   ["styles.css", "body { color: black; }"],
   ["locales/en.json", '{"backup.contactsBackup":"Backup"}'],
@@ -62,7 +63,7 @@ assert.notStrictEqual(
 assert.match(checkBuildFiles(), /^sha256:[a-f0-9]{64}$/);
 assert.strictEqual(
   JSON.parse(fs.readFileSync(path.join(root, "version.json"), "utf8")).version,
-  "0.9.058",
+  "0.9.059",
 );
 
 console.log("PASS generated asset revision covers app assets and remains stable across regeneration");

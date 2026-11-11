@@ -36,6 +36,7 @@ const textAssetExtensions = new Set([
 ]);
 const revisionPlaceholders = {
   "app.js": /^const APP_BUILD_REVISION = "[^"]+";/m,
+  "index.html": /<meta name="nrv-build-revision" content="[^"]+" \/>/,
   "service-worker.js": /^const BUILD_REVISION = "[^"]+";/m,
 };
 
@@ -59,7 +60,9 @@ const normalizedAssetContents = (file, contents) => {
         throw new Error(`${file} must contain its generated build revision.`);
       }
       text = text.replace(placeholder, (declaration) =>
-        declaration.replace(/"[^"]+";$/, '"sha256:__ASSET_REVISION__";'),
+        file === "index.html"
+          ? declaration.replace(/content="[^"]+"/, 'content="sha256:__ASSET_REVISION__"')
+          : declaration.replace(/"[^"]+";$/, '"sha256:__ASSET_REVISION__";'),
       );
     }
     return Buffer.from(text, "utf8");
@@ -95,7 +98,9 @@ const replaceRevision = (file, expression, revision) => {
     throw new Error(`${file} must contain its generated build revision.`);
   }
   const updated = source.replace(expression, (declaration) =>
-    declaration.replace(/"[^"]+";$/, `"${revision}";`),
+    file === "index.html"
+      ? declaration.replace(/content="[^"]+"/, `content="${revision}"`)
+      : declaration.replace(/"[^"]+";$/, `"${revision}";`),
   );
   if (updated !== source) fs.writeFileSync(fullPath, updated);
 };
@@ -106,6 +111,11 @@ const generateBuildFiles = () => {
   replaceRevision(
     "service-worker.js",
     revisionPlaceholders["service-worker.js"],
+    revision,
+  );
+  replaceRevision(
+    "index.html",
+    revisionPlaceholders["index.html"],
     revision,
   );
   const appSource = fs.readFileSync(path.join(root, "app.js"), "utf8");
@@ -130,8 +140,16 @@ const checkBuildFiles = () => {
   const workerRevision = workerSource.match(
     /^const BUILD_REVISION = "([^"]+)";$/m,
   )?.[1];
-  if (appRevision !== revision || workerRevision !== revision) {
-    throw new Error("Generated app and service-worker revisions are stale.");
+  const indexSource = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  const pageRevision = indexSource.match(
+    /<meta name="nrv-build-revision" content="([^"]+)" \/>/,
+  )?.[1];
+  if (
+    appRevision !== revision ||
+    workerRevision !== revision ||
+    pageRevision !== revision
+  ) {
+    throw new Error("Generated page, app, and service-worker revisions are stale.");
   }
   versionTools.checkMetadata(
     fs.readFileSync(path.join(root, "version.json"), "utf8"),

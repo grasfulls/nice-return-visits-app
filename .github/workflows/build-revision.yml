@@ -20,7 +20,7 @@ jobs:
         run: |
           node scripts/build-revision.js --write
           node scripts/build-revision.js --check
-          git add app.js service-worker.js version.json
+          git add app.js index.html service-worker.js version.json
           if ! git diff --cached --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

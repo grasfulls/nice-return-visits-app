@@ -1,5 +1,22 @@
 [
   {
+    "version": "0.9.059",
+    "en": {
+      "title": "Safer startup and data protection",
+      "changes": [
+        "NRV verifies the page, app, service worker, and build metadata before opening saved information.",
+        "No-passphrase data opens normally; incompatible data stays unchanged behind a safe update screen."
+      ]
+    },
+    "es": {
+      "title": "Inicio más seguro y protección de datos",
+      "changes": [
+        "NRV verifica la página, la aplicación, el service worker y los metadatos de compilación antes de abrir la información guardada.",
+        "Los datos sin frase de contraseña se abren con normalidad; los datos incompatibles permanecen intactos en una pantalla segura de actualización."
+      ]
+    }
+  },
+  {
     "version": "0.9.058",
     "en": {
       "title": "Optional features organized in Settings",

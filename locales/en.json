@@ -833,6 +833,13 @@
   "update.buildNotReady": "An NRV update is available, but its files are still being prepared. Please try again later.",
   "update.versionCheckFailed": "Could not verify the deployed NRV version or check for updates. Check your connection and try again.",
   "update.refreshing": "Update check complete. Refreshing the app now; saved contacts are kept on this device.",
+  "startup.checkingTitle": "Checking Nice Return Visits",
+  "startup.checking": "Verifying this app before opening your saved information. Your information will not be changed.",
+  "startup.safeTitle": "NRV is keeping your information safe",
+  "startup.buildMismatch": "The app files are not from the same build. Connect to the internet and choose Check Again. Your saved information has not been opened or changed.",
+  "startup.buildUnavailable": "NRV could not verify this app before opening your saved information. Connect to the internet and choose Check Again. Your information has not been changed.",
+  "startup.futureData": "This saved information needs a newer compatible NRV version. No information was changed. Connect to the internet and choose Check Again.",
+  "startup.retry": "Check Again",
   "update.finishContact": "Save or exit the open contact before refreshing the app. Your saved contacts will remain on this device.",
   "update.finishSettings": "Before refreshing, finish or clear \"{field}\" in Settings → {section}. It has changes that are not saved.",
   "update.finishEdits": "An app update is ready. Save or finish your edits before refreshing.",
@@ -1162,7 +1169,7 @@
   "map.zoomIn": "Zoom in",
   "map.zoomOut": "Zoom out",
   "map.closePopup": "Close popup",
-  "release.current.title": "Optional features organized in Settings",
-  "release.current.change1": "Time in Service, Goals & Milestones, Encouragement Messages, and Working Need Greater are now grouped under Settings → Options.",
-  "release.current.change2": "Open Goals & Milestones from Options; its page no longer shows Contacts search and filters."
+  "release.current.title": "Safer startup and data protection",
+  "release.current.change1": "NRV verifies the page, app, service worker, and build metadata before opening saved information.",
+  "release.current.change2": "No-passphrase data opens normally; incompatible data stays unchanged behind a safe update screen."
 }

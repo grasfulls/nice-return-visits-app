@@ -4,7 +4,7 @@ const path = require("path");
 const { canonicalVersion, compareVersions } = require("./version.js");
 
 const root = path.join(__dirname, "..");
-const versionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*|058)(?![\s\S])/;
+const versionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*|058|059)(?![\s\S])/;
 const escapeHtml = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;")
   .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 const validateHistory = (history, currentVersion) => {

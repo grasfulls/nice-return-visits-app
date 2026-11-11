@@ -37,15 +37,15 @@ const catalogs = Object.fromEntries(["en", "es"].map((language) => [
 for (const language of ["en", "es"]) i18n._setCatalog(language, catalogs[language]);
 
 async function main() {
-  assert.strictEqual(api.APP_VERSION, "0.9.058");
+  assert.strictEqual(api.APP_VERSION, "0.9.059");
   assert(/^sha256:[a-f0-9]{64}$/.test(api.APP_BUILD_REVISION));
   assert.strictEqual(
     api.publicVersionHistoryUrl(api.APP_VERSION, "en"),
-    "https://nicereturnvisits.org/version-history.html#version-0-9-058",
+    "https://nicereturnvisits.org/version-history.html#version-0-9-059",
   );
   assert.strictEqual(
     api.publicVersionHistoryUrl(api.APP_VERSION, "es"),
-    "https://nicereturnvisits.org/es/version-history.html#version-0-9-058",
+    "https://nicereturnvisits.org/es/version-history.html#version-0-9-059",
   );
   const updatedMessage = { textContent: "" };
   const updatedLink = { href: "" };
@@ -83,13 +83,13 @@ async function main() {
     updatedDialogShown = false;
     showUpdatedNotice();
     assert(updatedMessage.textContent.includes(api.APP_VERSION), updatedMessage.textContent);
-    assert(updatedLink.href.endsWith(`${page}#version-0-9-058`));
+    assert(updatedLink.href.endsWith(`${page}#version-0-9-059`));
     assert(updatedDialogShown);
   }
   for (const invalid of ["1.0", "1.2.3.4", "01.2.3", "1.-1.0", "1.2.3-beta", "1.2.3\n", "", null, 123]) {
     assert.throws(() => api.parseAppVersion(invalid));
   }
-  assert.deepStrictEqual(Array.from(api.parseAppVersion("0.9.058")), ["0", "9", "058"]);
+  assert.deepStrictEqual(Array.from(api.parseAppVersion("0.9.059")), ["0", "9", "059"]);
   for (const invalid of [
     "1.0.0",
     "sha256:xyz",
@@ -108,6 +108,8 @@ async function main() {
     ["0.9.55", "0.9.56", -1],
     ["0.9.56", "0.9.57", -1],
     ["0.9.57", "0.9.058", -1],
+    ["0.9.058", "0.9.059", -1],
+    ["0.9.059", "0.9.6", -1],
     ["0.9.058", "0.9.6", -1],
     ["0.9.53", "0.9.6", -1],
     ["0.9.6", "0.10.0", -1], ["99999999999999999999.0.0", "9.0.0", 1],
@@ -186,13 +188,18 @@ async function main() {
   assert(headerNodes.get("app-version-badge").ariaLabel.includes("An update is ready"));
   renderHeader(true, "es");
   assert(headerNodes.get("app-version-badge").ariaLabel.includes("Hay una actualización disponible"));
-  assert(headerNodes.get("app-version-badge").href.endsWith("#version-0-9-058"));
+  assert(headerNodes.get("app-version-badge").href.endsWith("#version-0-9-059"));
   assert.throws(() => release.checkMetadata('{"version":"1.0.0"}', version, api.APP_BUILD_REVISION));
   assert.throws(() => release.checkMetadata("not json", version));
   assert.throws(() => release.checkMetadata('{"version":"0.9.0","revision":"invalid"}', version, api.APP_BUILD_REVISION));
   assert.throws(() => release.checkMetadata(release.metadataFor(version, `sha256:${"a".repeat(64)}`), version, api.APP_BUILD_REVISION));
   assert.strictEqual(buildRevision.checkBuildFiles(), api.APP_BUILD_REVISION);
-  assert.strictEqual(JSON.parse(metadata).version, "0.9.058");
+  assert.strictEqual(JSON.parse(metadata).version, "0.9.059");
+  assert.strictEqual(
+    fs.readFileSync(path.join(root, "index.html"), "utf8")
+      .match(/<meta name="nrv-build-revision" content="([^"]+)" \/>/)?.[1],
+    api.APP_BUILD_REVISION,
+  );
   assert(fs.readFileSync(path.join(root, "service-worker.js"), "utf8").includes("return-visits-shell-${BUILD_REVISION.slice(7)}"));
   execFileSync(process.execPath, [path.join(root, "scripts", "version.js"), "--check"]);
   console.log("PASS  generated metadata and service-worker cache use the internal asset revision");
@@ -238,7 +245,7 @@ async function main() {
   let updateCalls = 0;
   const cachedRevision = `sha256:${"a".repeat(64)}`;
   const updatedRevision = `sha256:${"b".repeat(64)}`;
-  let deployed = { version: "0.9.058", revision: cachedRevision };
+  let deployed = { version: "0.9.059", revision: cachedRevision };
   let worker = null;
   let available = false;
   let block = "";
@@ -294,20 +301,20 @@ async function main() {
   await check();
   assert.strictEqual(status.textContent, catalogs.en["update.versionCheckFailed"]);
   assert(!button.disabled);
-  deployed = { version: "0.9.058", revision: updatedRevision };
+  deployed = { version: "0.9.059", revision: updatedRevision };
   await check();
   assert.strictEqual(status.textContent, catalogs.en["update.buildNotReady"]);
   assert.strictEqual(dialogs, 1);
   assert.strictEqual(reloads, 0);
-  deployed = { version: "0.9.058", revision: updatedRevision };
+  deployed = { version: "0.9.059", revision: updatedRevision };
   worker = { state: "activated" };
   await check();
-  assert.strictEqual(api.APP_VERSION, "0.9.058");
+  assert.strictEqual(api.APP_VERSION, "0.9.059");
   assert.strictEqual(reloads, 1, "a changed internal revision updates the same displayed version");
   assert.deepStrictEqual(removedLocalStorageKeys, ["pending"]);
   worker = null;
   available = true;
-  deployed = { version: "0.9.058", revision: cachedRevision };
+  deployed = { version: "0.9.059", revision: cachedRevision };
   await check();
   assert.strictEqual(reloads, 2, "previously activated update still refreshes");
   editDuringLookup = true;

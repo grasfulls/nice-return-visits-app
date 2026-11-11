@@ -833,6 +833,13 @@
   "update.buildNotReady": "Hay una actualización de NRV disponible, pero sus archivos aún se están preparando. Vuelve a intentarlo más tarde.",
   "update.versionCheckFailed": "No se pudo verificar la versión publicada de NRV ni buscar actualizaciones. Comprueba tu conexión y vuelve a intentarlo.",
   "update.refreshing": "Comprobación de actualizaciones terminada. La aplicación se recargará ahora; los contactos guardados permanecerán en este dispositivo.",
+  "startup.checkingTitle": "Comprobando Nice Return Visits",
+  "startup.checking": "Verificamos esta aplicación antes de abrir tu información guardada. No se modificará tu información.",
+  "startup.safeTitle": "NRV está protegiendo tu información",
+  "startup.buildMismatch": "Los archivos de la aplicación no pertenecen a la misma compilación. Conéctate a internet y elige Comprobar de nuevo. Tu información guardada no se ha abierto ni modificado.",
+  "startup.buildUnavailable": "NRV no pudo verificar esta aplicación antes de abrir tu información guardada. Conéctate a internet y elige Comprobar de nuevo. Tu información no se ha modificado.",
+  "startup.futureData": "Esta información guardada necesita una versión compatible más reciente de NRV. No se modificó nada. Conéctate a internet y elige Comprobar de nuevo.",
+  "startup.retry": "Comprobar de nuevo",
   "update.finishContact": "Guarda o cierra el contacto abierto antes de recargar la aplicación. Tus contactos guardados permanecerán en este dispositivo.",
   "update.finishSettings": "Antes de recargar, termina o borra «{field}» en Configuración → {section}. Tiene cambios sin guardar.",
   "update.finishEdits": "Hay una actualización disponible. Guarda o termina tus cambios antes de recargar.",
@@ -1162,7 +1169,7 @@
   "map.zoomIn": "Acercar",
   "map.zoomOut": "Alejar",
   "map.closePopup": "Cerrar ventana emergente",
-  "release.current.title": "Funciones opcionales organizadas en Configuración",
-  "release.current.change1": "Tiempo en el ministerio, Metas e hitos, Mensajes de ánimo y Necesidad de trabajar donde hay mayor necesidad ahora están agrupados en Configuración → Opciones.",
-  "release.current.change2": "Abre Metas e hitos desde Opciones; su página ya no muestra la búsqueda ni los filtros de Contactos."
+  "release.current.title": "Inicio más seguro y protección de datos",
+  "release.current.change1": "NRV verifica la página, la aplicación, el service worker y los metadatos de compilación antes de abrir la información guardada.",
+  "release.current.change2": "Los datos sin frase de contraseña se abren con normalidad; los datos incompatibles permanecen intactos en una pantalla segura de actualización."
 }

@@ -7,6 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title data-i18n="page.welcome">NRV-Welcome</title>
+    <meta name="nrv-build-revision" content="sha256:48ad5110bc3d8893533299d352931af65b6e2e9c2080d93878475642699a850c" />
     <meta name="theme-color" content="#004080" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NRV" />
@@ -187,7 +188,24 @@
       </div>
     </section>
     <section
+      id="startup-recovery-screen"
+      class="install-screen"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="install-screen-card">
+        <h1 id="startup-recovery-title" data-i18n="startup.checkingTitle">Checking Nice Return Visits</h1>
+        <p id="startup-recovery-message" data-i18n="startup.checking">
+          Verifying this app before opening your saved information. Your information will not be changed.
+        </p>
+        <button type="button" id="startup-recovery-retry" data-i18n="startup.retry" hidden>
+          Check Again
+        </button>
+      </div>
+    </section>
+    <section
       id="unlock-screen"
+      hidden
       role="dialog"
       aria-modal="true"
       aria-label="Nice Return Visits access"
@@ -1101,10 +1119,10 @@
               <details class="settings-section">
                 <summary data-i18n="update.whatsNew">What's New</summary>
                 <!-- release-notes:start -->
-                <p data-i18n="release.current.title">Optional features organized in Settings</p>
+                <p data-i18n="release.current.title">Safer startup and data protection</p>
                 <ul>
-                  <li data-i18n="release.current.change1">Time in Service, Goals &amp; Milestones, Encouragement Messages, and Working Need Greater are now grouped under Settings → Options.</li>
-                  <li data-i18n="release.current.change2">Open Goals &amp; Milestones from Options; its page no longer shows Contacts search and filters.</li>
+                  <li data-i18n="release.current.change1">NRV verifies the page, app, service worker, and build metadata before opening saved information.</li>
+                  <li data-i18n="release.current.change2">No-passphrase data opens normally; incompatible data stays unchanged behind a safe update screen.</li>
                 </ul>
                 <!-- release-notes:end -->
               </details>
@@ -1946,9 +1964,184 @@
     </script>
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="dropbox.js"></script>
-    <script src="merge.js"></script>
-    <script src="app.js"></script>
+    <script id="nrv-build-gate">
+      window.NRVBuildGate = (() => {
+        const pageRevision = document.querySelector(
+          'meta[name="nrv-build-revision"]',
+        )?.content;
+        const screen = document.getElementById("startup-recovery-screen");
+        const title = document.getElementById("startup-recovery-title");
+        const message = document.getElementById("startup-recovery-message");
+        const retryButton = document.getElementById("startup-recovery-retry");
+        const retryParameter = "nrv-build-recovery";
+        let appLoaded = false;
+        const translate = (key, fallback) =>
+          window.NRVI18n?.t(key, {}, fallback) || fallback;
+        const showMessage = (titleKey, titleFallback, messageKey, messageFallback) => {
+          title.textContent = translate(titleKey, titleFallback);
+          message.textContent = translate(messageKey, messageFallback);
+          retryButton.hidden = false;
+          retryButton.disabled = false;
+          screen.hidden = false;
+        };
+        const workerRevision = (worker) =>
+          new Promise((resolve) => {
+            if (!worker || typeof MessageChannel !== "function") {
+              resolve(null);
+              return;
+            }
+            const channel = new MessageChannel();
+            const timer = window.setTimeout(() => {
+              channel.port1.close();
+              resolve(null);
+            }, 3000);
+            channel.port1.onmessage = (event) => {
+              window.clearTimeout(timer);
+              channel.port1.close();
+              resolve(typeof event.data?.revision === "string" ? event.data.revision : null);
+            };
+            worker.postMessage({ type: "nrv-get-revision" }, [channel.port2]);
+          });
+        const fetchText = async (path) => {
+          const response = await fetch(new URL(path, document.baseURI), {
+            cache: "no-store",
+          });
+          if (!response.ok) throw new Error(`${path} returned ${response.status}.`);
+          return response.text();
+        };
+        const readBuild = async () => {
+          const [metadataText, appSource, workerSource, dropboxSource, mergeSource] = await Promise.all([
+            fetchText("version.json"),
+            fetchText("app.js"),
+            fetchText("service-worker.js"),
+            fetchText("dropbox.js"),
+            fetchText("merge.js"),
+          ]);
+          const metadata = JSON.parse(metadataText);
+          const appVersion = appSource.match(/^const APP_VERSION = "([^"]+)";$/m)?.[1];
+          const appRevision = appSource.match(/^const APP_BUILD_REVISION = "([^"]+)";$/m)?.[1];
+          const workerBuildRevision = workerSource.match(/^const BUILD_REVISION = "([^"]+)";$/m)?.[1];
+          const consistent =
+            metadata &&
+            typeof metadata.version === "string" &&
+            typeof metadata.revision === "string" &&
+            /^sha256:[a-f0-9]{64}$/.test(pageRevision || "") &&
+            pageRevision === appRevision &&
+            pageRevision === workerBuildRevision &&
+            pageRevision === metadata.revision &&
+            appVersion === metadata.version;
+          return { appSource, dropboxSource, mergeSource, metadata, consistent };
+        };
+        const reloadOnce = (targetRevision) => {
+          const url = new URL(window.location.href);
+          if (url.searchParams.get(retryParameter) === targetRevision) return false;
+          url.searchParams.set(retryParameter, targetRevision || "unverified");
+          window.location.replace(url.href);
+          return true;
+        };
+        const updateRegistration = async () => {
+          if (!("serviceWorker" in navigator)) return null;
+          const registration = await navigator.serviceWorker.register(
+            "./service-worker.js",
+            { updateViaCache: "none" },
+          );
+          await registration.update();
+          return registration;
+        };
+        const verifyWorker = async (registration, expectedRevision) => {
+          if (!registration) return;
+          const deadline = Date.now() + 15000;
+          while (Date.now() < deadline) {
+            const activeRevision = await workerRevision(registration.active);
+            const controller = navigator.serviceWorker.controller;
+            const controllerBuildRevision = controller
+              ? await workerRevision(controller)
+              : expectedRevision;
+            if (
+              activeRevision === expectedRevision &&
+              controllerBuildRevision === expectedRevision
+            ) {
+              return;
+            }
+            await new Promise((resolve) => window.setTimeout(resolve, 100));
+          }
+          throw new Error("The active app service worker does not match this build.");
+        };
+        const clearRetryMarker = () => {
+          const url = new URL(window.location.href);
+          if (!url.searchParams.has(retryParameter)) return;
+          url.searchParams.delete(retryParameter);
+          window.history.replaceState(null, "", url.href);
+        };
+        const start = async () => {
+          retryButton.disabled = true;
+          await window.nrvI18nReady;
+          try {
+            const registration = await updateRegistration();
+            let build = await readBuild();
+            if (!build.consistent) {
+              if (registration && /^sha256:[a-f0-9]{64}$/.test(build.metadata?.revision || "")) {
+                await verifyWorker(registration, build.metadata.revision);
+              }
+              if (navigator.onLine && reloadOnce(build.metadata?.revision)) return;
+              showMessage(
+                "startup.safeTitle",
+                "NRV is keeping your information safe",
+                "startup.buildMismatch",
+                "The app files are not from the same build. Connect to the internet and choose Check Again. Your saved information has not been opened or changed.",
+              );
+              return;
+            }
+            await verifyWorker(registration, build.metadata.revision);
+            build = await readBuild();
+            if (!build.consistent) {
+              if (navigator.onLine && reloadOnce(build.metadata?.revision)) return;
+              showMessage(
+                "startup.safeTitle",
+                "NRV is keeping your information safe",
+                "startup.buildMismatch",
+                "The app files are not from the same build. Connect to the internet and choose Check Again. Your saved information has not been opened or changed.",
+              );
+              return;
+            }
+            clearRetryMarker();
+            screen.hidden = true;
+            if (appLoaded) {
+              window.location.reload();
+              return;
+            }
+            appLoaded = true;
+            [build.dropboxSource, build.mergeSource, build.appSource].forEach((source) => {
+              const appScript = document.createElement("script");
+              appScript.textContent = source;
+              document.body.appendChild(appScript);
+            });
+          } catch (error) {
+            console.error("Unable to verify the NRV app build:", error);
+            if (navigator.onLine && reloadOnce(pageRevision)) return;
+            showMessage(
+              "startup.safeTitle",
+              "NRV is keeping your information safe",
+              "startup.buildUnavailable",
+              "NRV could not verify this app before opening your saved information. Connect to the internet and choose Check Again. Your information has not been changed.",
+            );
+          }
+        };
+        retryButton.addEventListener("click", start);
+        return {
+          start,
+          showFutureSchema() {
+            showMessage(
+              "startup.safeTitle",
+              "NRV is keeping your information safe",
+              "startup.futureData",
+              "This saved information needs a newer compatible NRV version. No information was changed. Connect to the internet and choose Check Again.",
+            );
+          },
+        };
+      })();
+      window.NRVBuildGate.start();
+    </script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {

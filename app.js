@@ -14,11 +14,10 @@ let selectedContactAddressingCountry = DEFAULT_SETTINGS.addressingCountry;
 const ENCRYPTION_ITERATIONS = 310000;
 const ENCRYPTION_META_KEY = "encryption-meta";
 // Set to true to require a passphrase when no encryption has been set up yet.
-const REQUIRE_PASSPHRASE_ON_FIRST_USE = false;
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
-const APP_VERSION = "0.9.058";
-const APP_BUILD_REVISION = "sha256:e7f821197a3be1b04caa626b6965ec5e2008c3504e8f56bdcbf83cf2fea4d53c";
+const APP_VERSION = "0.9.059";
+const APP_BUILD_REVISION = "sha256:48ad5110bc3d8893533299d352931af65b6e2e9c2080d93878475642699a850c";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -31,7 +30,7 @@ const updatePublicVersionLink = (link) => {
   link.href = publicVersionHistoryUrl(APP_VERSION, window.NRVI18n.getLanguage());
 };
 const parseAppVersion = (version) => {
-  if (typeof version !== "string" || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*|058)(?![\s\S])/.test(version)) {
+  if (typeof version !== "string" || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*|058|059)(?![\s\S])/.test(version)) {
     throw new Error("Invalid app version; expected MAJOR.MINOR.PATCH.");
   }
   return version.split(".");
@@ -2725,6 +2724,21 @@ const dismissUnlockScreen = (screen) => {
   appContainer.setAttribute("aria-hidden", "false");
 };
 
+const showStartupRecovery = () => {
+  const screen = document.getElementById("startup-recovery-screen");
+  document.getElementById("unlock-screen").hidden = true;
+  document.getElementById("startup-recovery-title").textContent = appText(
+    "startup.safeTitle",
+    "NRV is keeping your information safe",
+  );
+  document.getElementById("startup-recovery-message").textContent = appText(
+    "startup.futureData",
+    "This saved information needs a newer compatible NRV version. No information was changed. Connect to the internet and try again.",
+  );
+  document.getElementById("startup-recovery-retry").hidden = false;
+  screen.hidden = false;
+};
+
 // Update this version when the Terms of Use or Privacy & Data Notice changes.
 const USER_AGREEMENT_VERSION = "2026-11-05";
 const requireUserAgreement = () => {
@@ -2823,6 +2837,19 @@ const initializeAppData = async () => {
       readStoredValue(database, "contacts"),
       readStoredValue(database, ENCRYPTION_META_KEY),
     ]);
+  const metadataPresent =
+    existingMetadata !== undefined && existingMetadata !== null;
+  if (metadataPresent) {
+    let supportedMetadata = false;
+    try {
+      supportedMetadata = isSupportedEncryptionMetadata(existingMetadata);
+    } catch (error) {
+      console.error("Unable to validate stored encryption metadata:", error);
+    }
+    if (!supportedMetadata) {
+      throw new Error("Stored encryption metadata is invalid or unsupported.");
+    }
+  }
   const defaultSettings = normalizeRegionData(DEFAULT_SETTINGS, []).settings;
   const hasMeaningfulStoredSettings =
     storedSettingsBeforeInit !== undefined &&
@@ -2845,29 +2872,53 @@ const initializeAppData = async () => {
     (key) => key !== "settings" && key !== "contacts",
   );
   const existingStateDetected =
-    Boolean(existingMetadata) ||
+    metadataPresent ||
     hasOtherStoredData ||
     hasMeaningfulStoredSettings ||
     hasMeaningfulStoredContacts ||
     hasMeaningfulLocalState ||
     (hasPriorSetupDismissal && !hasPriorSetupInProgress);
-  if (!existingMetadata && !REQUIRE_PASSPHRASE_ON_FIRST_USE) {
+  if (!metadataPresent) {
     const [storedSettings, storedContacts] = await Promise.all([
       readStoredValue(database, "settings"),
       readStoredValue(database, "contacts"),
     ]);
-    const { settings, contacts } = normalizeRegionData(
+    const sourceSettings =
       storedSettings ??
-        parseLegacyValue("return_visits_settings") ??
-        DEFAULT_SETTINGS,
-      storedContacts ?? parseLegacyValue("return_visits_contacts") ?? [],
+      parseLegacyValue("return_visits_settings") ??
+      DEFAULT_SETTINGS;
+    const sourceContacts =
+      storedContacts ??
+      parseLegacyValue("return_visits_contacts") ??
+      [];
+    const storedValues = [sourceSettings, sourceContacts];
+    if (
+      storedValues.some(
+        (value) =>
+          value &&
+          typeof value === "object" &&
+          (Object.prototype.hasOwnProperty.call(value, "iv") ||
+            Object.prototype.hasOwnProperty.call(value, "ciphertext")),
+      ) ||
+      !sourceSettings ||
+      typeof sourceSettings !== "object" ||
+      Array.isArray(sourceSettings) ||
+      !Array.isArray(sourceContacts)
+    ) {
+      throw new Error("Stored data is invalid or its encryption metadata is missing.");
+    }
+    const { settings, contacts } = normalizeRegionData(
+      sourceSettings,
+      sourceContacts,
     );
-    await writeStoredValues(database, [
-      ["settings", settings],
-      ["contacts", contacts],
-    ]);
-    localStorage.removeItem("return_visits_settings");
-    localStorage.removeItem("return_visits_contacts");
+    if ((Number(sourceSettings.schemaVersion) || 1) !== SCHEMA_VERSION) {
+      await writeStoredValues(database, [
+        ["settings", settings],
+        ["contacts", contacts],
+      ]);
+      localStorage.removeItem("return_visits_settings");
+      localStorage.removeItem("return_visits_contacts");
+    }
     dismissUnlockScreen(document.getElementById("unlock-screen"));
     return {
       database,
@@ -2879,7 +2930,7 @@ const initializeAppData = async () => {
       restoredFromBackup: false,
     };
   }
-  const prompt = createUnlockPrompt(Boolean(existingMetadata));
+  const prompt = createUnlockPrompt(true);
 
   return new Promise((resolve) => {
     const initialBackupInput = document.getElementById(
@@ -2975,126 +3026,51 @@ const initializeAppData = async () => {
         prompt.errorMessage.textContent = "";
         try {
           const passphrase = prompt.passphraseInput.value;
-          let metadata = existingMetadata;
+          const metadata = existingMetadata;
           let encryptionKey;
           let settings;
           let contacts;
 
           let usedRecoveryCode = false;
-          let newRecoveryCode = null;
-
-          if (metadata) {
-            const resolvedPassphrase = await resolvePassphrase(
-              passphrase,
-              metadata,
-            );
-            usedRecoveryCode = resolvedPassphrase !== passphrase;
-            encryptionKey = await deriveEncryptionKey(
-              resolvedPassphrase,
-              metadata,
-            );
-            const [storedEncryptedSettings, storedEncryptedContacts] = await Promise.all([
-              readStoredValue(database, "settings"),
-              readStoredValue(database, "contacts"),
-            ]);
-            [settings, contacts] = await Promise.all([
-              decryptValue(storedEncryptedSettings, encryptionKey),
-              decryptValue(storedEncryptedContacts, encryptionKey),
-            ]);
-            if (
-              !settings ||
-              !Array.isArray(settings.cities) ||
-              !Array.isArray(settings.areas) ||
-              !Array.isArray(contacts)
-            ) {
-              throw new Error(appText("storage.invalidEncryptedDatabase", "The encrypted database contents are invalid."));
-            }
-            const normalized = normalizeRegionData(settings, contacts);
-            settings = normalized.settings;
-            contacts = normalized.contacts;
-            if (
-              JSON.stringify(settings) !==
-                JSON.stringify(
-                  await decryptValue(storedEncryptedSettings, encryptionKey),
-                ) ||
-              JSON.stringify(contacts) !==
-                JSON.stringify(
-                  await decryptValue(storedEncryptedContacts, encryptionKey),
-                )
-            ) {
-              await writeStoredValues(database, [
-                ["settings", await encryptValue(settings, encryptionKey)],
-                ["contacts", await encryptValue(contacts, encryptionKey)],
-              ]);
-            }
-            localStorage.removeItem("return_visits_settings");
-            localStorage.removeItem("return_visits_contacts");
-          } else {
-            if (passphrase.length < MIN_PASSPHRASE_LENGTH) {
-              throw new Error(
-                `Use a passphrase with at least ${MIN_PASSPHRASE_LENGTH} characters.`,
-              );
-            }
-            if (passphrase !== prompt.confirmInput.value) {
-              throw new Error("The passphrases do not match.");
-            }
-
-            const [storedSettings, storedContacts] = await Promise.all([
-              readStoredValue(database, "settings"),
-              readStoredValue(database, "contacts"),
-            ]);
-            settings =
-              storedSettings ??
-              parseLegacyValue("return_visits_settings") ??
-              DEFAULT_SETTINGS;
-            contacts =
-              storedContacts ??
-              parseLegacyValue("return_visits_contacts") ??
-              [];
-            ({ settings, contacts } = normalizeRegionData(settings, contacts));
-            metadata = createCryptoMetadata();
-            encryptionKey = await deriveEncryptionKey(passphrase, metadata);
-            ({ metadata, recoveryCode: newRecoveryCode } = await withRecoveryCode(
-              metadata,
-              passphrase,
-            ));
-            const encryptedSettings = await encryptValue(settings, encryptionKey);
-            const encryptedContacts = await encryptValue(contacts, encryptionKey);
+          const resolvedPassphrase = await resolvePassphrase(
+            passphrase,
+            metadata,
+          );
+          usedRecoveryCode = resolvedPassphrase !== passphrase;
+          encryptionKey = await deriveEncryptionKey(
+            resolvedPassphrase,
+            metadata,
+          );
+          const [storedEncryptedSettings, storedEncryptedContacts] = await Promise.all([
+            readStoredValue(database, "settings"),
+            readStoredValue(database, "contacts"),
+          ]);
+          [settings, contacts] = await Promise.all([
+            decryptValue(storedEncryptedSettings, encryptionKey),
+            decryptValue(storedEncryptedContacts, encryptionKey),
+          ]);
+          if (
+            !settings ||
+            !Array.isArray(settings.cities) ||
+            !Array.isArray(settings.areas) ||
+            !Array.isArray(contacts)
+          ) {
+            throw new Error(appText("storage.invalidEncryptedDatabase", "The encrypted database contents are invalid."));
+          }
+          const sourceSchemaVersion = Number(settings.schemaVersion) || 1;
+          const normalized = normalizeRegionData(settings, contacts);
+          settings = normalized.settings;
+          contacts = normalized.contacts;
+          if (sourceSchemaVersion !== SCHEMA_VERSION) {
             await writeStoredValues(database, [
-              ["__migration_settings", encryptedSettings],
-              ["__migration_contacts", encryptedContacts],
-            ]);
-            const [verifiedSettings, verifiedContacts] = await Promise.all([
-              decryptValue(
-                await readStoredValue(database, "__migration_settings"),
-                encryptionKey,
-              ),
-              decryptValue(
-                await readStoredValue(database, "__migration_contacts"),
-                encryptionKey,
-              ),
-            ]);
-            if (
-              JSON.stringify(verifiedSettings) !== JSON.stringify(settings) ||
-              JSON.stringify(verifiedContacts) !== JSON.stringify(contacts)
-            ) {
-              throw new Error(appText("security.verificationFailed", "Encrypted data verification did not match."));
-            }
-            await writeStoredValues(database, [
-              ["settings", encryptedSettings],
-              ["contacts", encryptedContacts],
-              [ENCRYPTION_META_KEY, metadata],
-            ]);
-            await deleteStoredValues(database, [
-              "__migration_settings",
-              "__migration_contacts",
+              ["settings", await encryptValue(settings, encryptionKey)],
+              ["contacts", await encryptValue(contacts, encryptionKey)],
             ]);
             localStorage.removeItem("return_visits_settings");
             localStorage.removeItem("return_visits_contacts");
           }
 
           dismissUnlockScreen(prompt.screen);
-          if (newRecoveryCode) await showRecoveryCodeDialog(newRecoveryCode);
           if (usedRecoveryCode) {
             await NRVDialogs.alert(
               appText("recovery.unlocked", "Unlocked with your recovery code. Open Settings → Data/Security → Passphrase to Open App and choose a new passphrase; you can enter your recovery code as the current passphrase. You will also get a new recovery code."),
@@ -3111,18 +3087,15 @@ const initializeAppData = async () => {
           });
         } catch (error) {
           console.error("Unable to unlock or encrypt local data:", error);
-          prompt.errorMessage.textContent =
-            error instanceof NewerDataVersionError
-              ? appText("storage.newerData", "This data was saved by a newer version of the app. Update the app (reload it) before opening this data. Nothing was changed.")
-              : existingMetadata
-            ? appText("unlock.readFailed", "The passphrase was incorrect, or the encrypted data could not be read.")
-            : error.message === `Use a passphrase with at least ${MIN_PASSPHRASE_LENGTH} characters.`
-              ? appText("unlock.minLength", `Use a passphrase with at least ${MIN_PASSPHRASE_LENGTH} characters.`, { count: MIN_PASSPHRASE_LENGTH })
-              : error.message === "The passphrases do not match."
-                ? appText("security.mismatch", "The passphrases do not match.")
-                : error.message ||
-                  appText("unlock.encryptFailed", "Could not encrypt existing data. The original data was preserved.");
-          prompt.passphraseInput.select();
+          if (error instanceof NewerDataVersionError) {
+            showStartupRecovery();
+          } else {
+            prompt.errorMessage.textContent = appText(
+              "unlock.readFailed",
+              "The passphrase was incorrect, or the encrypted data could not be read.",
+            );
+            prompt.passphraseInput.select();
+          }
         } finally {
           prompt.submitButton.disabled = false;
         }
@@ -12706,7 +12679,7 @@ const updateStorageProtectionStatus = async () => {
   }
 };
 
-document.addEventListener("DOMContentLoaded", async () => {
+const startApplication = async () => {
   await window.nrvI18nReady;
   initializeApp()
     .then(() => {
@@ -12758,13 +12731,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     .catch(async (error) => {
       console.error("Unable to start the app:", error);
       if (error instanceof NewerDataVersionError) {
-        await NRVDialogs.alert(appText("storage.newerData", "This data was saved by a newer version of the app. Update the app (reload it) before opening this data. Nothing was changed."));
-        appReadyForUpdates = true;
-        if (appUpdateAvailable) appUpdatePromptHandler();
+        showStartupRecovery();
         return;
       }
       await NRVDialogs.alert(
         appText("storage.startupFailed", "NRV could not open and verify its storage. Private Safari use is unsupported: close the Private tab and reopen NRV in normal Safari, then install and open NRV from its Home Screen icon. Nothing has been deleted."),
       );
     });
-});
+};
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", startApplication, { once: true });
+} else {
+  startApplication();
+}
