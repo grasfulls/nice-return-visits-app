@@ -309,6 +309,8 @@ const expectFailure = async (code, options = {}, retryable = true) => {
   assert.strictEqual(result.elements.get("startup-recovery-code").hidden, false);
   assert.strictEqual(result.elements.get("startup-recovery-retry").hidden, !retryable);
   assert.strictEqual(result.elements.get("startup-recovery-continue").hidden, true);
+  await result.elements.get("startup-recovery-continue").handler();
+  assert.strictEqual(result.appendedScripts.length, 0, `${code} cannot be bypassed by OK`);
   assert.strictEqual(
     result.elements.get("startup-recovery-message").textContent,
     catalogs[options.language || "en"][`startup.verify.${code}`],
@@ -344,6 +346,8 @@ async function main() {
   assert.strictEqual(pendingLanguage.code, "NRV-S01");
   const updateReject = await runGate({ registrationReject: true, localCache: true });
   assert.strictEqual(updateReject.appendedScripts.length, 0);
+  assert.strictEqual(updateReject.elements.get("startup-recovery-continue").textContent, catalogs.en["common.ok"]);
+  assert.strictEqual(updateReject.elements.get("startup-recovery-retry").textContent, catalogs.en["startup.retry"]);
   assert.strictEqual(
     updateReject.elements.get("startup-recovery-message").textContent,
     catalogs.en["startup.updateUnavailable"],
@@ -360,6 +364,7 @@ async function main() {
     catalogs.es["startup.updateUnavailable"],
   );
   assert.strictEqual(spanishUpdateFailure.elements.get("startup-recovery-code").hidden, true);
+  assert.strictEqual(spanishUpdateFailure.elements.get("startup-recovery-continue").textContent, catalogs.es["common.ok"]);
   const metadataUnavailable = await runGate({ metadataText: "not JSON", localCache: true });
   assert.strictEqual(metadataUnavailable.elements.get("startup-recovery-code").hidden, true);
   assert.strictEqual(
@@ -525,7 +530,7 @@ async function main() {
   assert.strictEqual(spanishOffline.elements.get("startup-recovery-message").textContent, catalogs.es["startup.offlineReady"]);
   assert.strictEqual(
     spanishOffline.elements.get("startup-recovery-continue").textContent,
-    catalogs.es["startup.continueOffline"],
+    catalogs.es["common.ok"],
   );
   for (const language of ["en", "es"]) {
     for (const code of codes) assert(catalogs[language][`startup.verify.${code}`]);

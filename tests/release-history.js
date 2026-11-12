@@ -12,7 +12,7 @@ const history = JSON.parse(fs.readFileSync(path.join(root, "release-history.json
 const version = canonicalVersion(fs.readFileSync(path.join(root, "app.js"), "utf8"));
 generator.validateHistory(history, version);
 assert.strictEqual(history[0].version, version);
-assert.strictEqual(history[0].version, "0.9.062");
+assert.strictEqual(history[0].version, "0.9.063");
 assert(!/important/i.test(history[0].en.title));
 assert(!/important/i.test(history[0].es.title));
 assert.throws(() => generator.validateHistory([], version));
@@ -20,7 +20,7 @@ assert.throws(() => generator.validateHistory(history, "1.0.0"));
 assert.throws(() => generator.validateHistory([history[0], history[0]], version));
 assert.throws(() => generator.validateHistory([{ ...history[0], version: "01.2.3" }], "01.2.3"));
 assert.throws(() => generator.validateHistory([{ ...history[0], es: { title: "x", changes: [] } }], version));
-assert.throws(() => generator.validateHistory([{ ...history[0], es: { title: "x", changes: ["x", "y", "z"] } }], version));
+assert.throws(() => generator.validateHistory([{ ...history[0], es: { title: "x", changes: ["x"] } }], version));
 assert(generator.compareVersions("1.10.0", "1.9.9") > 0);
 assert(generator.compareVersions("0.9.0", "1.0.0") < 0);
 assert(generator.compareVersions("0.9.5", "0.9.51") < 0);

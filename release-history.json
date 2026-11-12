@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.9.063",
+    "en": {
+      "title": "Clearer goals and safer corrections",
+      "changes": [
+        "Edit an in-progress goal and undo an accidental step completion without losing other progress.",
+        "Goal setup explains manual progress and optional time goals, with clearer completed-step counts.",
+        "Field explanations appear before their controls, and safe recovery screens offer OK."
+      ]
+    },
+    "es": {
+      "title": "Metas más claras y correcciones seguras",
+      "changes": [
+        "Edita una meta en progreso y deshaz la finalización accidental de un paso sin perder otros avances.",
+        "La configuración de metas explica el progreso manual y las metas de tiempo opcionales, con recuentos de pasos completados más claros.",
+        "Las explicaciones de los campos aparecen antes de sus controles, y las pantallas de recuperación segura ofrecen Aceptar."
+      ]
+    }
+  },
+  {
     "version": "0.9.062",
     "en": {
       "title": "Safer startup and data protection",

@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title data-i18n="page.welcome">NRV-Welcome</title>
-    <meta name="nrv-build-revision" content="sha256:7f64c474c245c657e36f15904a449c10a2ed42be2287b0a1f87cccb2f4010569" />
+    <meta name="nrv-build-revision" content="sha256:c60b2f54f0fe9e3191a2287bc86c77c12bdd01d34da07b7781b4d70ea7fdebbd" />
     <meta name="theme-color" content="#004080" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NRV" />
@@ -248,7 +248,7 @@
         var dataStarted = false;
         var recovering = false;
         var timer;
-        var release = "0.9.062";
+        var release = "0.9.063";
         function spanish() {
           if (/(?:\?|&)lang=es(?:&|$)/.test(window.location.search)) return true;
           if (/(?:\?|&)lang=en(?:&|$)/.test(window.location.search)) return false;
@@ -362,7 +362,7 @@
         };
       })();
     </script>
-    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.062"
+    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.063"
       media="print" onload="this.media='all'" onerror="window.NRVStartupFallback.show()" />
     <section
       id="unlock-screen"
@@ -724,6 +724,10 @@
               <legend data-i18n="goals.choosePaths">Choose one or more paths</legend>
               <div id="goals-path-options"></div>
             </fieldset>
+            <section aria-labelledby="goals-progress-help-title">
+              <h3 id="goals-progress-help-title" data-i18n="goals.howProgress">How progress works</h3>
+              <p data-i18n="goals.manualProgress">When you complete a step, tap "Mark complete." NRV will keep track of your progress for you.</p>
+            </section>
             <div id="goals-path-editors"></div>
             <button type="button" id="btn-create-goals" disabled data-i18n="goals.addSelected">Add selected goals</button>
             <p id="goals-status" role="status" aria-live="polite"></p>
@@ -756,11 +760,11 @@
               <summary data-i18n="settings.defaults">Defaults</summary>
               <form id="settings-form">
                 <label for="settings-address-country" data-i18n="addressing.label">Address Format</label>
-                <select id="settings-address-country"></select>
                 <small data-i18n="addressing.explanation">Which country’s addressing format should NRV use?</small>
+                <select id="settings-address-country"></select>
                 <label for="me-country" data-i18n="defaults.countryLabel">Default Country</label>
-                <select id="me-country"></select>
                 <small data-i18n="defaults.countryExplanation">Which country should NRV use for your default location and new contacts?</small>
+                <select id="me-country"></select>
                 <div id="new-me-country-container" hidden>
                   <label for="input-new-me-country" data-i18n="location.newCountry">New country name:</label>
                   <input type="text" id="input-new-me-country" placeholder="Enter country name..." data-i18n-attr="placeholder:location.enterCountry" />
@@ -773,12 +777,12 @@
                 <input type="text" id="setting-state" placeholder="State or province" data-i18n-attr="placeholder:location.statePlaceholder" />
 
                 <label id="setting-city-label" data-i18n="settings.defaultCity">Default City:</label>
-                <input type="text" id="setting-default-city" />
                 <small data-i18n="settings.mapDefault">
                   When the Map has no visible contact pins, it centers near this
                   city. Its name and state are looked up with OpenStreetMap
                   Nominatim while the Map is open.
                 </small>
+                <input type="text" id="setting-default-city" />
 
               </form>
               </details>
@@ -1280,10 +1284,11 @@
               <details class="settings-section">
                 <summary data-i18n="update.whatsNew">What's New</summary>
                 <!-- release-notes:start -->
-                <p data-i18n="release.current.title">Safer startup and data protection</p>
+                <p data-i18n="release.current.title">Clearer goals and safer corrections</p>
                 <ul>
-                  <li data-i18n="release.current.change1">NRV verifies the page, app, service worker, and build metadata before opening saved information.</li>
-                  <li data-i18n="release.current.change2">No-passphrase data opens normally; incompatible data stays unchanged behind a safe update screen.</li>
+                  <li data-i18n="release.current.change1">Edit an in-progress goal and undo an accidental step completion without losing other progress.</li>
+                  <li data-i18n="release.current.change2">Goal setup explains manual progress and optional time goals, with clearer completed-step counts.</li>
+                  <li data-i18n="release.current.change3">Field explanations appear before their controls, and safe recovery screens offer OK.</li>
                 </ul>
                 <!-- release-notes:end -->
               </details>
@@ -1401,8 +1406,8 @@
             <option value="es">Español</option>
           </select>
           <label for="setup-address-country" data-i18n="addressing.label">Address Format</label>
-          <select id="setup-address-country"></select>
           <small data-i18n="addressing.explanation">Which country’s addressing format should NRV use?</small>
+          <select id="setup-address-country"></select>
           <p data-i18n="setup.locationIntro">
             You can set default location details and optional information about
             yourself at any time. These choices prepare contact forms and can
@@ -1721,12 +1726,12 @@
             </div>
             <div class="address-field-group" data-address-field="city">
             <label id="contact-city-label" for="contact-city-select" data-i18n="contacts.city">City (required):</label>
-            <select id="contact-city-select" required disabled>
-              <option value="" data-i18n="location.chooseCity">Choose city</option>
-            </select>
             <small data-i18n="location.contactCityNote">
               Select a saved city or choose + Add City to add one here.
             </small>
+            <select id="contact-city-select" required disabled>
+              <option value="" data-i18n="location.chooseCity">Choose city</option>
+            </select>
             <div id="new-contact-city-container" hidden>
               <label for="input-new-contact-city" data-i18n="location.newCity">New city name:</label>
               <input type="text" id="input-new-contact-city" autocomplete="off" />
@@ -2108,8 +2113,8 @@
 
     <section id="print-container" hidden aria-hidden="true"></section>
 
-    <script src="nrv-dialog.js?nrv-release=0.9.062"></script>
-    <script src="i18n.js?nrv-release=0.9.062"></script>
+    <script src="nrv-dialog.js?nrv-release=0.9.063"></script>
+    <script src="i18n.js?nrv-release=0.9.063"></script>
     <script>
       window.nrvI18nError = null;
       if (window.NRVI18n) {
@@ -2166,6 +2171,7 @@
         let appLoaded = false;
         let checking = false;
         let pendingBuild = null;
+        let safeContinuationAllowed = false;
         const translate = (key, fallback) =>
           window.NRVI18n?.t(key, {}, fallback) || fallback;
         Promise.resolve(window.nrvI18nReady).then(() => {
@@ -2177,6 +2183,7 @@
           window.NRVStartupFallback?.show();
         });
         const showFailure = (error) => {
+          safeContinuationAllowed = false;
           if (window.NRVStartupFallback?.hasFailed()) return;
           const requestedLanguage = new URLSearchParams(window.location.search).get("lang");
           const spanishFallback = window.nrvI18nError &&
@@ -2723,10 +2730,8 @@
             "startup.offlineReady",
             "You appear to be offline. NRV can’t check for updates right now. You can continue using NRV offline.",
           );
-          continueButton.textContent = translate(
-            "startup.continueOffline",
-            "Continue Offline",
-          );
+          continueButton.textContent = translate("common.ok", "OK");
+          safeContinuationAllowed = true;
           diagnosticCode.hidden = true;
           continueButton.hidden = false;
           continueButton.disabled = false;
@@ -2745,7 +2750,8 @@
             "NRV couldn’t check for updates right now. Your installed copy passed its local checks, so you can continue using NRV.",
           );
           diagnosticCode.hidden = true;
-          continueButton.textContent = translate("common.continue", "Continue");
+          continueButton.textContent = translate("common.ok", "OK");
+          safeContinuationAllowed = true;
           continueButton.hidden = false;
           continueButton.disabled = false;
           retryButton.hidden = false;
@@ -2839,6 +2845,7 @@
             return;
           }
           checking = true;
+          safeContinuationAllowed = false;
           localVerificationPassed = false;
           pendingBuild = null;
           retryButton.disabled = true;
@@ -2984,10 +2991,15 @@
           }
         };
         retryButton.addEventListener("click", start);
-        continueButton.addEventListener("click", launchBuild);
+        continueButton.addEventListener("click", () => {
+          if (!safeContinuationAllowed || checking || window.NRVStartupFallback?.hasFailed()) return;
+          safeContinuationAllowed = false;
+          return launchBuild();
+        });
         return {
           start,
           showFutureSchema() {
+            safeContinuationAllowed = false;
             title.textContent = translate(
               "startup.safeTitle",
               "NRV is keeping your information safe",

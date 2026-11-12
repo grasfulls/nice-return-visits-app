@@ -141,7 +141,7 @@ check(
   i18n.t("goals.stepsCount", { count: 1 }) === "1 step" &&
     i18n.t("goals.stepsCount", { count: 4 }) === "4 steps" &&
     i18n.t("goals.progress", { count: 1, total: 4 }) ===
-      "1 of 4 completed!" &&
+      "1 of 4 steps completed" &&
     i18n.t("goals.achievementMilestone", { count: 1, path: "Custom" }) ===
       "You completed 1 step on your Custom path.",
   "English goal counts and milestones use correct singular and plural forms",
@@ -159,7 +159,7 @@ check(
   i18n.t("goals.stepsCount", { count: 1 }) === "1 paso" &&
     i18n.t("goals.stepsCount", { count: 4 }) === "4 pasos" &&
     i18n.t("goals.progress", { count: 1, total: 4 }) ===
-      "¡1 de 4 completado!" &&
+      "1 de 4 pasos completados" &&
     i18n.t("goals.achievementMilestone", { count: 1, path: "Personal" }) ===
       "Completaste 1 paso de tu camino Personal.",
   "Spanish goal counts and milestones use correct singular and plural forms",

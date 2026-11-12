@@ -77,6 +77,7 @@ const declarations = [
   "normalizeWorkingDesignation",
   "normalizeTransferredContact",
   "normalizeGoalsAndMilestones",
+  "goalItemKey",
   "normalizeRegionData",
   "decryptBackup",
 ].map(declaration).join("\n");

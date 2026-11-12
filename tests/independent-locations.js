@@ -80,6 +80,7 @@ vm.runInNewContext(
     "normalizeWorkingNeedGreater",
     "normalizeWorkingDesignation",
     "normalizeGoalsAndMilestones",
+    "goalItemKey",
     "normalizeRegionData",
   ].map(declaration).join("\n") +
     "\nthis.normalizeRegionData = normalizeRegionData;",

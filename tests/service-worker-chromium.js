@@ -187,6 +187,146 @@ async function main() {
     return true;
   })()`), "Required cached resources must remain available offline");
   console.log("PASS controlled offline application and bilingual catalogs remain available");
+  await send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+  await evaluate(`(() => {
+    localStorage.setItem("nrv_installed_setup_completed", "true");
+    const agreement = document.getElementById("user-agreement-checkbox");
+    agreement.checked = true;
+    agreement.dispatchEvent(new Event("change", { bubbles: true }));
+    document.getElementById("btn-accept-agreement").click();
+  })()`);
+  await waitFor(`!document.getElementById("unlock-screen")`, "Synthetic user did not finish initialization");
+  for (const language of ["en", "es"]) {
+    await navigate(origin + "/app/?lang=" + language);
+    await waitFor(`document.getElementById("startup-recovery-screen").hidden && !document.getElementById("unlock-screen")`,
+      "Saved synthetic user did not restart");
+    await evaluate(`document.getElementById("btn-open-goals").click()`);
+    await waitFor(`document.getElementById("goals-view").classList.contains("active")`, "Goals view did not open");
+    const catalog = JSON.parse(fs.readFileSync(path.join(root, "locales", language + ".json"), "utf8"));
+    assert.strictEqual(await evaluate(`document.querySelector('[data-i18n="goals.manualProgress"]').textContent`), catalog["goals.manualProgress"]);
+    assert(await evaluate(`(() => {
+      const help = document.querySelector('[data-i18n="goals.manualProgress"]');
+      return help.getBoundingClientRect().height > 0 &&
+        !!(help.compareDocumentPosition(document.getElementById("btn-create-goals")) & Node.DOCUMENT_POSITION_FOLLOWING);
+    })()`), "Progress guidance must be visible before creating a goal");
+    const before = await evaluate(`document.querySelectorAll("[data-goal-card]").length`);
+    await evaluate(`(() => {
+      const path = document.querySelector('[data-goal-path-choice="returnVisits"]');
+      path.checked = true;
+      path.dispatchEvent(new Event("change", { bubbles: true }));
+      const editor = document.querySelector("#goals-path-editors [data-goal-path-editor]");
+      editor.querySelector("[data-goal-duration]").value = "30";
+      editor.querySelector('[data-goal-day-duration="mon"]').value = "10";
+      document.getElementById("btn-create-goals").click();
+    })()`);
+    await waitFor(`document.querySelectorAll("[data-goal-card]").length===${before + 1}`, "Goal creation did not save");
+    const id = await evaluate(`document.querySelector("#goals-active-list [data-goal-card]").dataset.goalCard`);
+    const card = `document.querySelector('[data-goal-card="${id}"]')`;
+    const progress = count => language === "en" ? `${count} of 6 steps completed` : `${count} de 6 pasos completados`;
+    assert.strictEqual(await evaluate(`${card}.querySelector(".goal-progress").textContent`), progress(0));
+    await evaluate(`${card}.querySelector('[data-goal-action="complete"]').click()`);
+    await waitFor(`${card}.querySelector(".goal-progress").textContent===${JSON.stringify(progress(1))}`, "Completion count did not update");
+    await evaluate(`${card}.querySelector('[data-goal-action="edit"]').click()`);
+    assert.strictEqual(await evaluate(`${card}.querySelector("[data-goal-duration]").value`), "30");
+    assert(await evaluate(`(() => {
+      const input = ${card}.querySelector("[data-goal-duration]");
+      const notes = input.parentElement.querySelectorAll("small");
+      return notes.length === 2 && notes[1].getBoundingClientRect().bottom <= input.getBoundingClientRect().top;
+    })()`), "Time-goal explanations must appear above the control");
+    assert.strictEqual(await evaluate(`${card}.querySelector("[data-goal-duration]").previousElementSibling.textContent`), catalog["goals.durationManual"]);
+    await evaluate(`(() => {
+      ${card}.querySelector("[data-goal-duration]").value = "45";
+      ${card}.querySelector('[data-goal-action="edit-save"]').click();
+    })()`);
+    await waitFor(`${card}.querySelector("[data-goal-edit-form]").hidden`, "Edit save did not close");
+    assert.strictEqual(await evaluate(`document.querySelectorAll("[data-goal-card]").length`), before + 1);
+    assert.strictEqual(await evaluate(`${card}.querySelector(".goal-progress").textContent`), progress(1));
+    await evaluate(`(() => {
+      ${card}.querySelector('[data-goal-action="edit"]').click();
+      ${card}.querySelector('[data-goal-item-choice="planFollowUp"]').checked = false;
+      ${card}.querySelector('[data-goal-action="edit-save"]').click();
+    })()`);
+    assert.strictEqual(await evaluate(`${card}.querySelector("[data-goal-edit-status]").textContent`), catalog["goals.editConflict"]);
+    await evaluate(`${card}.querySelector('[data-goal-action="edit-cancel"]').click()`);
+    await evaluate(`${card}.querySelector('[data-goal-action="undo"]').click()`);
+    await waitFor(`${card}.querySelector(".goal-progress").textContent===${JSON.stringify(progress(0))}`, "Undo count did not update");
+    for (let step = 1; step <= 6; step++) {
+      await evaluate(`${card}.querySelector('[data-goal-action="complete"]').click()`);
+      await waitFor(`${card}.querySelectorAll('[data-goal-action="undo"]').length===${step}`, "Completion did not persist");
+    }
+    assert(await evaluate(`!!document.querySelector('#goals-history-list [data-goal-card="${id}"]')`));
+    await evaluate(`${card}.querySelector('[data-goal-action="set-again"]').click()`);
+    await waitFor(`document.querySelectorAll("[data-goal-card]").length===${before + 2}`, "Repeat occurrence not created");
+    assert(await evaluate(`!!document.querySelector('#goals-history-list [data-goal-card="${id}"]')`), "Repeat must retain the accomplishment");
+    await evaluate(`${card}.querySelector('[data-goal-action="undo"]').click()`);
+    await waitFor(`!!document.querySelector('#goals-active-list [data-goal-card="${id}"]')`, "Undo must reopen the same achieved occurrence");
+    assert.strictEqual(await evaluate(`${card}.querySelector(".goal-progress").textContent`), progress(5));
+    const customBefore = await evaluate(`document.querySelectorAll("[data-goal-card]").length`);
+    await evaluate(`(() => {
+      const path = document.querySelector('[data-goal-path-choice="custom"]');
+      path.checked = true;
+      path.dispatchEvent(new Event("change", { bubbles: true }));
+      const editor = document.querySelector('#goals-path-editors [data-goal-path-editor="custom"]');
+      editor.querySelector("[data-custom-path-name]").value = "Synthetic custom goal";
+      for (const index of [0, 2]) {
+        const input = editor.querySelector('[data-custom-step="' + index + '"]');
+        input.value = "Step " + index;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      document.getElementById("btn-create-goals").click();
+    })()`);
+    await waitFor(`document.querySelectorAll("[data-goal-card]").length===${customBefore + 1}`, "Custom goal did not save");
+    const customId = await evaluate(`document.querySelector("#goals-active-list [data-goal-card]").dataset.goalCard`);
+    const customCard = `document.querySelector('[data-goal-card="${customId}"]')`;
+    await evaluate(`${customCard}.querySelector('[data-goal-action="complete"]').click()`);
+    await waitFor(`${customCard}.querySelectorAll('[data-goal-action="undo"]').length===1`, "Custom completion did not save");
+    await evaluate(`(() => {
+      ${customCard}.querySelector('[data-goal-action="edit"]').click();
+      ${customCard}.querySelector("[data-custom-path-name]").value = "Edited custom goal";
+      ${customCard}.querySelector('[data-custom-step="1"]').value = "Updated unfinished step";
+      const added = ${customCard}.querySelector('[data-custom-step="2"]');
+      added.value = "An additional step";
+      added.dispatchEvent(new Event("input", { bubbles: true }));
+      ${customCard}.querySelector('[data-goal-action="edit-save"]').click();
+    })()`);
+    await waitFor(`${customCard}.querySelector("[data-goal-edit-form]").hidden`, "Custom edit did not save");
+    assert.strictEqual(await evaluate(`${customCard}.querySelector("h4").textContent`), "Edited custom goal");
+    assert.strictEqual(await evaluate(`${customCard}.querySelector(".goal-progress").textContent`),
+      language === "en" ? "1 of 3 steps completed" : "1 de 3 pasos completados");
+    assert(await evaluate(`(() => {
+      const ids = [...${customCard}.querySelectorAll("[data-goal-item-id]")].map(b => b.dataset.goalItemId);
+      return ids.length === 3 && new Set(ids).size === 3;
+    })()`), "Editing a sparse custom goal must keep distinct item IDs");
+    await evaluate(`(async () => {
+      const db = await openAppDatabase();
+      const saved = await readStoredValue(db, "settings");
+      const goal = saved.goalsAndMilestones.goals.find(g => g.id === ${JSON.stringify(id)});
+      if (!goal || goal.items.length !== 6) throw new Error("Missing synthetic legacy fixture");
+      for (const item of goal.items) {
+        if (item.key === "durationTarget" || item.key === "durationDay") delete item.key;
+      }
+      await writeStoredValue(db, "settings", saved);
+      db.close();
+    })()`);
+    await send("Network.emulateNetworkConditions", { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
+    await navigate(origin + "/app/?lang=" + language);
+    await waitFor(`!document.getElementById("startup-recovery-continue").hidden`, "Offline startup did not offer safe OK");
+    assert.strictEqual(await evaluate(`document.getElementById("startup-recovery-continue").textContent`), catalog["common.ok"]);
+    await evaluate(`document.getElementById("startup-recovery-continue").click()`);
+    await waitFor(`document.getElementById("startup-recovery-screen").hidden && !document.getElementById("unlock-screen")`, "Offline OK did not safely resume");
+    await evaluate(`document.getElementById("btn-open-goals").click()`);
+    await waitFor(`${card}?.querySelector(".goal-progress").textContent===${JSON.stringify(progress(5))}`, "Offline restart lost partial progress");
+    assert(await evaluate(`${card}.textContent.includes(${JSON.stringify(catalog["goals.durationTargetStep"].replace("{minutes}", "45"))})`),
+      "Legacy saved time-goal keys must recover without losing completed progress");
+    await evaluate(`${card}.querySelector('[data-goal-action="edit"]').click()`);
+    assert.strictEqual(await evaluate(`${card}.querySelector("[data-goal-duration]").value`), "45");
+    assert.strictEqual(await evaluate(`${card}.querySelector('[data-goal-day-duration="mon"]').value`), "10");
+    await evaluate(`${card}.querySelector('[data-goal-action="edit-cancel"]').click()`);
+    assert.strictEqual(await evaluate(`${customCard}.querySelector(".goal-progress").textContent`),
+      language === "en" ? "1 of 3 steps completed" : "1 de 3 pasos completados");
+    await send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+    console.log(`PASS ${language} real Goals setup/edit/conflict/cancel/undo/repeat/history and offline restart persistence`);
+  }
 }
 main().catch(error => { console.error(error.stack); process.exitCode = 1; }).finally(async () => {
   if (socket?.readyState === WebSocket.OPEN) {

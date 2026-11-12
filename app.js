@@ -16,8 +16,8 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 // Set to true to require a passphrase when no encryption has been set up yet.
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
-const APP_VERSION = "0.9.062";
-const APP_BUILD_REVISION = "sha256:7f64c474c245c657e36f15904a449c10a2ed42be2287b0a1f87cccb2f4010569";
+const APP_VERSION = "0.9.063";
+const APP_BUILD_REVISION = "sha256:c60b2f54f0fe9e3191a2287bc86c77c12bdd01d34da07b7781b4d70ea7fdebbd";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -2114,6 +2114,18 @@ const normalizeTimeTracking = (value) => {
   };
 };
 
+const goalItemKey = (item) => {
+  if (Object.hasOwn(GOAL_ITEM_KEYS, item.key) ||
+      ["durationTarget", "durationDay", "adjustedStep"].includes(item.key)) {
+    return item.key;
+  }
+  if (!item.key && Number(item.durationMinutes) > 0) {
+    if (item.id === "duration-target") return "durationTarget";
+    if (/^duration-(mon|tue|wed|thu|fri|sat|sun)$/.test(item.id)) return "durationDay";
+  }
+  return "";
+};
+
 const normalizeGoalsAndMilestones = (value) => {
   const source = value && typeof value === "object" ? value : {};
   const allowedTypes = new Set(["recurring", "target", "repeatable", "custom"]);
@@ -2131,12 +2143,14 @@ const normalizeGoalsAndMilestones = (value) => {
         .slice(0, 100)
         .map((item) => ({
           id: String(item.id),
-          ...(typeof item.key === "string" &&
-          Object.hasOwn(GOAL_ITEM_KEYS, item.key)
-            ? { key: item.key }
+          ...(goalItemKey(item)
+            ? { key: goalItemKey(item) }
             : {}),
           ...(typeof item.customText === "string" && item.customText.trim()
             ? { customText: item.customText.trim().slice(0, 240) }
+            : {}),
+          ...(goalItemKey(item) === "durationDay" && !item.durationDay
+            ? { durationDay: String(item.id).slice(9) }
             : {}),
           ...(typeof item.durationDay === "string" &&
           ["mon", "tue", "wed", "thu", "fri", "sat", "sun"].includes(
@@ -2174,6 +2188,10 @@ const normalizeGoalsAndMilestones = (value) => {
             !Number.isNaN(Date.parse(item.completedAt))
               ? item.completedAt
               : null,
+          ...(typeof item.completionChangedAt === "string" &&
+          !Number.isNaN(Date.parse(item.completionChangedAt))
+            ? { completionChangedAt: item.completionChangedAt }
+            : {}),
           durationMinutes: Math.min(
             1440,
             Math.max(0, Math.round(Number(item.durationMinutes) || 0)),
@@ -2236,6 +2254,10 @@ const normalizeGoalsAndMilestones = (value) => {
           !Number.isNaN(Date.parse(goal.updatedAt))
             ? goal.updatedAt
             : EPOCH_TIMESTAMP,
+        ...(typeof goal.itemsUpdatedAt === "string" &&
+        !Number.isNaN(Date.parse(goal.itemsUpdatedAt))
+          ? { itemsUpdatedAt: goal.itemsUpdatedAt }
+          : {}),
         ...(normalizedStatus === "achieved"
           ? {
               achievedAt:
@@ -2286,7 +2308,7 @@ const normalizeGoalsAndMilestones = (value) => {
               : "",
           itemKey:
             typeof latest.itemKey === "string" &&
-            Object.hasOwn(GOAL_ITEM_KEYS, latest.itemKey)
+            goalItemKey({ key: latest.itemKey })
               ? latest.itemKey
               : "",
           itemText:
@@ -5998,6 +6020,7 @@ const initializeApp = async () => {
         ...item,
         completed: false,
         completedAt: null,
+        completionChangedAt: undefined,
       })),
     };
   };
@@ -6075,7 +6098,7 @@ const initializeApp = async () => {
   };
   const rememberGoalDrafts = () => {
     document
-      .querySelectorAll("[data-goal-path-editor]")
+      .querySelectorAll("#goals-path-editors [data-goal-path-editor]")
       .forEach((editor) => {
         const pathId = editor.dataset.goalPathEditor;
         const existing = goalDrafts.get(pathId) || {};
@@ -6132,16 +6155,8 @@ const initializeApp = async () => {
         });
       });
   };
-  const renderGoalPathEditors = () => {
-    rememberGoalDrafts();
-    const selected = [
-      ...document.querySelectorAll("[data-goal-path-choice]:checked"),
-    ].map((input) => input.dataset.goalPathChoice);
-    const editors = document.getElementById("goals-path-editors");
-    editors.innerHTML = selected
-      .map((pathId) => {
+  const renderGoalEditor = (pathId, draft = {}, editing = false) => {
         const definition = GOAL_PATHS[pathId];
-        const draft = goalDrafts.get(pathId) || {};
         const type = draft.type || (definition?.type ?? "custom");
         const itemMarkup = (key) => {
           const checked =
@@ -6175,14 +6190,9 @@ const initializeApp = async () => {
         };
         const customName = draft.customName || "";
         const customSteps = draft.customSteps || [];
-        const stepsMarkup =
-          pathId === "custom"
-            ? `<label>${escapeHtml(appText("goals.path.customName", "Name your path"))}
-                <input type="text" maxlength="120" data-custom-path-name value="${escapeHtml(customName)}">
-              </label>
-              <fieldset class="goals-custom-steps">
+        const customMarkup = `<fieldset class="goals-custom-steps">
                 <legend>${escapeHtml(appText("goals.customSteps", "Add one suggested step per line"))}</legend>
-                ${Array.from({ length: 6 }, (_unused, index) => {
+                ${Array.from({ length: Math.max(pathId === "custom" ? 6 : 0, customSteps.length) }, (_unused, index) => {
                   const step = customSteps[index] || {};
                   return `<div class="goals-step-option">
                     <label>
@@ -6192,8 +6202,12 @@ const initializeApp = async () => {
                     <input type="text" maxlength="240" data-custom-step="${index}" aria-label="${escapeHtml(appText("goals.customStepNumber", "Custom step {number}", { number: index + 1 }))}" value="${escapeHtml(step.text || "")}">
                   </div>`;
                 }).join("")}
-              </fieldset>`
-            : definition.items.map(itemMarkup).join("");
+              </fieldset>`;
+        const stepsMarkup = pathId === "custom"
+            ? `<label>${escapeHtml(appText("goals.path.customName", "Name your path"))}
+                <input type="text" maxlength="120" data-custom-path-name value="${escapeHtml(customName)}">
+              </label>${customMarkup}`
+            : definition.items.map(itemMarkup).join("") + (customSteps.length ? customMarkup : "");
         const days = [
           ["mon", "Monday"],
           ["tue", "Tuesday"],
@@ -6203,7 +6217,7 @@ const initializeApp = async () => {
           ["sat", "Saturday"],
           ["sun", "Sunday"],
         ];
-        return `<section class="goals-path-editor" data-goal-path-editor="${pathId}">
+        return `<section class="goals-path-editor" data-goal-path-editor="${pathId}" ${editing ? 'data-goal-edit-editor' : ""}>
           <h3>${escapeHtml(appText(definition?.nameKey || "goals.path.custom", customName || "Create My Own Path"))}</h3>
           ${stepsMarkup}
           <label>${escapeHtml(appText("goals.goalType", "Goal type"))}
@@ -6224,7 +6238,9 @@ const initializeApp = async () => {
           <label class="goals-period-field" ${type === "recurring" ? "hidden" : ""}>${escapeHtml(appText("goals.periodDays", "Goal period in days (optional)"))}
             <input type="number" min="1" max="3660" inputmode="numeric" data-goal-period value="${escapeHtml(draft.periodDays || "")}">
           </label>
-          <label>${escapeHtml(appText("goals.duration", "Optional duration target in minutes"))}
+          <label>${escapeHtml(appText("goals.duration", "Time goal (optional)"))}
+            <small>${escapeHtml(appText("goals.durationDefinition", "If you want, enter how many minutes you hope to participate."))}</small>
+            <small>${escapeHtml(appText("goals.durationManual", "When you reach your time goal, mark the step complete. NRV does not time you automatically."))}</small>
             <input type="number" min="1" max="1440" inputmode="numeric" data-goal-duration value="${escapeHtml(draft.durationMinutes || "")}">
           </label>
           <details class="goals-day-duration">
@@ -6232,7 +6248,14 @@ const initializeApp = async () => {
             ${days.map(([day, fallback]) => `<label>${escapeHtml(appText(`goals.durationForDay`, "{day} duration target in minutes", { day: appText(`goals.day.${day}`, fallback) }))}<input type="number" min="1" max="1440" inputmode="numeric" data-goal-day-duration="${day}" value="${escapeHtml(draft.dayDurations?.[day] || "")}"></label>`).join("")}
           </details>
         </section>`;
-      })
+  };
+  const renderGoalPathEditors = () => {
+    rememberGoalDrafts();
+    const selected = [
+      ...document.querySelectorAll("[data-goal-path-choice]:checked"),
+    ].map((input) => input.dataset.goalPathChoice);
+    document.getElementById("goals-path-editors").innerHTML = selected
+      .map((pathId) => renderGoalEditor(pathId, goalDrafts.get(pathId)))
       .join("");
     const hasPath = selected.length > 0;
     document.getElementById("btn-create-goals").disabled = !hasPath;
@@ -6296,25 +6319,20 @@ const initializeApp = async () => {
           ${recordedMinutes ? `<small>${escapeHtml(appText("goals.timeSuggestion", "{minutes} minutes recorded in Time in Service. Review the entries and mark this step complete if appropriate.", { minutes: recordedMinutes }))}</small>` : ""}
           ${item.durationMinutes && !settings.timeTracking?.enabled ? `<small>${escapeHtml(appText("goals.timeNotTracked", "Time in Service tracking is off. You can still mark this step complete yourself."))}</small>` : ""}
           </div>
-          ${!item.completed && group === "active" ? `<button type="button" id="goal-item-${escapeHtml(goal.id)}-${escapeHtml(item.id)}" data-goal-action="complete" data-goal-id="${escapeHtml(goal.id)}" data-goal-item-id="${escapeHtml(item.id)}">${escapeHtml(appText("goals.markComplete", "Mark complete"))}</button>` : item.completed ? `<span class="goals-complete-mark" aria-label="${escapeHtml(appText("goals.completed", "Completed"))}">✓</span>` : ""}
+          ${!item.completed && group === "active" ? `<button type="button" id="goal-item-${escapeHtml(goal.id)}-${escapeHtml(item.id)}" data-goal-action="complete" data-goal-id="${escapeHtml(goal.id)}" data-goal-item-id="${escapeHtml(item.id)}">${escapeHtml(appText("goals.markComplete", "Mark complete"))}</button>` : item.completed ? `<div><span class="goals-complete-mark" aria-label="${escapeHtml(appText("goals.completed", "Completed"))}">✓</span>
+          <button type="button" data-goal-action="undo" data-goal-id="${escapeHtml(goal.id)}" data-goal-item-id="${escapeHtml(item.id)}">${escapeHtml(appText("goals.undo", "Undo completion"))}</button></div>` : ""}
         </li>`;
       })
       .join("");
-    const statusMessage =
-      progress.completed
-        ? appText(
+    const statusMessage = appText(
             goal.status === "achieved"
               ? "goals.progressAchieved"
               : "goals.progress",
             goal.status === "achieved"
-              ? "{count} of {total} completed! Goal achieved!"
-              : "{count} of {total} completed!",
+              ? "{count} of {total} steps completed. Goal achieved!"
+              : "{count} of {total} steps completed",
             progress,
-          )
-        : appText("goals.stepsCount", "{count} steps", {
-            count: progress.total,
-            total: progress.total,
-          });
+          );
     const encouragement = getGoalEncouragement(goal, progress);
     const reviewActions = isReview
       ? `<p>${escapeHtml(appText("goals.periodEnded", "This goal period has concluded."))}</p>
@@ -6338,7 +6356,8 @@ const initializeApp = async () => {
         ? `<button type="button" data-goal-action="resume" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("goals.resume", "Resume"))}</button>
            <button type="button" data-goal-action="remove" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("goals.remove", "Remove Goal"))}</button>`
         : group === "active"
-          ? `<button type="button" data-goal-action="pause" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("goals.pause", "Pause for Now"))}</button>
+          ? `<button type="button" data-goal-action="edit" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("goals.edit", "Edit"))}</button>
+             <button type="button" data-goal-action="pause" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("goals.pause", "Pause for Now"))}</button>
              <button type="button" data-goal-action="remove" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("goals.remove", "Remove Goal"))}</button>`
           : "";
     return `<article class="goal-card" data-goal-card="${escapeHtml(goal.id)}">
@@ -6352,6 +6371,7 @@ const initializeApp = async () => {
       <ol class="goals-step-list">${itemList}</ol>
       ${reviewActions}
       ${actions ? `<div class="goals-card-actions">${actions}</div>` : ""}
+      <div data-goal-edit-form hidden></div>
     </article>`;
   };
   const renderGoalsView = async () => {
@@ -6392,10 +6412,9 @@ const initializeApp = async () => {
     });
     renderGoalAcknowledgement();
   };
-  const readGoalDraft = (pathId) => {
-    const editor = document.querySelector(
-      `[data-goal-path-editor="${pathId}"]`,
-    );
+  const readGoalDraft = (pathId, editor = document.querySelector(
+    `#goals-path-editors [data-goal-path-editor="${pathId}"]`,
+  ), original = null) => {
     if (!editor) return null;
     const definition = GOAL_PATHS[pathId];
     const type = editor.querySelector("[data-goal-type]").value;
@@ -6403,21 +6422,6 @@ const initializeApp = async () => {
     let items = [];
     if (pathId === "custom") {
       pathName = editor.querySelector("[data-custom-path-name]").value.trim();
-      const customSteps = [...editor.querySelectorAll("[data-custom-step]")]
-        .filter(
-          (input) =>
-            editor.querySelector(
-              `[data-custom-step-choice="${input.dataset.customStep}"]`,
-            ).checked && input.value.trim(),
-        )
-        .map((input) => ({
-          id: `step-${input.dataset.customStep}`,
-          customText: input.value.trim(),
-          completed: false,
-          completedAt: null,
-          durationMinutes: 0,
-        }));
-      items = customSteps;
     } else {
       items = definition.items
         .filter((key) =>
@@ -6425,7 +6429,7 @@ const initializeApp = async () => {
         )
         .map((key) => {
           const item = {
-            id: key,
+            id: original?.items.find((entry) => entry.key === key)?.id || key,
             key,
             completed: false,
             completedAt: null,
@@ -6442,12 +6446,37 @@ const initializeApp = async () => {
           return item;
         });
     }
+    const originalCustomItems = original?.items.filter((item) =>
+      item.key !== "durationTarget" && item.key !== "durationDay" &&
+      (pathId === "custom" || !definition.items.includes(item.key)),
+    ) || [];
+    const customSteps = [...editor.querySelectorAll("[data-custom-step]")]
+        .filter(
+          (input) =>
+            editor.querySelector(
+              `[data-custom-step-choice="${input.dataset.customStep}"]`,
+            ).checked && input.value.trim(),
+        )
+        .map((input) => {
+          const prior = originalCustomItems[Number(input.dataset.customStep)];
+          return {
+            ...prior,
+            id: prior?.id || (original ? `step-${goalId()}` : `step-${input.dataset.customStep}`),
+            ...(prior && input.value.trim() === getGoalItemTitle(prior)
+              ? {}
+              : { customText: input.value.trim() }),
+            completed: false,
+            completedAt: null,
+            durationMinutes: 0,
+          };
+        });
+    items.push(...customSteps);
     const durationMinutes = Math.round(
       Number(editor.querySelector("[data-goal-duration]").value) || 0,
     );
     if (durationMinutes) {
       items.push({
-        id: "duration-target",
+        id: original?.items.find((item) => item.key === "durationTarget")?.id || "duration-target",
         key: "durationTarget",
         completed: false,
         completedAt: null,
@@ -6461,7 +6490,7 @@ const initializeApp = async () => {
       const day = input.dataset.goalDayDuration;
       dayDurations[day] = minutes;
       items.push({
-        id: `duration-${day}`,
+        id: original?.items.find((item) => item.key === "durationDay" && item.durationDay === day)?.id || `duration-${day}`,
         key: "durationDay",
         durationDay: day,
         completed: false,
@@ -6515,7 +6544,7 @@ const initializeApp = async () => {
       invalidField.focus();
       return;
     }
-    const drafts = selected.map(readGoalDraft);
+    const drafts = selected.map((pathId) => readGoalDraft(pathId));
     const invalid = drafts.find((draft) => {
       if (draft.pathId === "custom" && !draft.pathName) return "name";
       if (draft.pathId === "custom" && !draft.items.some((item) => item.customText)) return "step";
@@ -6585,6 +6614,7 @@ const initializeApp = async () => {
     const previous = cloneGoalData();
     item.completed = true;
     item.completedAt = new Date().toISOString();
+    item.completionChangedAt = item.completedAt;
     goal.updatedAt = item.completedAt;
     const progress = getGoalProgress(goal);
     const achieved = progress.total > 0 && progress.completed === progress.total;
@@ -6608,6 +6638,79 @@ const initializeApp = async () => {
     if (!(await saveGoalData(previous))) return false;
     return true;
   };
+  const getGoalEditorDraft = (goal) => ({
+    ...goal,
+    customName: goal.pathName,
+    periodDays: goal.type === "recurring" ? "" : goal.periodDays,
+    selectedItems: Object.fromEntries(
+      (GOAL_PATHS[goal.pathId]?.items || []).map((key) => [
+        key, goal.items.some((item) => item.key === key),
+      ]),
+    ),
+    selectedMethods: goal.items.find((item) => item.key === "participateAspect")?.selectedMethods || [],
+    methodOtherText: goal.items.find((item) => item.key === "participateAspect")?.methodOtherText || "",
+    customSteps: goal.items.filter((item) =>
+      item.key !== "durationTarget" && item.key !== "durationDay" &&
+      (goal.pathId === "custom" || !GOAL_PATHS[goal.pathId]?.items.includes(item.key)),
+    ).map((item) => ({ text: getGoalItemTitle(item), included: true })),
+  });
+  const applyGoalEdits = (goal, draft, now) => {
+    if (!draft.items.length || draft.items.length > 100) return { error: "goals.selectStep" };
+    if (goal.pathId === "custom" && !draft.pathName) return { error: "goals.customNameRequired" };
+    const meaning = (item) => JSON.stringify([
+      item.key || "", item.customText || "", item.durationMinutes || 0,
+      item.durationDay || "", [...(item.selectedMethods || [])].sort(),
+      item.methodOtherText || "", item.number || 0,
+    ]);
+    if (goal.items.some((item) => item.completed && !draft.items.some(
+      (next) => next.id === item.id && meaning(next) === meaning(item),
+    ))) return { error: "goals.editConflict" };
+    const periodChanged = goal.type !== draft.type ||
+      (draft.type === "recurring"
+        ? goal.frequency !== draft.frequency
+        : goal.periodDays !== draft.periodDays);
+    return {
+      goal: {
+        ...goal,
+        ...draft,
+        id: goal.id,
+        createdAt: goal.createdAt,
+        status: goal.status,
+        updatedAt: now,
+        itemsUpdatedAt: now,
+        periodDays: draft.type === "recurring"
+          ? draft.frequency === "monthly" ? 30 : 7
+          : draft.periodDays,
+        periodEndsAt: periodChanged
+          ? getGoalPeriodEnd(goal.createdAt, draft.type === "recurring" ? draft.frequency : "",
+              draft.type === "recurring" ? 0 : draft.periodDays)
+          : goal.periodEndsAt,
+        items: draft.items.map((item) => {
+          const prior = goal.items.find((entry) => entry.id === item.id);
+          return {
+            ...item,
+            completed: prior?.completed || false,
+            completedAt: prior?.completedAt || null,
+            ...(prior?.completionChangedAt ? { completionChangedAt: prior.completionChangedAt } : {}),
+          };
+        }),
+      },
+    };
+  };
+  const undoGoalItem = (goal, item, now) => {
+    item.completed = false;
+    item.completedAt = null;
+    item.completionChangedAt = now;
+    goal.updatedAt = now;
+    if (goal.status === "achieved") {
+      goal.status = goal.periodEndsAt && Date.parse(goal.periodEndsAt) <= Date.parse(now)
+        ? "review" : "active";
+      delete goal.achievedAt;
+    }
+    if (goalsData().latestAcknowledgement?.goalId === goal.id) {
+      goalsData().latestAcknowledgement = null;
+    }
+  };
   const handleGoalAction = async (event) => {
     const button = event.target.closest("[data-goal-action]");
     if (!button) return;
@@ -6616,6 +6719,20 @@ const initializeApp = async () => {
       (entry) => entry.id === button.dataset.goalId,
     );
     if (!goal) return;
+    if (action === "edit" || action === "edit-cancel") {
+      const card = button.closest("[data-goal-card]");
+      const form = card.querySelector("[data-goal-edit-form]");
+      form.hidden = action === "edit-cancel";
+      form.innerHTML = form.hidden ? "" : `${renderGoalEditor(goal.pathId, getGoalEditorDraft(goal), true)}
+        <p data-goal-edit-status role="status" aria-live="polite"></p>
+        <div class="goals-card-actions">
+          <button type="button" data-goal-action="edit-save" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("goals.saveChanges", "Save Changes"))}</button>
+          <button type="button" data-goal-action="edit-cancel" data-goal-id="${escapeHtml(goal.id)}">${escapeHtml(appText("common.cancel", "Cancel"))}</button>
+        </div>`;
+      if (!form.hidden) form.querySelector("input, select").focus();
+      else card.querySelector('[data-goal-action="edit"]').focus();
+      return;
+    }
     if (action === "adjust-open") {
       const form = document.querySelector(
         `[data-goal-adjust-form="${goal.id}"]`,
@@ -6645,6 +6762,30 @@ const initializeApp = async () => {
       );
       if (!item || item.completed) return;
       if (!(await completeGoalItem(goal, item))) return;
+    } else if (action === "undo") {
+      const item = goal.items.find((entry) => entry.id === button.dataset.goalItemId);
+      if (!item?.completed) return;
+      undoGoalItem(goal, item, now);
+    } else if (action === "edit-save") {
+      const form = button.closest("[data-goal-edit-form]");
+      const invalid = form.querySelector('input:invalid');
+      if (invalid) {
+        invalid.reportValidity();
+        invalid.focus();
+        return;
+      }
+      const editor = form.querySelector("[data-goal-edit-editor]");
+      const result = applyGoalEdits(goal, readGoalDraft(goal.pathId, editor, goal), now);
+      if (result.error) {
+        form.querySelector("[data-goal-edit-status]").textContent = appText(
+          result.error, "This change would remove or change a completed step. Keep that step unchanged, or cancel and undo its completion first.",
+        );
+        return;
+      }
+      Object.assign(goal, result.goal);
+      if (goalsData().latestAcknowledgement?.goalId === goal.id) {
+        goalsData().latestAcknowledgement = null;
+      }
     } else if (action === "pause") {
       goal.pausedFromStatus = goal.status;
       goal.status = "paused";
@@ -6716,7 +6857,7 @@ const initializeApp = async () => {
       settings.goalsAndMilestones.goals.unshift(next);
       document.getElementById("goals-status").textContent = appText(
         "goals.adjustedNotice",
-        "A new goal occurrence was created. Previous progress remains in history.",
+        "A new goal occurrence was created. Your previous progress is preserved.",
       );
     } else if (action === "remove") {
       settings.goalsAndMilestones.deletedGoalIds.push(goal.id);
@@ -6745,9 +6886,7 @@ const initializeApp = async () => {
   document
     .getElementById("goals-path-options")
     .addEventListener("change", renderGoalPathEditors);
-  document
-    .getElementById("goals-path-editors")
-    .addEventListener("input", (event) => {
+  const handleGoalEditorInput = (event) => {
       if (event.target.matches("[data-custom-step]")) {
         const editor = event.target.closest("[data-goal-path-editor]");
         const choice = editor.querySelector(
@@ -6755,10 +6894,8 @@ const initializeApp = async () => {
         );
         if (event.target.value.trim()) choice.checked = true;
       }
-    });
-  document
-    .getElementById("goals-path-editors")
-    .addEventListener("change", (event) => {
+    };
+  const handleGoalEditorChange = (event) => {
       const editor = event.target.closest("[data-goal-path-editor]");
       if (editor && event.target.matches("[data-goal-item-choice]")) {
         const methodPicker = editor.querySelector(
@@ -6775,7 +6912,11 @@ const initializeApp = async () => {
         frequency.hidden = event.target.value !== "recurring";
         period.hidden = event.target.value === "recurring";
       }
-    });
+    };
+  ["goals-path-editors", "goals-active-list"].forEach((id) => {
+    document.getElementById(id).addEventListener("input", handleGoalEditorInput);
+    document.getElementById(id).addEventListener("change", handleGoalEditorChange);
+  });
   document
     .getElementById("btn-create-goals")
     .addEventListener("click", addSelectedGoals);

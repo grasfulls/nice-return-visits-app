@@ -21,11 +21,12 @@ const declarations = [
   "GOAL_PATHS",
   "GOAL_METHODS",
   "GOAL_ITEM_KEYS",
+  "goalItemKey",
   "normalizeGoalsAndMilestones",
   "getGoalProgress",
 ].map(declaration).join("\n");
 vm.runInNewContext(
-  `${declarations}\nthis.goalHelpers = { GOAL_PATHS, GOAL_METHODS, normalizeGoalsAndMilestones, getGoalProgress };`,
+  `${declarations}\nthis.goalHelpers = { GOAL_PATHS, GOAL_METHODS, GOAL_ITEM_KEYS, normalizeGoalsAndMilestones, getGoalProgress };`,
   context,
 );
 const { GOAL_PATHS, normalizeGoalsAndMilestones, getGoalProgress } =
@@ -257,3 +258,152 @@ assert(source.includes('action === "adjust-save"'));
 assert(source.includes('action === "pause"'));
 assert(source.includes('renderGoalAcknowledgement();'));
 console.log("PASS  goals, accessible progress notices, lifecycle actions, and responsive styles are wired");
+
+const nestedDeclaration = (name) => {
+  const start = source.indexOf(`  const ${name} =`);
+  assert(start >= 0, name);
+  const end = source.indexOf("\n  const ", start + 1);
+  return source.slice(start, end).trim();
+};
+let state = normalizeGoalsAndMilestones(data);
+const i18n = require("../i18n.js");
+const helperContext = vm.createContext({
+  ...context,
+  ...context.goalHelpers,
+  Date, Math,
+  settings: { timeTracking: { enabled: false } },
+  goalsData: () => state,
+  appText: (key, fallback, vars) => i18n.t(key, vars, fallback),
+  escapeHtml: (text) => String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;"),
+  document: { documentElement: { lang: "en" } },
+});
+vm.runInContext([
+  "goalId", "getGoalPathName", "getGoalItemTitle", "getGoalPeriodEnd",
+  "newGoalOccurrence", "getGoalEncouragement", "getGoalRecordedMinutes",
+  "renderGoalEditor", "renderGoalCard", "getGoalEditorDraft", "applyGoalEdits", "undoGoalItem",
+].map(nestedDeclaration).join("\n") +
+  "\nthis.api = { newGoalOccurrence, renderGoalEditor, renderGoalCard, getGoalEditorDraft, applyGoalEdits, undoGoalItem, getGoalEncouragement };",
+helperContext);
+const api = helperContext.api;
+const copy = (value) => JSON.parse(JSON.stringify(value));
+const now = "2026-11-11T12:00:00.000Z";
+const partial = copy(data.goals[0]);
+partial.periodEndsAt = null;
+const draft = { ...copy(partial), periodDays: 14, items: copy(partial.items) };
+draft.items.forEach((item) => { item.completed = false; item.completedAt = null; });
+const edited = api.applyGoalEdits(partial, draft, now).goal;
+assert.strictEqual(edited.id, partial.id);
+assert.strictEqual(edited.createdAt, partial.createdAt);
+assert.strictEqual(edited.items[0].completed, true);
+assert.strictEqual(edited.items[0].completedAt, partial.items[0].completedAt);
+assert.strictEqual(edited.periodEndsAt, "2026-02-15T00:00:00.000Z", "period edits retain the occurrence's start");
+assert.strictEqual(api.applyGoalEdits(partial, { ...draft, items: draft.items.slice(1) }, now).error, "goals.editConflict");
+const changed = copy(draft);
+changed.items[0].customText = "Different work";
+assert.strictEqual(api.applyGoalEdits(partial, changed, now).error, "goals.editConflict");
+assert.strictEqual(api.applyGoalEdits(partial, { ...draft, items: [] }, now).error, "goals.selectStep");
+
+const accomplished = { ...copy(partial), status: "achieved", achievedAt: now };
+accomplished.items.forEach((item) => { item.completed = true; item.completedAt = now; });
+state = { ...state, latestAcknowledgement: { goalId: accomplished.id, kind: "goal" } };
+api.undoGoalItem(accomplished, accomplished.items[0], now);
+assert.strictEqual(accomplished.id, partial.id);
+assert.strictEqual(accomplished.items[0].completed, false);
+assert.strictEqual(accomplished.items[0].completedAt, null);
+assert.strictEqual(accomplished.achievedAt, undefined);
+assert.strictEqual(accomplished.status, "active");
+assert.strictEqual(getGoalProgress(accomplished).completed, 3);
+assert.strictEqual(getGoalProgress(accomplished).percent, 75);
+assert.strictEqual(state.latestAcknowledgement, null);
+const persisted = normalizeGoalsAndMilestones(JSON.parse(JSON.stringify({ goals: [accomplished] }))).goals[0];
+assert.strictEqual(persisted.items[0].completed, false);
+assert.strictEqual(persisted.items[1].completed, true);
+const expired = { ...copy(accomplished), status: "achieved", periodEndsAt: "2026-01-01T00:00:00.000Z" };
+api.undoGoalItem(expired, expired.items[1], now);
+assert.strictEqual(expired.status, "review");
+
+const legacyTimed = normalizeGoalsAndMilestones({ goals: [{
+  ...copy(partial), durationMinutes: 45, dayDurations: { mon: 20 },
+  items: [
+    { id: "duration-target", durationMinutes: 45, completed: true, completedAt: now },
+    { id: "duration-mon", durationDay: "mon", durationMinutes: 20 },
+    { id: "unrelated", durationMinutes: 10 },
+  ],
+}] }).goals[0];
+assert.strictEqual(legacyTimed.items[0].key, "durationTarget");
+assert.strictEqual(legacyTimed.items[1].key, "durationDay");
+assert.strictEqual(legacyTimed.items[2].key, undefined, "do not invent meanings for unrelated saved steps");
+assert.strictEqual(legacyTimed.items[0].completedAt, now);
+assert.strictEqual(legacyTimed.durationMinutes, 45);
+const roundTrip = normalizeGoalsAndMilestones(copy({ goals: [legacyTimed] })).goals[0];
+assert.deepStrictEqual(copy(roundTrip), copy(legacyTimed));
+assert.strictEqual(data.goals[1].items[1].key, "durationDay");
+const repeat = api.newGoalOccurrence(accomplished);
+assert.notStrictEqual(repeat.id, accomplished.id);
+assert(repeat.items.every((item) => !item.completed && !item.completedAt && !item.completionChangedAt));
+assert.strictEqual(accomplished.items[1].completed, true);
+
+const mergeGoals = (a, b) => merge.mergeData(
+  { settings: { goalsAndMilestones: { goals: [a] } } },
+  { settings: { goalsAndMilestones: { goals: [b] } } },
+).settings.goalsAndMilestones.goals[0];
+const stale = { ...copy(accomplished), status: "achieved", updatedAt: "2026-11-10T00:00:00.000Z" };
+stale.items[0].completed = true;
+stale.items[0].completedAt = stale.updatedAt;
+delete stale.items[0].completionChangedAt;
+for (const [a, b] of [[stale, accomplished], [accomplished, stale]]) {
+  const synced = mergeGoals(a, b);
+  assert.strictEqual(synced.items[0].completed, false, "sync must not resurrect undone completion");
+  assert.strictEqual(synced.items[0].completedAt, null);
+  assert.strictEqual(synced.items[1].completed, true);
+  assert.notStrictEqual(synced.status, "achieved");
+}
+const reduced = api.applyGoalEdits(partial, { ...draft, items: draft.items.slice(0, 2) }, now).goal;
+for (const [a, b] of [[reduced, partial], [partial, reduced]]) {
+  assert.strictEqual(mergeGoals(a, b).items.length, 2, "sync preserves intentionally edited step selection");
+}
+console.log("PASS same-occurrence editing, conflict prevention, undo, legacy duration recovery, repeat attempts, and sync");
+
+assert(html.indexOf('data-i18n="goals.manualProgress"') < html.indexOf('id="btn-create-goals"'));
+for (const language of ["en", "es"]) {
+  const catalog = JSON.parse(fs.readFileSync(path.join(root, "locales", `${language}.json`), "utf8"));
+  i18n._setCatalog(language, catalog);
+  i18n._setCurrent(language);
+  for (const key of ["goals.howProgress", "goals.manualProgress", "goals.edit", "goals.undo", "goals.durationDefinition", "goals.durationManual"]) {
+    assert(catalog[key], `${language}: ${key}`);
+  }
+  const markup = api.renderGoalEditor("returnVisits", api.getGoalEditorDraft(partial), true);
+  const titleAt = markup.indexOf(catalog["goals.duration"]);
+  const definitionAt = markup.indexOf(catalog["goals.durationDefinition"]);
+  const manualAt = markup.indexOf(catalog["goals.durationManual"]);
+  const inputAt = markup.indexOf("data-goal-duration");
+  assert(titleAt < definitionAt && definitionAt < manualAt && manualAt < inputAt);
+  assert(markup.includes(`<small>${catalog["goals.durationDefinition"]}</small>`), "explanations keep small-text markup");
+  const card = api.renderGoalCard(partial, "active");
+  assert(card.includes('data-goal-action="edit"'));
+  assert(card.includes('data-goal-action="undo"'));
+  assert(card.includes(language === "en" ? "1 of 4 steps completed" : "1 de 4 pasos completados"));
+  assert(api.renderGoalCard({ ...partial, status: "achieved" }, "history").includes('data-goal-action="undo"'));
+  state.encouragementEnabled = true;
+  for (const [completed, total, range] of [
+    [1, 8, "start"], [1, 4, "progress"], [2, 4, "great"],
+    [3, 4, "almost"], [4, 4, "done"], [1, 2, "start"],
+  ]) {
+    const text = api.getGoalEncouragement(partial, { completed, total, percent: Math.floor(completed / total * 100) });
+    assert([catalog[`goals.encourage.${range}1`], catalog[`goals.encourage.${range}2`]].includes(text));
+  }
+  assert.strictEqual(api.getGoalEncouragement(partial, { completed: 0, total: 4, percent: 0 }), "");
+}
+for (const [label, explanation, control] of [
+  ['for="settings-address-country"', 'data-i18n="addressing.explanation"', 'id="settings-address-country"'],
+  ['for="me-country"', 'data-i18n="defaults.countryExplanation"', 'id="me-country"'],
+  ['id="setting-city-label"', 'data-i18n="settings.mapDefault"', 'id="setting-default-city"'],
+  ['for="setup-address-country"', 'data-i18n="addressing.explanation"', 'id="setup-address-country"'],
+  ['id="contact-city-label"', 'data-i18n="location.contactCityNote"', 'id="contact-city-select"'],
+]) {
+  const start = html.indexOf(label);
+  const definition = html.indexOf(explanation, start);
+  const input = html.indexOf(control, start + label.length);
+  assert(start >= 0 && start < definition && definition < input, control);
+}
+console.log("PASS English/Spanish setup guidance, time-goal layout, visible edit/undo/progress, encouragement thresholds, and field order");

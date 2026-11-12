@@ -62,16 +62,24 @@
   const mergeGoal = (local, remote) => {
     const remoteWins = time(remote.updatedAt) > time(local.updatedAt);
     const winner = remoteWins ? remote : local;
-    const items = unionBy(
-      [winner.items, remoteWins ? local.items : remote.items],
-      (item) => String(item.id),
-    ).map((item) => {
+    const configuration = time(remote.itemsUpdatedAt) > time(local.itemsUpdatedAt) ? remote : local;
+    const selectedItems = time(configuration.itemsUpdatedAt)
+      ? configuration.items || []
+      : unionBy([winner.items, remoteWins ? local.items : remote.items], (item) => String(item.id));
+    const items = selectedItems.map((item) => {
       const localItem = (local.items || []).find(
         (candidate) => String(candidate.id) === String(item.id),
       );
       const remoteItem = (remote.items || []).find(
         (candidate) => String(candidate.id) === String(item.id),
       );
+      const localChange = time(localItem?.completionChangedAt);
+      const remoteChange = time(remoteItem?.completionChangedAt);
+      const explicitChange = Math.max(localChange, remoteChange);
+      const completionWinner = explicitChange &&
+        explicitChange >= Math.max(time(localItem?.completedAt), time(remoteItem?.completedAt))
+        ? localChange >= remoteChange ? localItem : remoteItem
+        : null;
       const completedItem =
         localItem?.completed && remoteItem?.completed
           ? {
@@ -85,14 +93,28 @@
               ? remoteItem
               : item;
       return {
-        ...item,
         ...completedItem,
-        completed: Boolean(localItem?.completed || remoteItem?.completed),
+        ...item,
+        completed: completionWinner
+          ? completionWinner.completed === true
+          : Boolean(localItem?.completed || remoteItem?.completed),
+        completedAt: completionWinner
+          ? completionWinner.completedAt || null
+          : completedItem.completedAt || null,
+        ...(explicitChange
+          ? { completionChangedAt: new Date(explicitChange).toISOString() }
+          : {}),
       };
     });
     const achieved = items.length > 0 && items.every((item) => item.completed);
     const merged = {
       ...winner,
+      ...(time(configuration.itemsUpdatedAt)
+        ? Object.fromEntries([
+            "itemsUpdatedAt", "pathName", "type", "frequency", "periodDays",
+            "durationMinutes", "dayDurations",
+          ].map((key) => [key, configuration[key]]))
+        : {}),
       items,
       status: achieved ? "achieved" : winner.status,
       updatedAt: new Date(
@@ -106,6 +128,12 @@
       merged.achievedAt = new Date(
         Math.max(...completionDates, time(local.achievedAt), time(remote.achievedAt)),
       ).toISOString();
+    } else {
+      delete merged.achievedAt;
+      if (merged.status === "achieved") {
+        merged.status = merged.periodEndsAt && time(merged.periodEndsAt) <= Date.now()
+          ? "review" : "active";
+      }
     }
     return merged;
   };
