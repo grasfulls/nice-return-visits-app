@@ -74,12 +74,12 @@ const runBootstrap = async (registration) => {
   let events = 0;
   const timers = [];
   const bootContext = {
-    APP_BUILD_REVISION: PAGE_REVISION,
     navigator: {
       onLine: false,
       serviceWorker: { register: async () => registration },
     },
     document: {
+      querySelector: () => ({ content: PAGE_REVISION }),
       dispatchEvent: (event) => {
         assert.strictEqual(event.type, "app-update-available");
         events += 1;
@@ -99,7 +99,7 @@ const runBootstrap = async (registration) => {
       setTimeout: (callback, delay) => { timers.push(callback); return timers.length; },
       clearTimeout: () => {},
     },
-    console: { error() {} },
+    console: { error(error) { throw new Error(String(error)); } },
   };
   vm.runInNewContext(bootstrap, bootContext);
   loadHandler();
@@ -128,6 +128,8 @@ async function main() {
   // no prompt may appear no matter how wrapper identities compare.
   let run = await runBootstrap(registrationWith(makeWorker(PAGE_REVISION)));
   assert.strictEqual(run.events, 0, "matching revisions never prompt");
+  assert(!bootstrap.includes("APP_BUILD_REVISION"), "pre-application callbacks use page metadata, not app.js bindings");
+  console.log("PASS registration and activation callbacks work before app.js injection");
 
   // Reloading repeatedly still never prompts.
   run = await runBootstrap(registrationWith(makeWorker(PAGE_REVISION)));

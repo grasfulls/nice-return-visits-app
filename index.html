@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title data-i18n="page.welcome">NRV-Welcome</title>
-    <meta name="nrv-build-revision" content="sha256:7d6d0b3f60f4363a909a226278939ba3a35e0bc7bc94995f7f8b9184ec81f105" />
+    <meta name="nrv-build-revision" content="sha256:7f64c474c245c657e36f15904a449c10a2ed42be2287b0a1f87cccb2f4010569" />
     <meta name="theme-color" content="#004080" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NRV" />
@@ -248,7 +248,7 @@
         var dataStarted = false;
         var recovering = false;
         var timer;
-        var release = "0.9.061";
+        var release = "0.9.062";
         function spanish() {
           if (/(?:\?|&)lang=es(?:&|$)/.test(window.location.search)) return true;
           if (/(?:\?|&)lang=en(?:&|$)/.test(window.location.search)) return false;
@@ -362,7 +362,7 @@
         };
       })();
     </script>
-    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.061"
+    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.062"
       media="print" onload="this.media='all'" onerror="window.NRVStartupFallback.show()" />
     <section
       id="unlock-screen"
@@ -2108,8 +2108,8 @@
 
     <section id="print-container" hidden aria-hidden="true"></section>
 
-    <script src="nrv-dialog.js?nrv-release=0.9.061"></script>
-    <script src="i18n.js?nrv-release=0.9.061"></script>
+    <script src="nrv-dialog.js?nrv-release=0.9.062"></script>
+    <script src="i18n.js?nrv-release=0.9.062"></script>
     <script>
       window.nrvI18nError = null;
       if (window.NRVI18n) {
@@ -3011,6 +3011,7 @@
         window.addEventListener("load", () => {
           const signalUpdateAvailable = () =>
             document.dispatchEvent(new Event("app-update-available"));
+          const pageRevision = document.querySelector('meta[name="nrv-build-revision"]')?.content;
           // A worker is asked for its generated build revision; the update
           // prompt is raised only when that revision differs from the one
           // this page is running. Worker object identity is never compared
@@ -3043,7 +3044,7 @@
           const signalIfDifferentRevision = async (worker) => {
             if (!worker) return;
             const revision = await workerRevision(worker);
-            if (revision && revision !== APP_BUILD_REVISION) {
+            if (revision && /^sha256:[a-f0-9]{64}$/.test(pageRevision) && revision !== pageRevision) {
               signalUpdateAvailable();
             }
           };

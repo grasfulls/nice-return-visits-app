@@ -5,6 +5,15 @@
   <FilesMatch "\.(html|css|js|json|webmanifest)$">
     Header always set Cache-Control "no-cache, max-age=0, must-revalidate"
     Header always set X-LiteSpeed-Cache-Control "no-cache"
-    Header always set X-NRV-Release "0.9.061"
+    Header always set X-NRV-Release "0.9.062"
   </FilesMatch>
+  <If "%{REQUEST_URI} == '/app/service-worker.js'">
+    Header onsuccess unset Cache-Control
+    Header always set Cache-Control "no-store, no-cache, max-age=0, must-revalidate"
+    Header onsuccess unset Expires
+    Header always set Expires "Thu, 01 Jan 1970 00:00:00 GMT"
+    Header always set CDN-Cache-Control "no-store"
+    Header always set Surrogate-Control "no-store"
+    Header always set X-LiteSpeed-Cache-Control "no-cache"
+  </If>
 </IfModule>

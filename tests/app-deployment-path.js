@@ -4,6 +4,24 @@ const fs = require("fs");
 const path = require("path");
 
 const root = path.join(__dirname, "..");
+const delivery = fs.readFileSync(path.join(root, ".htaccess"), "utf8");
+const workerPolicy = delivery.match(/<If "%\{REQUEST_URI\} == '\/app\/service-worker\.js'">([\s\S]*?)<\/If>/);
+assert(workerPolicy, "worker cache override is scoped to the exact production app worker URI");
+for (const directive of [
+  "Header onsuccess unset Cache-Control",
+  'Header always set Cache-Control "no-store, no-cache, max-age=0, must-revalidate"',
+  "Header onsuccess unset Expires",
+  'Header always set Expires "Thu, 01 Jan 1970 00:00:00 GMT"',
+  'Header always set CDN-Cache-Control "no-store"',
+  'Header always set Surrogate-Control "no-store"',
+  'Header always set X-LiteSpeed-Cache-Control "no-cache"',
+]) {
+  assert(workerPolicy[1].includes(directive), `worker delivery requires ${directive}`);
+}
+assert.strictEqual((delivery.match(/no-store/g) || []).length, 3,
+  "new no-store directives must remain limited to the exact worker override");
+assert(!delivery.includes("/site"), "worker delivery override does not configure the website");
+console.log("PASS exact /app/service-worker.js origin/browser/shared-cache no-store policy");
 const manifest = JSON.parse(
   fs.readFileSync(path.join(root, "manifest.webmanifest"), "utf8"),
 );

@@ -16,8 +16,8 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 // Set to true to require a passphrase when no encryption has been set up yet.
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
-const APP_VERSION = "0.9.061";
-const APP_BUILD_REVISION = "sha256:7d6d0b3f60f4363a909a226278939ba3a35e0bc7bc94995f7f8b9184ec81f105";
+const APP_VERSION = "0.9.062";
+const APP_BUILD_REVISION = "sha256:7f64c474c245c657e36f15904a449c10a2ed42be2287b0a1f87cccb2f4010569";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
