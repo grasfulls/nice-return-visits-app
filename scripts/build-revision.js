@@ -106,6 +106,17 @@ const replaceRevision = (file, expression, revision) => {
 };
 
 const generateBuildFiles = () => {
+  const version = versionTools.canonicalVersion(fs.readFileSync(path.join(root, "app.js"), "utf8"));
+  for (const [file, expression, replacement] of [
+    ["index.html", /nrv-release=\d+\.\d+\.\d+/g, `nrv-release=${version}`],
+    ["index.html", /var release = "[^"]+";/, `var release = "${version}";`],
+    ["service-worker.js", /const RELEASE_VERSION = "[^"]+";/, `const RELEASE_VERSION = "${version}";`],
+    [".htaccess", /X-NRV-Release "[^"]+"/, `X-NRV-Release "${version}"`],
+  ]) {
+    const fullPath = path.join(root, file);
+    const source = fs.readFileSync(fullPath, "utf8");
+    fs.writeFileSync(fullPath, source.replace(expression, replacement));
+  }
   const revision = computeBuildRevision();
   replaceRevision("app.js", revisionPlaceholders["app.js"], revision);
   replaceRevision(
@@ -119,7 +130,6 @@ const generateBuildFiles = () => {
     revision,
   );
   const appSource = fs.readFileSync(path.join(root, "app.js"), "utf8");
-  const version = versionTools.canonicalVersion(appSource);
   fs.writeFileSync(
     path.join(root, "version.json"),
     versionTools.metadataFor(version, revision),
@@ -144,6 +154,13 @@ const checkBuildFiles = () => {
   const pageRevision = indexSource.match(
     /<meta name="nrv-build-revision" content="([^"]+)" \/>/,
   )?.[1];
+  const version = versionTools.canonicalVersion(appSource);
+  if (!indexSource.includes(`var release = "${version}";`) ||
+      !workerSource.includes(`const RELEASE_VERSION = "${version}";`) ||
+      !fs.readFileSync(path.join(root, ".htaccess"), "utf8").includes(`X-NRV-Release "${version}"`) ||
+      [...indexSource.matchAll(/nrv-release=(\d+\.\d+\.\d+)/g)].some((match) => match[1] !== version)) {
+    throw new Error("Release-specific resources do not match APP_VERSION.");
+  }
   if (
     appRevision !== revision ||
     workerRevision !== revision ||

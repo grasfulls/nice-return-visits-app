@@ -48,6 +48,7 @@ function makeAgreement(acceptedVersion) {
       : [["return_visits_agreement_version", acceptedVersion]],
   );
   const context = {
+    window: {},
     document: { getElementById: (id) => elements.get(id) },
     localStorage: {
       getItem: (key) => values.get(key) || null,

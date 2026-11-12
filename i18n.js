@@ -49,10 +49,13 @@
     if (catalogs[code]) return catalogs[code];
     const entry = LANGUAGES.find((l) => l.code === code);
     if (!entry) throw new Error(`Unsupported language: ${code}`);
+    const file = root.NRVStartupFallback
+      ? root.NRVStartupFallback.assetUrl(entry.file)
+      : entry.file;
     if (root.caches && root.location) {
       try {
         const cached = await withTimeout(
-          root.caches.match(new URL(entry.file, root.location.href)),
+          root.caches.match(new URL(file, root.location.href)),
           CACHE_READ_TIMEOUT_MS,
           `Reading the cached ${code} language catalog timed out.`,
         );
@@ -81,7 +84,7 @@
     let response;
     try {
       response = await Promise.race([
-        root.fetch(entry.file, controller ? { signal: controller.signal } : undefined),
+        root.fetch(file, controller ? { signal: controller.signal } : undefined),
         timeout,
       ]);
     } finally {

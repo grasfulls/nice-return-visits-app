@@ -81,6 +81,7 @@ const runGate = async (options = {}) => {
     removeItem: (key) => sessionValues.delete(key),
   };
   const windowListeners = new Map();
+  let fallbackFailed = false;
   const window = {
     location: {
       search: options.language === "es" ? "?lang=es" : "",
@@ -113,11 +114,18 @@ const runGate = async (options = {}) => {
       windowListeners.set(type, (windowListeners.get(type) || []).filter((item) => item !== handler));
     },
     NRVStartupFallback: {
+      assetUrl: (path) => path,
       gateStarted() {},
-      gateFinished() {},
+      resume() {},
+      show() {
+        fallbackFailed = true;
+        elements.get("startup-recovery-code").textContent = "Error code: NRV-S01";
+        elements.get("startup-recovery-code").hidden = false;
+        elements.get("startup-recovery-screen").hidden = false;
+      },
       extend() {},
       disarm() {},
-      hasFailed: () => false,
+      hasFailed: () => fallbackFailed,
     },
   };
   const activeWorker = {
@@ -324,11 +332,16 @@ async function main() {
   const delayedUpdate = await runGate({
     updateHangs: true,
     localCache: true,
-    languageReady: new Promise(() => {}),
   });
   assert.strictEqual(delayedUpdate.appendedScripts.length, 3);
   assert(delayedUpdate.duration < 100, "a slow update check does not block a coherent local startup");
   assert(delayedUpdate.events.includes("register") && delayedUpdate.events.includes("update"));
+  const pendingLanguage = await runGate({
+    localCache: true,
+    languageReady: new Promise(() => {}),
+  });
+  assert.strictEqual(pendingLanguage.appendedScripts.length, 0);
+  assert.strictEqual(pendingLanguage.code, "NRV-S01");
   const updateReject = await runGate({ registrationReject: true, localCache: true });
   assert.strictEqual(updateReject.appendedScripts.length, 0);
   assert.strictEqual(
@@ -488,6 +501,10 @@ async function main() {
   });
   assert.strictEqual(offlineWithoutLanguageCatalog.elements.get("startup-recovery-code").hidden, true);
   assert.strictEqual(offlineWithoutLanguageCatalog.elements.get("startup-recovery-continue").hidden, false);
+  await offlineWithoutLanguageCatalog.elements.get("startup-recovery-continue").handler();
+  assert.strictEqual(offlineWithoutLanguageCatalog.appendedScripts.length, 0);
+  assert.strictEqual(offlineWithoutLanguageCatalog.elements.get("startup-recovery-code").textContent,
+    "Error code: NRV-S01");
   await expectFailure("NRV-V11", {
     online: false,
     localCache: true,

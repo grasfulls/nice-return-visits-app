@@ -1,0 +1,10 @@
+<IfModule LiteSpeed>
+  CacheLookup off
+</IfModule>
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|css|js|json|webmanifest)$">
+    Header always set Cache-Control "no-cache, max-age=0, must-revalidate"
+    Header always set X-LiteSpeed-Cache-Control "no-cache"
+    Header always set X-NRV-Release "0.9.061"
+  </FilesMatch>
+</IfModule>

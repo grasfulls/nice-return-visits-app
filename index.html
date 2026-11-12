@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title data-i18n="page.welcome">NRV-Welcome</title>
-    <meta name="nrv-build-revision" content="sha256:50485d8d46da4160812c94568e1f311f5c595ccaf581a34915123f72ac5ed60c" />
+    <meta name="nrv-build-revision" content="sha256:7d6d0b3f60f4363a909a226278939ba3a35e0bc7bc94995f7f8b9184ec81f105" />
     <meta name="theme-color" content="#004080" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NRV" />
@@ -21,7 +21,33 @@
       onload="this.media='all'"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <style id="nrv-startup-critical">
+      #startup-recovery-screen:not([hidden]) {
+        visibility: visible !important;
+        display: flex !important;
+        position: fixed !important;
+        inset: 0 !important;
+        z-index: 2147483647 !important;
+        align-items: center;
+        justify-content: center;
+        overflow: auto;
+        background: #f4f4f9 !important;
+        color: #222 !important;
+        font: 16px Arial, sans-serif;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      #startup-recovery-screen[hidden] { display: none !important; }
+      #startup-recovery-screen .install-screen-card {
+        visibility: visible !important;
+        background: white;
+        padding: 24px;
+        width: 100%;
+        max-width: 480px;
+        box-sizing: border-box;
+      }
+      html.i18n-loading #app-container { visibility: hidden; }
+    </style>
     <script>
       document.documentElement.classList.add("i18n-loading");
       const standaloneLaunch =
@@ -196,87 +222,148 @@
       aria-live="polite"
     >
       <div class="install-screen-card">
-        <h1 id="startup-recovery-title" data-i18n="startup.checkingTitle">Checking Nice Return Visits</h1>
-        <p id="startup-recovery-message" data-i18n="startup.checking">
+        <h1 id="startup-recovery-title">Checking Nice Return Visits</h1>
+        <p id="startup-recovery-message">
           Verifying this app before opening your saved information. Your information will not be changed.
         </p>
         <p id="startup-recovery-code" hidden></p>
-        <button type="button" id="startup-recovery-continue" data-i18n="startup.continueOffline" hidden>
+        <button type="button" id="startup-recovery-continue" hidden>
           Continue Offline
         </button>
-        <button type="button" id="startup-recovery-retry" data-i18n="startup.retry" hidden>
+        <button type="button" id="startup-recovery-retry" hidden>
           Check for Updates
         </button>
       </div>
     </section>
     <script>
-      window.NRVStartupFallback = (() => {
-        const screen = document.getElementById("startup-recovery-screen");
-        const title = document.getElementById("startup-recovery-title");
-        const message = document.getElementById("startup-recovery-message");
-        const code = document.getElementById("startup-recovery-code");
-        const retry = document.getElementById("startup-recovery-retry");
-        let gateStarted = false;
-        let gateFinished = false;
-        let failed = false;
-        let timer;
-        const language = () => {
-          const requested = new URLSearchParams(window.location.search).get("lang");
-          if (requested === "en" || requested === "es") return requested;
-          try {
-            return window.localStorage.getItem("nrv_language") === "es" ? "es" : "en";
-          } catch {
-            return "en";
-          }
-        };
-        const show = () => {
-          if (gateFinished || !screen) return;
+      window.NRVStartupFallback = (function () {
+        var screen = document.getElementById("startup-recovery-screen");
+        var title = document.getElementById("startup-recovery-title");
+        var message = document.getElementById("startup-recovery-message");
+        var code = document.getElementById("startup-recovery-code");
+        var retry = document.getElementById("startup-recovery-retry");
+        var continuation = document.getElementById("startup-recovery-continue");
+        var failed = false;
+        var finished = false;
+        var dataStarted = false;
+        var recovering = false;
+        var timer;
+        var release = "0.9.061";
+        function spanish() {
+          if (/(?:\?|&)lang=es(?:&|$)/.test(window.location.search)) return true;
+          if (/(?:\?|&)lang=en(?:&|$)/.test(window.location.search)) return false;
+          try { return window.localStorage.getItem("nrv_language") === "es"; }
+          catch (error) { return false; }
+        }
+        function disarm() { window.clearTimeout(timer); }
+        if (spanish()) {
+          title.textContent = "Comprobando Nice Return Visits";
+          message.textContent = "Verificamos esta aplicación antes de abrir tu información guardada. No se modificará tu información.";
+          retry.textContent = "Buscar actualizaciones";
+        }
+        function show() {
+          if (finished || failed) return;
           failed = true;
-          const spanish = language() === "es";
-          title.textContent = spanish
-            ? "NRV está protegiendo tu información"
-            : "NRV is keeping your information safe";
-          message.textContent = spanish
-            ? "NRV tuvo un problema al comprobar esta aplicación. Elige Buscar actualizaciones para intentarlo otra vez. Si el problema continúa, anota el código de error y solicita ayuda con NRV. No se ha abierto ni modificado tu información guardada."
-            : "NRV encountered a problem while checking this app. Choose Check for Updates to retry. If the problem continues, write down the error code and ask for NRV help. Your saved information has not been opened or changed.";
-          code.textContent = spanish ? "Código de error: NRV-V15" : "Error code: NRV-V15";
+          disarm();
+          var es = spanish();
+          title.textContent = dataStarted
+            ? (es ? "NRV no pudo terminar de iniciarse." : "NRV could not finish starting.")
+            : (es ? "NRV no pudo iniciarse." : "NRV could not start.");
+          message.textContent = dataStarted
+            ? (es ? "Anota el código de error y solicita ayuda con NRV."
+              : "Write down the error code and ask for NRV help.")
+            : (es
+              ? "No se ha abierto ni modificado tu información guardada. Elige Intentar de nuevo para reiniciar NRV. Si vuelve a aparecer esta pantalla, anota el código de error y solicita ayuda con NRV."
+              : "Your saved information has not been opened or changed. Choose Try Again to restart NRV. If this screen returns, write down the error code and ask for NRV help.");
+          code.textContent = (es ? "Código de error: " : "Error code: ") +
+            (dataStarted ? "NRV-S02" : "NRV-S01");
           code.hidden = false;
-          retry.textContent = spanish ? "Buscar actualizaciones" : "Check for Updates";
+          continuation.hidden = true;
+          retry.textContent = es ? "Intentar de nuevo" : "Try Again";
           retry.hidden = false;
           retry.disabled = false;
           screen.hidden = false;
-          window.NRVStartupFallback?.disarm();
-        };
-        const arm = (delay) => {
-          window.clearTimeout(timer);
+        }
+        function arm(delay) {
+          if (failed || finished) return;
+          disarm();
           timer = window.setTimeout(show, delay);
-        };
-        retry.addEventListener("click", () => {
-          if (!gateStarted) window.location.reload();
-        });
-        window.addEventListener("error", (event) => {
-          if (event.target?.tagName === "SCRIPT" && event.target.id !== "leaflet-script") {
-            show();
+        }
+        function recover(event) {
+          if (!failed) return;
+          event.stopImmediatePropagation();
+          if (recovering) return;
+          recovering = true;
+          retry.disabled = true;
+          var reloaded = false;
+          // A fresh document resets only in-memory attempt state.
+          var deadline = window.setTimeout(reload, 5000);
+          function reload() {
+            if (reloaded) return;
+            reloaded = true;
+            window.clearTimeout(deadline);
+            try { window.location.reload(); }
+            catch (error) { recovering = false; retry.disabled = false; }
+            window.setTimeout(function () {
+              recovering = false;
+              retry.disabled = false;
+            }, 3000);
           }
+          try {
+            if (navigator.onLine !== false && navigator.serviceWorker) {
+              navigator.serviceWorker.register("./service-worker.js", { updateViaCache: "none" })
+                .then(function (registration) { return registration.update(); })
+                .then(reload, reload);
+            } else { reload(); }
+          } catch (error) { reload(); }
+        }
+        retry.addEventListener("click", recover, true);
+        window.addEventListener("error", function (event) {
+          if (event.target && event.target.id === "leaflet-script") return;
+          show();
         }, true);
-        window.addEventListener("unhandledrejection", () => show());
+        window.addEventListener("unhandledrejection", show);
         arm(8000);
         return {
-          show,
-          gateStarted() {
-            gateStarted = true;
+          show: show,
+          gateStarted: function () { finished = false; arm(8000); },
+          extend: arm,
+          disarm: function () { finished = true; disarm(); },
+          hasFailed: function () { return failed; },
+          assetUrl: function (path) {
+            return path + (path.indexOf("?") < 0 ? "?" : "&") + "nrv-release=" + release;
+          },
+          beginData: function () {
+            if (failed) throw new Error("Startup is blocked.");
+            dataStarted = true;
+            finished = false;
+            arm(10000);
+          },
+          resume: function () {
+            if (failed) throw new Error("Startup is blocked.");
+            finished = false;
+            screen.hidden = false;
             arm(8000);
           },
-          gateFinished() {
-            gateFinished = true;
-            window.clearTimeout(timer);
-          },
-          extend(delay) { arm(delay); },
-          disarm() { window.clearTimeout(timer); },
-          hasFailed() { return failed; },
+          operational: function (element) {
+            if (failed || !element || element.hidden) return false;
+            document.documentElement.classList.remove("i18n-loading");
+            if (!element.getClientRects().length ||
+                window.getComputedStyle(element).visibility === "hidden" ||
+                window.getComputedStyle(element).display === "none") {
+              show();
+              return false;
+            }
+            finished = true;
+            disarm();
+            screen.hidden = true;
+            return true;
+          }
         };
       })();
     </script>
+    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.061"
+      media="print" onload="this.media='all'" onerror="window.NRVStartupFallback.show()" />
     <section
       id="unlock-screen"
       hidden
@@ -2021,8 +2108,8 @@
 
     <section id="print-container" hidden aria-hidden="true"></section>
 
-    <script src="nrv-dialog.js"></script>
-    <script src="i18n.js"></script>
+    <script src="nrv-dialog.js?nrv-release=0.9.061"></script>
+    <script src="i18n.js?nrv-release=0.9.061"></script>
     <script>
       window.nrvI18nError = null;
       if (window.NRVI18n) {
@@ -2081,7 +2168,16 @@
         let pendingBuild = null;
         const translate = (key, fallback) =>
           window.NRVI18n?.t(key, {}, fallback) || fallback;
+        Promise.resolve(window.nrvI18nReady).then(() => {
+          if (!window.NRVStartupFallback?.hasFailed()) {
+            retryButton.textContent = translate("startup.retry", "Check for Updates");
+          }
+        }).catch((error) => {
+          console.error("Language initialization failed before startup:", error);
+          window.NRVStartupFallback?.show();
+        });
         const showFailure = (error) => {
+          if (window.NRVStartupFallback?.hasFailed()) return;
           const requestedLanguage = new URLSearchParams(window.location.search).get("lang");
           const spanishFallback = window.nrvI18nError &&
             (requestedLanguage === "es" || document.documentElement.lang === "es");
@@ -2208,7 +2304,7 @@
           if (typeof caches !== "undefined" && caches.match) {
             try {
               const cached = await withTimeout(
-                caches.match(new URL(path, document.baseURI)),
+                caches.match(new URL(window.NRVStartupFallback?.assetUrl(path) || path, document.baseURI)),
                 CACHE_READ_TIMEOUT_MS,
                 fetchCode,
                 `${path}: local cache lookup timed out`,
@@ -2230,7 +2326,7 @@
           try {
             response = await withTimeout(
               fetch(
-                new URL(path, document.baseURI),
+                new URL(window.NRVStartupFallback?.assetUrl(path) || path, document.baseURI),
                 { cache: "no-store", ...(controller ? { signal: controller.signal } : {}) },
               ),
               FETCH_TIMEOUT_MS,
@@ -2664,10 +2760,42 @@
             if (window.NRVStartupFallback?.hasFailed()) {
               fail(verificationCodes.unexpectedVerificationFailure);
             }
-            await window.NRVI18n?.persistPendingLanguagePreference?.();
+            window.NRVStartupFallback?.resume();
+            await withTimeout(
+              window.nrvI18nReady,
+              7500,
+              verificationCodes.unexpectedVerificationFailure,
+              "Language initialization did not finish.",
+            ).catch((error) => {
+              window.NRVStartupFallback?.show();
+              throw error;
+            });
+            if (window.nrvI18nError) {
+              window.NRVStartupFallback?.show();
+              return;
+            }
+            const stylesheet = document.getElementById("nrv-styles");
+            if (stylesheet && !stylesheet.sheet) {
+              await withTimeout(new Promise((resolve, reject) => {
+                stylesheet.addEventListener("load", resolve, { once: true });
+                stylesheet.addEventListener("error", reject, { once: true });
+              }), 3000, verificationCodes.unexpectedVerificationFailure,
+              "The app stylesheet did not finish loading.").catch((error) => {
+                window.NRVStartupFallback?.show();
+                throw error;
+              });
+            }
+            if (window.NRVStartupFallback?.hasFailed()) return;
+            await withTimeout(
+              window.NRVI18n?.persistPendingLanguagePreference?.(),
+              3000,
+              verificationCodes.unexpectedVerificationFailure,
+              "Language preference confirmation did not finish.",
+            );
             window.sessionStorage.removeItem(RELOAD_MARKER);
             let startupScriptError = null;
             const scriptError = (event) => {
+              window.NRVStartupFallback?.show();
               startupScriptError = new VerificationFailure(
                 verificationCodes.unexpectedVerificationFailure,
                 event.message || "A verified app script could not be started.",
@@ -2689,12 +2817,7 @@
             }
             if (startupScriptError) throw startupScriptError;
             appLoaded = true;
-            screen.hidden = true;
-            diagnosticCode.hidden = true;
-            continueButton.hidden = true;
-            retryButton.hidden = true;
-            document.documentElement.classList.remove("i18n-loading");
-            window.NRVStartupFallback?.gateFinished();
+            // The application, not script insertion, acknowledges a visible screen.
           } catch (error) {
             console.error("Unable to start the verified NRV app:", error);
             showFailure(

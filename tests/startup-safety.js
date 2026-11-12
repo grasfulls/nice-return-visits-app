@@ -64,6 +64,7 @@ const runInitializeAppData = async ({
   }
   const database = {};
   const context = {
+    window: {},
     DEFAULT_SETTINGS: { schemaVersion: 10, cities: [], areas: [] },
     SCHEMA_VERSION: 10,
     ENCRYPTION_META_KEY: "encryption-meta",
@@ -457,7 +458,8 @@ async function main() {
   assert.strictEqual(consistent.appendedScripts[0], "window.__dropboxLoaded = true;");
   assert.strictEqual(consistent.appendedScripts[1], "window.__mergeLoaded = true;");
   assert(consistent.appendedScripts[2].includes(`const APP_BUILD_REVISION = "${revision}"`));
-  assert.strictEqual(consistent.elements.get("startup-recovery-screen").hidden, true);
+  assert.strictEqual(consistent.elements.get("startup-recovery-screen").hidden, false,
+    "inserting scripts must not acknowledge operational readiness");
   assert.strictEqual(consistent.replacedUrls.length, 0);
   assert.strictEqual(consistent.languagePreferenceWrites, 1);
   consistent.window.NRVBuildGate.showFutureSchema();

@@ -16,8 +16,8 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 // Set to true to require a passphrase when no encryption has been set up yet.
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
-const APP_VERSION = "0.9.060";
-const APP_BUILD_REVISION = "sha256:50485d8d46da4160812c94568e1f311f5c595ccaf581a34915123f72ac5ed60c";
+const APP_VERSION = "0.9.061";
+const APP_BUILD_REVISION = "sha256:7d6d0b3f60f4363a909a226278939ba3a35e0bc7bc94995f7f8b9184ec81f105";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -2725,6 +2725,7 @@ const dismissUnlockScreen = (screen) => {
 };
 
 const showStartupRecovery = () => {
+  window.NRVStartupFallback?.disarm();
   const screen = document.getElementById("startup-recovery-screen");
   document.getElementById("unlock-screen").hidden = true;
   document.getElementById("startup-recovery-title").textContent = appText(
@@ -2792,6 +2793,7 @@ const requireUserAgreement = () => {
       unlockContent.hidden = false;
       resolve();
     });
+    window.NRVStartupFallback?.operational(screen);
   });
 };
 
@@ -2829,6 +2831,7 @@ const createUnlockPrompt = (hasEncryption) => {
 };
 
 const initializeAppData = async () => {
+  window.NRVStartupFallback?.beginData();
   const database = await openAppDatabase();
   const [storedKeys, storedSettingsBeforeInit, storedContactsBeforeInit, existingMetadata] =
     await Promise.all([
@@ -2839,6 +2842,7 @@ const initializeAppData = async () => {
     ]);
   const metadataPresent =
     existingMetadata !== undefined && existingMetadata !== null;
+  if (window.NRVStartupFallback?.hasFailed()) throw new Error("Startup is blocked.");
   if (metadataPresent) {
     let supportedMetadata = false;
     try {
@@ -3022,6 +3026,7 @@ const initializeAppData = async () => {
       .getElementById("unlock-form")
       .addEventListener("submit", async (event) => {
         event.preventDefault();
+        window.NRVStartupFallback?.beginData();
         prompt.submitButton.disabled = true;
         prompt.errorMessage.textContent = "";
         try {
@@ -3098,8 +3103,10 @@ const initializeAppData = async () => {
           }
         } finally {
           prompt.submitButton.disabled = false;
+          if (!prompt.screen.hidden) window.NRVStartupFallback?.operational(prompt.screen);
         }
       });
+    window.NRVStartupFallback?.operational(prompt.screen);
   });
 };
 
@@ -3162,6 +3169,7 @@ const initializeApp = async () => {
     }
   }
   await requireUserAgreement();
+  window.NRVStartupFallback?.resume();
   if (window.RVDropbox) await window.RVDropbox.ready;
   const {
     database,
@@ -3173,6 +3181,7 @@ const initializeApp = async () => {
     restoredFromBackup,
   } =
     await initializeAppData();
+  if (window.NRVStartupFallback?.hasFailed()) throw new Error("Startup is blocked.");
   let encryptionKey = initialEncryptionKey;
   let cryptoMetadata = initialMetadata;
 
@@ -12671,11 +12680,13 @@ const initializeInstallSetup = async () => {
     .addEventListener("click", () => goToView("contacts-view"));
 };
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initializeInstallSetup, {
+  document.addEventListener("DOMContentLoaded", () => {
+    window.nrvInstallSetupReady = initializeInstallSetup();
+  }, {
     once: true,
   });
 } else {
-  initializeInstallSetup();
+  window.nrvInstallSetupReady = initializeInstallSetup();
 }
 
 const updateStorageProtectionStatus = async () => {
@@ -12702,12 +12713,23 @@ const updateStorageProtectionStatus = async () => {
 
 const startApplication = async () => {
   await window.nrvI18nReady;
+  if (window.NRVStartupFallback?.hasFailed()) return;
   initializeApp()
-    .then(() => {
+    .then(async () => {
+      await window.nrvInstallSetupReady;
+      if (window.NRVStartupFallback?.hasFailed()) return;
+      const successor = [
+        "launch-choice-screen", "browser-install-screen", "install-screen",
+        "unlock-screen", "app-container",
+      ].map((id) => document.getElementById(id)).find((element) =>
+        element && !element.hidden && element.getClientRects().length &&
+        window.getComputedStyle(element).display !== "none",
+      );
       if (
         !document.getElementById("launch-choice-screen").hidden ||
         !document.getElementById("browser-install-screen").hidden
       ) {
+        window.NRVStartupFallback?.operational(successor);
         return;
       }
       const settingsInstallButton = document.getElementById("btn-settings-install");
@@ -12746,6 +12768,7 @@ const startApplication = async () => {
       }
       updateStorageProtectionStatus();
       appReadyForUpdates = true;
+      window.NRVStartupFallback?.operational(successor);
       showJustUpdatedNotice();
       if (appUpdateAvailable) appUpdatePromptHandler();
     })
@@ -12755,9 +12778,7 @@ const startApplication = async () => {
         showStartupRecovery();
         return;
       }
-      await NRVDialogs.alert(
-        appText("storage.startupFailed", "NRV could not open and verify its storage. Private Safari use is unsupported: close the Private tab and reopen NRV in normal Safari, then install and open NRV from its Home Screen icon. Nothing has been deleted."),
-      );
+      window.NRVStartupFallback?.show();
     });
 };
 if (document.readyState === "loading") {

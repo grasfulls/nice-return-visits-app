@@ -103,7 +103,7 @@ async function main() {
   const setupInitializer = app.indexOf("const initializeInstallSetup = async () => {");
   assert(browserPreviewDeclaration >= 0 && browserPreviewDeclaration < setupInitializer);
   assert(app.includes(
-    'if (document.readyState === "loading") {\n  document.addEventListener("DOMContentLoaded", initializeInstallSetup, {\n    once: true,\n  });\n} else {\n  initializeInstallSetup();\n}',
+    'if (document.readyState === "loading") {\n  document.addEventListener("DOMContentLoaded", () => {\n    window.nrvInstallSetupReady = initializeInstallSetup();\n  }, {\n    once: true,\n  });\n} else {\n  window.nrvInstallSetupReady = initializeInstallSetup();\n}',
   ));
   assert(app.includes("if (transferPending && browserPreview)"));
   assert(transferCode.includes('document.getElementById("btn-preservation-save").disabled = false'));
