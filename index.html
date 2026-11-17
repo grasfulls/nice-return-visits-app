@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title data-i18n="page.welcome">NRV-Welcome</title>
-    <meta name="nrv-build-revision" content="sha256:f52224097bf29d7347224eca7f45eb68b6dd3269213b7533fc4c6d7867aaf284" />
+    <meta name="nrv-build-revision" content="sha256:9a3f0a65b50873d9f515b7790234d169e213a02bb8ddcb30fff60f4d4fbaed99" />
     <meta name="theme-color" content="#004080" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NRV" />
@@ -248,7 +248,7 @@
         var dataStarted = false;
         var recovering = false;
         var timer;
-        var release = "0.9.063";
+        var release = "0.9.064";
         function spanish() {
           if (/(?:\?|&)lang=es(?:&|$)/.test(window.location.search)) return true;
           if (/(?:\?|&)lang=en(?:&|$)/.test(window.location.search)) return false;
@@ -362,7 +362,7 @@
         };
       })();
     </script>
-    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.063"
+    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.064"
       media="print" onload="this.media='all'" onerror="window.NRVStartupFallback.show()" />
     <section
       id="unlock-screen"
@@ -1284,11 +1284,9 @@
               <details class="settings-section">
                 <summary data-i18n="update.whatsNew">What's New</summary>
                 <!-- release-notes:start -->
-                <p data-i18n="release.current.title">Clearer goals and safer corrections</p>
+                <p data-i18n="release.current.title">Clearer Peru address terminology</p>
                 <ul>
-                  <li data-i18n="release.current.change1">Edit an in-progress goal and undo an accidental step completion without losing other progress.</li>
-                  <li data-i18n="release.current.change2">Goal setup explains manual progress and optional time goals, with clearer completed-step counts.</li>
-                  <li data-i18n="release.current.change3">Field explanations appear before their controls, and safe recovery screens offer OK.</li>
+                  <li data-i18n="release.current.change1">The Peru address field is now labeled Territory.</li>
                 </ul>
                 <!-- release-notes:end -->
               </details>
@@ -2113,8 +2111,8 @@
 
     <section id="print-container" hidden aria-hidden="true"></section>
 
-    <script src="nrv-dialog.js?nrv-release=0.9.063"></script>
-    <script src="i18n.js?nrv-release=0.9.063"></script>
+    <script src="nrv-dialog.js?nrv-release=0.9.064"></script>
+    <script src="i18n.js?nrv-release=0.9.064"></script>
     <script>
       window.nrvI18nError = null;
       if (window.NRVI18n) {

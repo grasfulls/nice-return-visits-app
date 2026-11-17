@@ -1208,8 +1208,6 @@
   "map.zoomIn": "Acercar",
   "map.zoomOut": "Alejar",
   "map.closePopup": "Cerrar ventana emergente",
-  "release.current.title": "Metas más claras y correcciones seguras",
-  "release.current.change1": "Edita una meta en progreso y deshaz la finalización accidental de un paso sin perder otros avances.",
-  "release.current.change2": "La configuración de metas explica el progreso manual y las metas de tiempo opcionales, con recuentos de pasos completados más claros.",
-  "release.current.change3": "Las explicaciones de los campos aparecen antes de sus controles, y las pantallas de recuperación segura ofrecen Aceptar."
+  "release.current.title": "Términos de dirección más claros en Perú",
+  "release.current.change1": "El campo de dirección de Perú ahora se etiqueta Territorio."
 }

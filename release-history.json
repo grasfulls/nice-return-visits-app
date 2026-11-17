@@ -1,5 +1,20 @@
 [
   {
+    "version": "0.9.064",
+    "en": {
+      "title": "Clearer Peru address terminology",
+      "changes": [
+        "The Peru address field is now labeled Territory."
+      ]
+    },
+    "es": {
+      "title": "Términos de dirección más claros en Perú",
+      "changes": [
+        "El campo de dirección de Perú ahora se etiqueta Territorio."
+      ]
+    }
+  },
+  {
     "version": "0.9.063",
     "en": {
       "title": "Clearer goals and safer corrections",

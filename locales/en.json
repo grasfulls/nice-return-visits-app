@@ -1208,8 +1208,6 @@
   "map.zoomIn": "Zoom in",
   "map.zoomOut": "Zoom out",
   "map.closePopup": "Close popup",
-  "release.current.title": "Clearer goals and safer corrections",
-  "release.current.change1": "Edit an in-progress goal and undo an accidental step completion without losing other progress.",
-  "release.current.change2": "Goal setup explains manual progress and optional time goals, with clearer completed-step counts.",
-  "release.current.change3": "Field explanations appear before their controls, and safe recovery screens offer OK."
+  "release.current.title": "Clearer Peru address terminology",
+  "release.current.change1": "The Peru address field is now labeled Territory."
 }
