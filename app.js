@@ -17,7 +17,7 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
 const APP_VERSION = "0.9.063";
-const APP_BUILD_REVISION = "sha256:c60b2f54f0fe9e3191a2287bc86c77c12bdd01d34da07b7781b4d70ea7fdebbd";
+const APP_BUILD_REVISION = "sha256:f52224097bf29d7347224eca7f45eb68b6dd3269213b7533fc4c6d7867aaf284";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {

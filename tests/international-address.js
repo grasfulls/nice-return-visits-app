@@ -107,6 +107,7 @@ const addElement = (id, value = "") => {
   "contact-city-label",
   "contact-region-label",
   "contact-area-label",
+  "me-region-label",
   "contact-new-region-label",
   "contact-new-area-label",
   "contact-region-hint",
@@ -360,21 +361,30 @@ context.appText = (key, fallback) => catalogs.en[key] || fallback;
 helpers.updateAddressLabels("contact", "Peru");
 assert.strictEqual(elements.get("contact-state-label").textContent, "Department / Region:");
 assert.strictEqual(elements.get("contact-city-label").textContent, "Locality / City (required):");
-assert.strictEqual(elements.get("contact-region-label").textContent, "Province (optional):");
+assert.strictEqual(elements.get("contact-region-label").textContent, "Territory (optional):");
 assert.strictEqual(elements.get("contact-area-label").textContent, "District (optional):");
 assert.strictEqual(
   elements.get("contact-region-select").firstElementChild.textContent,
   "None",
 );
 assert.strictEqual(elements.get("contact-region-select").options[1].textContent, "Add Province");
+helpers.updateAddressLabels("me", "Peru");
+assert.strictEqual(elements.get("me-region-label").textContent, "Territory:");
+assert.strictEqual(normalized.contacts[1].region, "Lima");
 context.appText = (key, fallback) => catalogs.es[key] || fallback;
 helpers.updateAddressLabels("contact", "United States");
 assert.strictEqual(elements.get("contact-state-label").textContent, "Estado / provincia:");
 assert.strictEqual(elements.get("contact-city-label").textContent, "Ciudad (obligatoria):");
+assert.strictEqual(elements.get("contact-region-label").textContent, "Región (opcional):");
 helpers.updateAddressLabels("contact", "Japan");
 assert.strictEqual(elements.get("contact-state-label").textContent, "Prefectura:");
 assert.strictEqual(elements.get("contact-city-label").textContent, "Ciudad / distrito (obligatorio):");
+assert.strictEqual(elements.get("contact-region-label").textContent, "Localidad / barrio (opcional):");
 assert.strictEqual(elements.get("contact-address-label").textContent, "Calle / edificio:");
+helpers.updateAddressLabels("contact", "Peru");
+assert.strictEqual(elements.get("contact-region-label").textContent, "Territorio (opcional):");
+helpers.updateAddressLabels("me", "Peru");
+assert.strictEqual(elements.get("me-region-label").textContent, "Territorio:");
 console.log("PASS  address terminology is localized independently of language-neutral contact data");
 
 assert(source.includes('citySelect.disabled = !hasCountry;'));
@@ -382,6 +392,10 @@ assert(source.includes('document.getElementById("me-city").disabled = !hasCountr
 assert(source.includes("getFormattedContactAddress(\n      locationParts,\n      selectedContactAddressingCountry,"));
 assert(source.includes("getFormattedContactAddress(contact)"));
 assert(source.includes('document.getElementById("contact-postal-code")'));
+assert(source.includes("const region = contactRegionSelect.value;"));
+assert(source.includes("contact.region || \"\","));
+assert(source.includes("contact.region = region;"));
+assert(source.includes("        region,\n        state,\n        area,"));
 assert(source.includes("contact.addressingCountry = selectedContactAddressingCountry;"));
 assert(source.includes("workingNeedPrivacyDialog.showModal();"));
 assert(!source.includes('alert("Privacy Reminder")'));
