@@ -1,5 +1,20 @@
 [
   {
+    "version": "0.9.065",
+    "en": {
+      "title": "Help for startup and setup errors",
+      "changes": [
+        "Select an error code to see what it means, how long to wait before retrying, and when to ask for help."
+      ]
+    },
+    "es": {
+      "title": "Ayuda con errores de inicio y configuración",
+      "changes": [
+        "Selecciona un código de error para saber qué significa, cuánto esperar antes de volver a intentarlo y cuándo pedir ayuda."
+      ]
+    }
+  },
+  {
     "version": "0.9.064",
     "en": {
       "title": "Clearer Peru address terminology",

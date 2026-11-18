@@ -1208,6 +1208,6 @@
   "map.zoomIn": "Acercar",
   "map.zoomOut": "Alejar",
   "map.closePopup": "Cerrar ventana emergente",
-  "release.current.title": "Términos de dirección más claros en Perú",
-  "release.current.change1": "El campo de dirección de Perú ahora se etiqueta Territorio."
+  "release.current.title": "Ayuda con errores de inicio y configuración",
+  "release.current.change1": "Selecciona un código de error para saber qué significa, cuánto esperar antes de volver a intentarlo y cuándo pedir ayuda."
 }

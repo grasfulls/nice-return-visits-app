@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title data-i18n="page.welcome">NRV-Welcome</title>
-    <meta name="nrv-build-revision" content="sha256:9a3f0a65b50873d9f515b7790234d169e213a02bb8ddcb30fff60f4d4fbaed99" />
+    <meta name="nrv-build-revision" content="sha256:604ad460f342befb7bd38ddf4b74e89e4d5310e80b26936af05d0bf13a2ab0d6" />
     <meta name="theme-color" content="#004080" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NRV" />
@@ -46,6 +46,29 @@
         max-width: 480px;
         box-sizing: border-box;
       }
+      .nrv-error-code {
+        background: transparent;
+        color: #174b8a;
+        border: 0;
+        padding: 8px;
+        font: inherit;
+        text-decoration: underline;
+        cursor: pointer;
+      }
+      #nrv-error-help[open] {
+        visibility: visible !important;
+        display: block !important;
+        background: white;
+        color: #222;
+        font: 16px/1.5 Arial, sans-serif;
+        width: min(480px, 85vw);
+        max-height: 80vh;
+        overflow: auto;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+      #nrv-error-help[open] * { visibility: visible !important; }
+      #nrv-error-help::backdrop { background: rgb(0 0 0 / 55%); }
       html.i18n-loading #app-container { visibility: hidden; }
     </style>
     <script>
@@ -226,7 +249,8 @@
         <p id="startup-recovery-message">
           Verifying this app before opening your saved information. Your information will not be changed.
         </p>
-        <p id="startup-recovery-code" hidden></p>
+        <button type="button" id="startup-recovery-code" class="nrv-error-code"
+          aria-haspopup="dialog" aria-controls="nrv-error-help" hidden></button>
         <button type="button" id="startup-recovery-continue" hidden>
           Continue Offline
         </button>
@@ -235,6 +259,15 @@
         </button>
       </div>
     </section>
+    <dialog id="nrv-error-help" aria-labelledby="nrv-error-help-title"
+      aria-describedby="nrv-error-help-meaning">
+      <h2 id="nrv-error-help-title"></h2>
+      <p id="nrv-error-help-meaning"></p>
+      <p id="nrv-error-help-action"></p>
+      <p id="nrv-error-help-safety"></p>
+      <p id="nrv-error-help-support"></p>
+      <form method="dialog"><button id="nrv-error-help-close" autofocus>OK</button></form>
+    </dialog>
     <script>
       window.NRVStartupFallback = (function () {
         var screen = document.getElementById("startup-recovery-screen");
@@ -248,7 +281,7 @@
         var dataStarted = false;
         var recovering = false;
         var timer;
-        var release = "0.9.064";
+        var release = "0.9.065";
         function spanish() {
           if (/(?:\?|&)lang=es(?:&|$)/.test(window.location.search)) return true;
           if (/(?:\?|&)lang=en(?:&|$)/.test(window.location.search)) return false;
@@ -326,6 +359,7 @@
         arm(8000);
         return {
           show: show,
+          isSpanish: spanish,
           gateStarted: function () { finished = false; arm(8000); },
           extend: arm,
           disarm: function () { finished = true; disarm(); },
@@ -362,7 +396,97 @@
         };
       })();
     </script>
-    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.064"
+    <script id="nrv-error-help-script">
+      (function () {
+        // Keep recovery help independent of files that may have failed to load.
+        var meanings = {
+          "NRV-V01": ["This browser cannot run the required app safety check.", "Este navegador no puede realizar la comprobación de seguridad requerida."],
+          "NRV-V02": ["The browser could not register NRV's update service.", "El navegador no pudo registrar el servicio de actualización de NRV."],
+          "NRV-V03": ["NRV's update service could not check for an update.", "El servicio de actualización de NRV no pudo buscar una actualización."],
+          "NRV-V04": ["NRV's update service did not become active in time. Startup allows up to 60 seconds for this step.", "El servicio de actualización de NRV no se activó a tiempo. El inicio permite hasta 60 segundos para este paso."],
+          "NRV-V05": ["The update service is active, but is not yet connected to this app page.", "El servicio de actualización está activo, pero aún no está conectado a esta página de la aplicación."],
+          "NRV-V06": ["The update service did not answer NRV's safety check in time.", "El servicio de actualización no respondió a tiempo a la comprobación de seguridad de NRV."],
+          "NRV-V07": ["The update service returned an incomplete or invalid safety-check response.", "El servicio de actualización devolvió una respuesta incompleta o no válida a la comprobación de seguridad."],
+          "NRV-V08": ["A file needed to verify the app could not be retrieved.", "No se pudo obtener un archivo necesario para verificar la aplicación."],
+          "NRV-V09": ["The app's verification information was missing or invalid.", "Faltaba la información de verificación de la aplicación o no era válida."],
+          "NRV-V10": ["This page does not match the app's published verification information.", "Esta página no coincide con la información de verificación publicada de la aplicación."],
+          "NRV-V11": ["Some app files do not match the expected release.", "Algunos archivos de la aplicación no coinciden con la versión esperada."],
+          "NRV-V12": ["The active update service does not match the app release being verified.", "El servicio de actualización activo no coincide con la versión de la aplicación que se verifica."],
+          "NRV-V13": ["The update service connected to this page does not match the app release being verified.", "El servicio de actualización conectado a esta página no coincide con la versión de la aplicación que se verifica."],
+          "NRV-V14": ["The app version does not match its published verification information.", "La versión de la aplicación no coincide con su información de verificación publicada."],
+          "NRV-V15": ["An unexpected problem interrupted the app safety check.", "Un problema inesperado interrumpió la comprobación de seguridad de la aplicación."],
+          "NRV-V16": ["Registering the update service took too long.", "El registro del servicio de actualización tardó demasiado."],
+          "NRV-V17": ["Checking for an update took too long.", "La búsqueda de una actualización tardó demasiado."],
+          "NRV-V18": ["NRV could not send a safety-check message to its update service.", "NRV no pudo enviar un mensaje de comprobación de seguridad a su servicio de actualización."],
+          "NRV-V19": ["A response needed for the safety check could not be read.", "No se pudo leer una respuesta necesaria para la comprobación de seguridad."],
+          "NRV-V20": ["Retrieving a file needed for the safety check took too long.", "La obtención de un archivo necesario para la comprobación de seguridad tardó demasiado."],
+          "NRV-S01": ["NRV failed before it began opening your saved information. A required file or startup step may have failed.", "NRV falló antes de empezar a abrir tu información guardada. Puede haber fallado un archivo necesario o un paso del inicio."],
+          "NRV-S02": ["NRV began opening your information but did not finish starting. This code alone cannot confirm whether information changed.", "NRV empezó a abrir tu información, pero no terminó de iniciarse. Este código por sí solo no permite confirmar si la información cambió."],
+          "NRV-A01": ["NRV could not advance to the next setup step. This failed step did not save your setup progress.", "NRV no pudo avanzar al siguiente paso de configuración. Este paso fallido no guardó tu progreso de configuración."]
+        };
+        var dialog = document.getElementById("nrv-error-help");
+        var previousFocus;
+        function showHelp(event) {
+          var button = event.target;
+          if (!button || (button.id !== "startup-recovery-code" &&
+              button.id !== "setup-error-code")) return;
+          var match = button.textContent.match(/NRV-[VSA][0-9]{2}/);
+          if (!match || !meanings[match[0]]) return;
+          var code = match[0];
+          var language = window.location.search.match(/(?:\?|&)lang=(en|es)(?:&|$)/);
+          var es = language ? language[1] === "es" : document.documentElement.lang === "es";
+          if (!language && !es && window.NRVStartupFallback) es = window.NRVStartupFallback.isSpanish();
+          var wait = /NRV-V(?:04|05|12|13)/.test(code) ? 60 : 10;
+          var action;
+          if (code === "NRV-V01") {
+            action = es
+              ? "Abre NRV en una pestaña normal de Safari en iPhone/iPad o de Chrome o Edge en otros dispositivos. Otra copia puede guardar información por separado: no borres la copia original."
+              : "Open NRV in a normal Safari tab on iPhone/iPad, or Chrome or Edge on other devices. Another copy may store information separately: do not erase the original copy.";
+          } else if (code === "NRV-A01") {
+            action = es
+              ? "Cierra y vuelve a abrir NRV; después, intenta continuar la configuración. No es necesario esperar un tiempo determinado."
+              : "Close and reopen NRV, then try continuing setup. No particular wait is required.";
+          } else {
+            action = es
+              ? "Comprueba tu conexión a internet. Espera al menos " + wait + " segundos y elige " +
+                (/NRV-S/.test(code) ? "Intentar de nuevo" : "Buscar actualizaciones") +
+                ". Es un intervalo recomendado, no una garantía de recuperación. Si falla otra vez, cierra y vuelve a abrir NRV."
+              : "Check your internet connection. Wait at least " + wait + " seconds, then choose " +
+                (/NRV-S/.test(code) ? "Try Again" : "Check for Updates") +
+                ". This is a suggested retry interval, not a guarantee of recovery. If it fails again, close and reopen NRV.";
+          }
+          document.getElementById("nrv-error-help-title").textContent =
+            (es ? "Ayuda para " : "Help for ") + code;
+          document.getElementById("nrv-error-help-meaning").textContent = meanings[code][es ? 1 : 0];
+          document.getElementById("nrv-error-help-action").textContent = action;
+          document.getElementById("nrv-error-help-safety").textContent =
+            (/NRV-V/.test(code) || code === "NRV-S01"
+              ? (es ? "Esta comprobación no ha abierto ni modificado tu información guardada. " : "This check has not opened or changed your saved information. ")
+              : "") +
+            (es
+              ? "No borres los datos del navegador ni desinstales NRV para resolver este problema sin antes tener una copia de seguridad verificada."
+              : "Do not clear browser data or uninstall NRV to fix this without first having a verified backup.");
+          document.getElementById("nrv-error-help-support").textContent = es
+            ? "Si el problema continúa, solicita ayuda con NRV. Incluye este código, tu dispositivo, navegador y versión de NRV si la conoces. No envíes contactos, contraseñas ni archivos de copia de seguridad."
+            : "If the problem continues, ask for NRV help. Include this code, your device, browser and NRV version if known. Do not send contacts, passwords or backup files.";
+          document.getElementById("nrv-error-help-close").textContent = es ? "Cerrar" : "Close";
+          dialog.lang = es ? "es" : "en";
+          previousFocus = button;
+          if (!dialog.open) dialog.showModal();
+        }
+        document.addEventListener("click", showHelp);
+        dialog.addEventListener("keydown", function (event) {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            dialog.close();
+          }
+        });
+        dialog.addEventListener("close", function () {
+          if (previousFocus && !previousFocus.hidden) previousFocus.focus();
+        });
+      })();
+    </script>
+    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.065"
       media="print" onload="this.media='all'" onerror="window.NRVStartupFallback.show()" />
     <section
       id="unlock-screen"
@@ -1284,9 +1408,9 @@
               <details class="settings-section">
                 <summary data-i18n="update.whatsNew">What's New</summary>
                 <!-- release-notes:start -->
-                <p data-i18n="release.current.title">Clearer Peru address terminology</p>
+                <p data-i18n="release.current.title">Help for startup and setup errors</p>
                 <ul>
-                  <li data-i18n="release.current.change1">The Peru address field is now labeled Territory.</li>
+                  <li data-i18n="release.current.change1">Select an error code to see what it means, how long to wait before retrying, and when to ask for help.</li>
                 </ul>
                 <!-- release-notes:end -->
               </details>
@@ -1443,7 +1567,9 @@
           <p id="setup-wizard-continue-error" role="alert" aria-live="assertive" tabindex="-1" hidden>
             <span data-i18n="setup.continueFailure">NRV couldn’t continue setup. Your saved information has not been changed. Close and reopen NRV. If the problem continues, write down the error code and ask for NRV help.</span>
             <br />
-            <strong data-i18n="setup.continueFailureCode">Error code: NRV-A01</strong>
+            <button type="button" id="setup-error-code" class="nrv-error-code"
+              aria-haspopup="dialog" aria-controls="nrv-error-help"
+              data-i18n="setup.continueFailureCode">Error code: NRV-A01</button>
           </p>
         </section>
         <section
@@ -2111,8 +2237,8 @@
 
     <section id="print-container" hidden aria-hidden="true"></section>
 
-    <script src="nrv-dialog.js?nrv-release=0.9.064"></script>
-    <script src="i18n.js?nrv-release=0.9.064"></script>
+    <script src="nrv-dialog.js?nrv-release=0.9.065"></script>
+    <script src="i18n.js?nrv-release=0.9.065"></script>
     <script>
       window.nrvI18nError = null;
       if (window.NRVI18n) {
@@ -2958,6 +3084,15 @@
                 fail(verificationCodes.controllerRevisionMismatch);
               }
             }
+            await withTimeout(
+              window.nrvI18nReady,
+              7500,
+              verificationCodes.unexpectedVerificationFailure,
+              "Language initialization did not finish.",
+            ).catch((error) => {
+              window.NRVStartupFallback?.show();
+              throw error;
+            });
             localVerificationPassed = true;
             if (!online) {
               showOfflineReady();

@@ -33,7 +33,7 @@ const gateSource = () => {
     .replace("const CACHE_READ_TIMEOUT_MS = 500;", "const CACHE_READ_TIMEOUT_MS = 5;")
     .replace("const UPDATE_TIMEOUT_MS = 5000;", "const UPDATE_TIMEOUT_MS = 20;")
     .replace("              1000,", "              10,")
-    .replace("              7500,", "              50,")
+    .replace(/              7500,/g, "              50,")
     .replace("window.NRVBuildGate.start();", "window.NRVBuildGate.ready = window.NRVBuildGate.start();");
 };
 
@@ -82,6 +82,8 @@ const runGate = async (options = {}) => {
   };
   const windowListeners = new Map();
   let fallbackFailed = false;
+  let languageReady = !options.languageReady;
+  const languagePromise = Promise.resolve(options.languageReady).then(() => { languageReady = true; });
   const window = {
     location: {
       search: options.language === "es" ? "?lang=es" : "",
@@ -90,10 +92,11 @@ const runGate = async (options = {}) => {
         (windowListeners.get("pagehide") || []).forEach((handler) => handler());
       },
     },
-    nrvI18nReady: options.languageReady || Promise.resolve(),
+    nrvI18nReady: languagePromise,
     nrvI18nError: options.languageError || null,
     NRVI18n: {
-      t: (key, _vars, fallback) => catalogs[options.language || "en"][key] || fallback,
+      t: (key, _vars, fallback) =>
+        (languageReady && catalogs[options.language || "en"][key]) || fallback,
       async persistPendingLanguagePreference() {
         options.languagePreferenceWrites = (options.languagePreferenceWrites || 0) + 1;
       },
@@ -531,6 +534,17 @@ async function main() {
   assert.strictEqual(
     spanishOffline.elements.get("startup-recovery-continue").textContent,
     catalogs.es["common.ok"],
+  );
+  const delayedSpanishOffline = await runGate({
+    online: false,
+    localCache: true,
+    language: "es",
+    languageReady: new Promise((resolve) => setTimeout(resolve, 30)),
+  });
+  assert.strictEqual(
+    delayedSpanishOffline.elements.get("startup-recovery-continue").textContent,
+    catalogs.es["common.ok"],
+    "offline continuation must wait for the selected language before showing its label",
   );
   for (const language of ["en", "es"]) {
     for (const code of codes) assert(catalogs[language][`startup.verify.${code}`]);

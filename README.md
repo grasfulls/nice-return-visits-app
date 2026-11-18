@@ -343,6 +343,24 @@ asks "Discard unsaved changes?" (OK discards, Cancel stays so you can finish). T
 while keeping the contacts and settings stored in that app copy on the device.
 After the reload, unlock with the same passphrase if one is turned on.
 
+### Error-code help
+
+Select an underlined error code on the startup recovery or setup screen for a
+popup explaining its meaning, suggested retry steps and when to ask for help.
+It covers NRV-V01 through NRV-V20, NRV-S01, NRV-S02 and NRV-A01 in English and
+Spanish. Suggested waits are 60 seconds for update-service activation,
+connection or revision transitions (V04, V05, V12, V13), and 10 seconds for other
+retryable startup failures; these are retry recommendations, not guaranteed
+recovery times. V01 offers browser guidance, and A01 recommends reopening.
+
+The recovery dialog, critical styles and bilingual help are inline in
+`index.html` so they remain available offline or when other app files or
+language catalogs fail to load. Keep this recovery-only wording aligned with
+the verification codes and translated startup messages. Opening or closing help
+does not retry, bypass verification or change saved information. S02 does not
+claim that data was unopened or unchanged. Do not clear browser data or uninstall
+as a troubleshooting step without a verified backup.
+
 ### App version and releases
 
 The canonical public app version is `APP_VERSION` in `app.js`; Settings →
