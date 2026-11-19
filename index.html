@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title data-i18n="page.welcome">NRV-Welcome</title>
-    <meta name="nrv-build-revision" content="sha256:332f8eb1af7a699fc847e522ae770dc00f48ad1922ff64ee845aba2e4e7f047c" />
+    <meta name="nrv-build-revision" content="sha256:8b455465c80bb60344f7846f06e66d3ffa65992e81e27de968dfcc15ff84c56d" />
     <meta name="theme-color" content="#004080" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NRV" />
@@ -571,7 +571,7 @@
               hidden
             />
             <button type="button" id="btn-initial-restore" data-i18n="unlock.restore.button">
-              Choose Backup to Restore
+              Restore from Backup
             </button>
           </div>
           <small data-i18n="unlock.noRecovery">
@@ -3157,15 +3157,20 @@
         });
         return {
           start,
-          showFutureSchema() {
+          showFutureSchema(messageOverride) {
             safeContinuationAllowed = false;
+            const appContainer = document.getElementById("app-container");
+            if (appContainer) {
+              appContainer.inert = true;
+              appContainer.setAttribute("aria-hidden", "true");
+            }
             title.textContent = translate(
               "startup.safeTitle",
               "NRV is keeping your information safe",
             );
-            message.textContent = translate(
+            message.textContent = messageOverride || translate(
               "startup.futureData",
-              "This saved information is in a format this version of NRV can’t safely handle. NRV stopped before changing it.",
+              "This information uses a format this copy of NRV can’t open safely. NRV stopped before changing your saved information.",
             );
             diagnosticCode.hidden = true;
             continueButton.hidden = true;

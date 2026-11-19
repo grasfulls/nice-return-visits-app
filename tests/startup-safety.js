@@ -33,6 +33,9 @@ const runInitializeAppData = async ({
   const writes = [];
   const removedLocalKeys = [];
   let promptCalls = 0;
+  let initialRestoreFocused = false;
+  let initialRestoreClickHandler;
+  let backupPickerCalls = 0;
   let submitHandler;
   let resolvePassphrase = async (value) => {
     if (value !== "correct passphrase") throw new Error("incorrect");
@@ -50,18 +53,34 @@ const runInitializeAppData = async ({
       submitHandler = handler;
     },
   };
-  const nodes = new Map([
-    ["unlock-screen", { hidden: false }],
-    ["unlock-form", unlockForm],
-    ["initial-backup-file-input", { files: [], addEventListener() {} }],
-    ["btn-initial-restore", { addEventListener() {} }],
-  ]);
   class NewerDataVersionError extends Error {
     constructor() {
       super("Unsupported newer schema.");
       this.name = "NewerDataVersionError";
     }
   }
+  class InvalidEncryptedStructureError extends Error {
+    constructor(cause) {
+      super("Invalid decrypted data structure.");
+      this.name = "InvalidEncryptedStructureError";
+      if (cause) this.cause = cause;
+    }
+  }
+  const initialRestoreButton = {
+    addEventListener(_type, handler) { initialRestoreClickHandler = handler; },
+    focus() { initialRestoreFocused = true; },
+  };
+  const initialBackupInput = {
+    files: [],
+    addEventListener() {},
+    click() { backupPickerCalls += 1; },
+  };
+  const nodes = new Map([
+    ["unlock-screen", { hidden: false }],
+    ["unlock-form", unlockForm],
+    ["initial-backup-file-input", initialBackupInput],
+    ["btn-initial-restore", initialRestoreButton],
+  ]);
   const database = {};
   const context = {
     window: {},
@@ -76,6 +95,7 @@ const runInitializeAppData = async ({
       Number.isInteger(value.iterations) &&
       value.salt === "valid",
     NewerDataVersionError,
+    InvalidEncryptedStructureError,
     openAppDatabase: async () => database,
     readStoredKeys: async () => [...values.keys()],
     readStoredValue: async (_database, key) => values.get(key),
@@ -86,6 +106,9 @@ const runInitializeAppData = async ({
     normalizeRegionData(sourceSettings, sourceContacts) {
       if ((Number(sourceSettings.schemaVersion) || 1) > 10) {
         throw new NewerDataVersionError();
+      }
+      if (sourceContacts.some((contact) => contact === null)) {
+        throw new TypeError("Contact structure is invalid.");
       }
       return {
         settings: { ...sourceSettings, schemaVersion: 10 },
@@ -122,6 +145,9 @@ const runInitializeAppData = async ({
     writes,
     removedLocalKeys,
     get promptCalls() { return promptCalls; },
+    get initialRestoreFocused() { return initialRestoreFocused; },
+    get initialRestoreClickHandler() { return initialRestoreClickHandler; },
+    get backupPickerCalls() { return backupPickerCalls; },
     get submitHandler() { return submitHandler; },
     prompt,
     set resolvePassphrase(handler) { resolvePassphrase = handler; },
@@ -188,6 +214,10 @@ const runBuildGate = async ({
       hidden: true,
       disabled: false,
       addEventListener(_type, handler) { this.handler = handler; },
+    }],
+    ["app-container", {
+      inert: false,
+      setAttribute() {},
     }],
     ["startup-recovery-retry", {
       hidden: true,
@@ -400,6 +430,69 @@ async function main() {
   assert.deepStrictEqual(encrypted.writes, [], "current encrypted schema is not rewritten on unlock");
   console.log("PASS genuine passphrase data still requires the correct passphrase without rewriting schema-10 records");
 
+  const invalidDecryptedStructure = await runInitializeAppData({
+    settings: {
+      plaintext: {
+        schemaVersion: 10,
+        cities: "not a list",
+        areas: [],
+      },
+    },
+    contacts: { plaintext: [] },
+    metadata: {
+      version: 1,
+      algorithm: "AES-GCM",
+      keyDerivation: "PBKDF2-SHA-256",
+      iterations: 310000,
+      salt: "valid",
+    },
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  invalidDecryptedStructure.prompt.passphraseInput.value = "correct passphrase";
+  await invalidDecryptedStructure.submitHandler({ preventDefault() {} });
+  assert.strictEqual(
+    invalidDecryptedStructure.prompt.errorMessage.textContent,
+    `${catalogs.en["unlock.invalidStructure"]} ${catalogs.en["unlock.invalidStructureHelp"]}`,
+  );
+  assert(!/passphrase|incorrect/i.test(
+    invalidDecryptedStructure.prompt.errorMessage.textContent,
+  ));
+  assert.strictEqual(invalidDecryptedStructure.initialRestoreFocused, true);
+  invalidDecryptedStructure.initialRestoreClickHandler();
+  assert.strictEqual(invalidDecryptedStructure.backupPickerCalls, 1);
+  assert.deepStrictEqual(invalidDecryptedStructure.writes, []);
+  console.log("PASS decrypted information with an invalid structure opens the safe backup action without a wrong-passphrase claim or write");
+
+  const invalidNestedStructure = await runInitializeAppData({
+    settings: {
+      plaintext: {
+        schemaVersion: 10,
+        cities: [],
+        areas: [],
+      },
+    },
+    contacts: { plaintext: [null] },
+    metadata: {
+      version: 1,
+      algorithm: "AES-GCM",
+      keyDerivation: "PBKDF2-SHA-256",
+      iterations: 310000,
+      salt: "valid",
+    },
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  invalidNestedStructure.prompt.passphraseInput.value = "correct passphrase";
+  await invalidNestedStructure.submitHandler({ preventDefault() {} });
+  assert.match(
+    invalidNestedStructure.prompt.errorMessage.textContent,
+    /couldn’t read this saved information in a usable form/i,
+  );
+  assert(!/passphrase|incorrect/i.test(
+    invalidNestedStructure.prompt.errorMessage.textContent,
+  ));
+  assert.deepStrictEqual(invalidNestedStructure.writes, []);
+  console.log("PASS normalization failures after decryption are classified as unusable structure before any write");
+
   assert(/id="unlock-screen"\s+hidden/.test(html));
   assert(initSource.includes("if (!metadataPresent)"));
   assert(initSource.includes("const prompt = createUnlockPrompt(true)"));
@@ -472,6 +565,18 @@ async function main() {
   assert.strictEqual(consistent.replacedUrls.length, 0);
   assert.strictEqual(consistent.languagePreferenceWrites, 1);
   consistent.window.NRVBuildGate.showFutureSchema();
+  assert.strictEqual(
+    consistent.elements.get("startup-recovery-message").textContent,
+    catalogs.en["startup.futureData"],
+  );
+  consistent.window.NRVBuildGate.showFutureSchema(
+    catalogs.en["startup.futureData.dropbox"],
+  );
+  assert.strictEqual(
+    consistent.elements.get("startup-recovery-message").textContent,
+    catalogs.en["startup.futureData.dropbox"],
+  );
+  assert.strictEqual(consistent.elements.get("app-container").inert, true);
   const updatesBeforeFutureRetry = consistent.updateCalls;
   const metadataBeforeFutureRetry = consistent.metadataFetches;
   await consistent.elements.get("startup-recovery-retry").handler();
@@ -547,6 +652,7 @@ async function main() {
       `${catalogs[language]["startup.errorCode"]}: NRV-V10`,
     );
     assert(catalogs[language]["startup.futureData"]);
+    assert(catalogs[language]["startup.futureData.dropbox"]);
   }
   console.log("PASS English and Spanish recovery messages are available");
 }

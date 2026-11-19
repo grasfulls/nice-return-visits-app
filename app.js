@@ -17,7 +17,7 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
 const APP_VERSION = "0.9.065";
-const APP_BUILD_REVISION = "sha256:332f8eb1af7a699fc847e522ae770dc00f48ad1922ff64ee845aba2e4e7f047c";
+const APP_BUILD_REVISION = "sha256:8b455465c80bb60344f7846f06e66d3ffa65992e81e27de968dfcc15ff84c56d";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -424,10 +424,19 @@ const GOAL_METHODS = {
 
 class NewerDataVersionError extends Error {
   constructor() {
-    super(
-      "This data was saved by a newer version of the app. Update the app (reload it) before opening this data. Nothing was changed.",
-    );
+    super("This copy does not support the data format.");
     this.name = "NewerDataVersionError";
+  }
+}
+
+const isFutureDataFormatVersion = (version) =>
+  Number.isInteger(version) && version > 1;
+
+class InvalidEncryptedStructureError extends Error {
+  constructor(cause) {
+    super("Decrypted saved information does not have the structure NRV requires.");
+    this.name = "InvalidEncryptedStructureError";
+    if (cause) this.cause = cause;
   }
 }
 const APP_UPDATE_PENDING_KEY = "return_visits_app_update_pending";
@@ -1675,6 +1684,16 @@ const writeStoredValues = (database, entries) =>
     transaction.onabort = () => reject(transaction.error);
   });
 
+const commitAndRefreshUi = async (commit, refreshUi) => {
+  await commit();
+  try {
+    await refreshUi();
+    return { committed: true, uiError: null };
+  } catch (uiError) {
+    return { committed: true, uiError };
+  }
+};
+
 const replaceStoredValuesIfUnchanged = (
   database,
   expectedEntries,
@@ -1943,6 +1962,20 @@ const isSupportedEncryptionMetadata = (metadata) =>
   base64ToBytes(metadata.salt).length === 16;
 
 const decryptContactTransfer = async (transfer, passphrase) => {
+  if (
+    ["return-visits-contact", "return-visits-encrypted-contact"].includes(
+      transfer?.format,
+    ) &&
+    isFutureDataFormatVersion(transfer.version)
+  ) {
+    throw new NewerDataVersionError();
+  }
+  if (
+    transfer?.format === "return-visits-encrypted-contact" &&
+    isFutureDataFormatVersion(transfer.encryption?.version)
+  ) {
+    throw new NewerDataVersionError();
+  }
   let contact;
   if (transfer.format === PLAIN_CONTACT_FORMAT && transfer.version === 1) {
     contact = transfer.data;
@@ -2040,6 +2073,20 @@ const normalizeTransferredContact = (contact) => {
 
 // Reads a file holding one contact or several, plain or encrypted.
 const decryptContactsTransfer = async (transfer, passphrase) => {
+  if (
+    [PLAIN_CONTACTS_FORMAT, ENCRYPTED_CONTACTS_FORMAT].includes(
+      transfer?.format,
+    ) &&
+    isFutureDataFormatVersion(transfer.version)
+  ) {
+    throw new NewerDataVersionError();
+  }
+  if (
+    transfer?.format === ENCRYPTED_CONTACTS_FORMAT &&
+    isFutureDataFormatVersion(transfer.encryption?.version)
+  ) {
+    throw new NewerDataVersionError();
+  }
   let contactList;
   if (transfer.format === PLAIN_CONTACTS_FORMAT && transfer.version === 1) {
     contactList = transfer.data?.contacts;
@@ -2615,6 +2662,20 @@ const getInitialStoredInformation = () => {
 };
 
 const decryptBackup = async (backup, passphrase) => {
+  if (
+    ["return-visits-backup", "return-visits-encrypted-backup"].includes(
+      backup?.format,
+    ) &&
+    isFutureDataFormatVersion(backup.version)
+  ) {
+    throw new NewerDataVersionError();
+  }
+  if (
+    backup?.format === "return-visits-encrypted-backup" &&
+    isFutureDataFormatVersion(backup.encryption?.version)
+  ) {
+    throw new NewerDataVersionError();
+  }
   if (passphrase !== null && passphrase.length < 8) {
     throw new Error("The backup passphrase must be at least 8 characters.");
   }
@@ -2746,18 +2807,29 @@ const dismissUnlockScreen = (screen) => {
   appContainer.setAttribute("aria-hidden", "false");
 };
 
-const showStartupRecovery = () => {
+const showStartupRecovery = (messageKey = "startup.futureData") => {
   window.NRVStartupFallback?.disarm();
   const screen = document.getElementById("startup-recovery-screen");
   document.getElementById("unlock-screen").hidden = true;
+  const appContainer = document.getElementById("app-container");
+  appContainer.inert = true;
+  appContainer.setAttribute("aria-hidden", "true");
+  const message = appText(
+    messageKey,
+    messageKey === "startup.futureData.dropbox"
+      ? "The Dropbox copy uses a format this copy of NRV can’t open safely. NRV stopped before changing your saved information."
+      : "This information uses a format this copy of NRV can’t open safely. NRV stopped before changing your saved information.",
+  );
+  if (window.NRVBuildGate?.showFutureSchema) {
+    window.NRVBuildGate.showFutureSchema(message);
+    return;
+  }
   document.getElementById("startup-recovery-title").textContent = appText(
     "startup.safeTitle",
     "NRV is keeping your information safe",
   );
-  document.getElementById("startup-recovery-message").textContent = appText(
-    "startup.futureData",
-    "This saved information is in a format this version of NRV can’t safely handle. NRV stopped before changing it.",
-  );
+  document.getElementById("startup-recovery-message").textContent = message;
+  document.getElementById("startup-recovery-continue").hidden = true;
   document.getElementById("startup-recovery-retry").hidden = false;
   screen.hidden = false;
 };
@@ -2973,6 +3045,7 @@ const initializeAppData = async () => {
       if (!file) return;
       initialRestoreButton.disabled = true;
       prompt.errorMessage.textContent = "";
+      let committedRestore = null;
       try {
         const passphrase = prompt.passphraseInput.value;
         if (!passphrase) {
@@ -3004,20 +3077,42 @@ const initializeAppData = async () => {
         ) {
           return;
         }
-        await writeStoredValues(database, [
-          ["settings", restored.encryptedSettings],
-          ["contacts", restored.encryptedContacts],
-          [ENCRYPTION_META_KEY, restored.metadata],
-        ]);
-        localStorage.removeItem("return_visits_settings");
-        localStorage.removeItem("return_visits_contacts");
-        localStorage.setItem("return_visits_last_backup_reminder", Date.now());
-        if (backup.transferPurpose === "installation") {
-          await NRVDialogs.alert(
-            restored.metadata?.recovery
-              ? appText("backup.installTransferRestored", "Your NRV information has been restored to this copy. Please check that it is here; the original browser copy remains unchanged.")
-              : appText("backup.installTransferRestoredNoRecovery", "Your NRV information has been restored to this copy. Please check that it is here; the original browser copy remains unchanged. This backup has no recovery code yet; open Settings → Data/Security → Passphrase to Open App and choose Make a New Recovery Code."),
-          );
+        const outcome = await commitAndRefreshUi(
+          () => writeStoredValues(database, [
+            ["settings", restored.encryptedSettings],
+            ["contacts", restored.encryptedContacts],
+            [ENCRYPTION_META_KEY, restored.metadata],
+          ]),
+          async () => {
+            try {
+              localStorage.removeItem("return_visits_settings");
+              localStorage.removeItem("return_visits_contacts");
+              localStorage.setItem("return_visits_last_backup_reminder", Date.now());
+            } catch (error) {
+              console.error("Unable to finish startup restore bookkeeping:", error);
+            }
+          },
+        );
+        committedRestore = restored;
+        if (outcome.uiError) {
+          console.error("The startup restore committed but its completion screen failed:", outcome.uiError);
+          try {
+            await NRVDialogs.alert(
+              appText("data.savedUiFailure", "NRV saved the information, but couldn’t finish updating the screen."),
+            );
+          } catch (noticeError) {
+            console.error("Unable to show the committed startup restore notice:", noticeError);
+          }
+        } else if (backup.transferPurpose === "installation") {
+          try {
+            await NRVDialogs.alert(
+              restored.metadata?.recovery
+                ? appText("backup.installTransferRestored", "Your NRV information has been restored to this copy. Please check that it is here; the original browser copy remains unchanged.")
+                : appText("backup.installTransferRestoredNoRecovery", "Your NRV information has been restored to this copy. Please check that it is here; the original browser copy remains unchanged. This backup has no recovery code yet; open Settings → Data/Security → Passphrase to Open App and choose Make a New Recovery Code."),
+            );
+          } catch (noticeError) {
+            console.error("The startup restore committed but its completion notice failed:", noticeError);
+          }
         }
         dismissUnlockScreen(prompt.screen);
         resolve({
@@ -3030,13 +3125,40 @@ const initializeAppData = async () => {
           restoredFromBackup: true,
         });
       } catch (error) {
+        if (committedRestore) {
+          console.error("The startup restore committed before a later step failed:", error);
+          try {
+            await NRVDialogs.alert(
+              appText("data.savedUiFailure", "NRV saved the information, but couldn’t finish updating the screen."),
+            );
+          } catch (noticeError) {
+            console.error("Unable to show the committed startup restore notice:", noticeError);
+          }
+          try {
+            dismissUnlockScreen(prompt.screen);
+          } catch (dismissError) {
+            console.error("Unable to dismiss the unlock screen after startup restore:", dismissError);
+          }
+          resolve({
+            database,
+            settings: committedRestore.settings,
+            contacts: committedRestore.contacts,
+            encryptionKey: committedRestore.encryptionKey,
+            metadata: committedRestore.metadata,
+            existingStateDetected,
+            restoredFromBackup: true,
+          });
+          return;
+        }
         console.error("Unable to restore encrypted backup during startup:", error);
-        prompt.errorMessage.textContent =
-          error.message === "Enter the backup passphrase before restoring."
-            ? appText("backup.requirePassphrase", "Enter the backup passphrase before restoring.")
-            : error instanceof NewerDataVersionError
-              ? appText("backup.newerData", "This data was saved by a newer version of the app. Update the app (reload it) before opening this data. Nothing was changed. Your current data was not replaced.")
-              : appText("backup.startupRestoreFailed", "Could not restore that backup. Check that the file is valid and the passphrase is correct.");
+        if (error instanceof NewerDataVersionError) {
+          showStartupRecovery();
+        } else {
+          prompt.errorMessage.textContent =
+            error.message === "Enter the backup passphrase before restoring."
+              ? appText("backup.requirePassphrase", "Enter the backup passphrase before restoring.")
+              : appText("backup.startupRestoreFailed", "NRV couldn’t complete the restore. Your saved information was not changed. Check that the backup file is valid and the passphrase is correct.");
+        }
       } finally {
         initialBackupInput.value = "";
         initialRestoreButton.disabled = false;
@@ -3082,10 +3204,16 @@ const initializeAppData = async () => {
             !Array.isArray(settings.areas) ||
             !Array.isArray(contacts)
           ) {
-            throw new Error(appText("storage.invalidEncryptedDatabase", "The encrypted database contents are invalid."));
+            throw new InvalidEncryptedStructureError();
           }
           const sourceSchemaVersion = Number(settings.schemaVersion) || 1;
-          const normalized = normalizeRegionData(settings, contacts);
+          let normalized;
+          try {
+            normalized = normalizeRegionData(settings, contacts);
+          } catch (error) {
+            if (error instanceof NewerDataVersionError) throw error;
+            throw new InvalidEncryptedStructureError(error);
+          }
           settings = normalized.settings;
           contacts = normalized.contacts;
           if (sourceSchemaVersion !== SCHEMA_VERSION) {
@@ -3116,6 +3244,18 @@ const initializeAppData = async () => {
           console.error("Unable to unlock or encrypt local data:", error);
           if (error instanceof NewerDataVersionError) {
             showStartupRecovery();
+          } else if (error instanceof InvalidEncryptedStructureError) {
+            prompt.errorMessage.textContent = [
+              appText(
+                "unlock.invalidStructure",
+                "NRV couldn’t read this saved information in a usable form. It stopped before changing it.",
+              ),
+              appText(
+                "unlock.invalidStructureHelp",
+                "Choose Restore from Backup. If you don’t have a suitable backup, keep this copy and contact NRV for help.",
+              ),
+            ].join(" ");
+            initialRestoreButton.focus();
           } else {
             prompt.errorMessage.textContent = appText(
               "unlock.readFailed",
@@ -11172,10 +11312,44 @@ const initializeApp = async () => {
 
   const backupFileInput = document.getElementById("backup-file-input");
   const contactFileInput = document.getElementById("contact-file-input");
+  const showCommittedDataRecovery = async (error) => {
+    console.error("NRV saved the information but could not finish updating the screen:", error);
+    let openContacts = false;
+    try {
+      openContacts = await NRVDialogs.confirm(
+        appText(
+          "data.savedUiFailureAction",
+          "NRV saved the information, but couldn’t finish updating the screen. Choose OK to open Contacts, or Cancel to stay here.",
+        ),
+      );
+    } catch (dialogError) {
+      console.error("Unable to show the committed-data recovery choice:", dialogError);
+      return;
+    }
+    if (!openContacts) return;
+    try {
+      populateDropdowns();
+      renderContacts();
+      goToView("contacts-view");
+    } catch (displayError) {
+      console.error("Unable to display information after its storage commit:", displayError);
+      try {
+        await NRVDialogs.alert(
+          appText(
+            "data.savedDisplayFailed",
+            "NRV saved the information, but still couldn’t display it. Keep this copy and contact NRV for help.",
+          ),
+        );
+      } catch (noticeError) {
+        console.error("Unable to show the committed-data display notice:", noticeError);
+      }
+    }
+  };
   contactFileInput.addEventListener("change", async () => {
       const files = [...contactFileInput.files];
       if (!files.length) return;
 
+      let writeCommitted = false;
       try {
         const importedList = [];
         let passphrase;
@@ -11270,21 +11444,39 @@ const initializeApp = async () => {
         });
         nextId += 1;
         }
-        await writeStoredValues(database, [
-          ["settings", await encryptValue(updatedSettings, encryptionKey)],
-          ["contacts", await encryptValue(updatedContacts, encryptionKey)],
-        ]);
-        settings = updatedSettings;
-        contacts = updatedContacts;
-        resetContactSignatures();
-        populateDropdowns();
-        renderContacts();
-        contactFileInput.value = "";
-        await NRVDialogs.alert(
-          appText("contacts.importedCount", `${importedList.length} contact${importedList.length === 1 ? "" : "s"} imported.`, { count: importedList.length }),
+        const outcome = await commitAndRefreshUi(
+          async () => writeStoredValues(database, [
+            ["settings", await encryptValue(updatedSettings, encryptionKey)],
+            ["contacts", await encryptValue(updatedContacts, encryptionKey)],
+          ]),
+          async () => {
+            settings = updatedSettings;
+            contacts = updatedContacts;
+            resetContactSignatures();
+            contactFileInput.value = "";
+            populateDropdowns();
+            renderContacts();
+          },
         );
+        writeCommitted = outcome.committed;
+        if (outcome.uiError) {
+          contactFileInput.value = "";
+          await showCommittedDataRecovery(outcome.uiError);
+        } else {
+          try {
+            await NRVDialogs.alert(
+              appText("contacts.importedCount", `${importedList.length} contact${importedList.length === 1 ? "" : "s"} imported.`, { count: importedList.length }),
+            );
+          } catch (noticeError) {
+            console.error("Contact import committed but its completion notice failed:", noticeError);
+          }
+        }
       } catch (error) {
         contactFileInput.value = "";
+        if (writeCommitted) {
+          await showCommittedDataRecovery(error);
+          return;
+        }
         console.error("Unable to import contacts:", error);
         const importErrors = {
           "This is not a supported contact file.": appText("contacts.unsupportedFile", "This is not a supported contact file."),
@@ -11292,17 +11484,19 @@ const initializeApp = async () => {
           "The contact file contains no contacts.": appText("contacts.emptyFile", "The contact file contains no contacts."),
           "Encrypted data is invalid or unsupported.": appText("contacts.invalidEncryptedData", "Encrypted data is invalid or unsupported."),
         };
-        const detail = error instanceof NewerDataVersionError
-          ? appText("storage.newerData", "This data was saved by a newer version of the app. Update the app (reload it) before opening this data. Nothing was changed.")
-          : error instanceof SyntaxError
-            ? appText("contacts.invalidJson", "The file is not valid JSON.")
-            : error.name === "OperationError"
-              ? appText("contacts.decryptFailed", "The file could not be decrypted. Check that the file is valid and the passphrase is correct.")
-              : Object.prototype.hasOwnProperty.call(importErrors, error.message)
-                ? importErrors[error.message]
-                : error.message || appText("contacts.importCheckFile", "Check that the file is valid and the passphrase is correct.");
+        if (error instanceof NewerDataVersionError) {
+          showStartupRecovery();
+          return;
+        }
+        const detail = error instanceof SyntaxError
+          ? appText("contacts.invalidJson", "The file is not valid JSON.")
+          : error.name === "OperationError"
+            ? appText("contacts.decryptFailed", "The file could not be decrypted. Check that the file is valid and the passphrase is correct.")
+            : Object.prototype.hasOwnProperty.call(importErrors, error.message)
+              ? importErrors[error.message]
+              : error.message || appText("contacts.importCheckFile", "Check that the file is valid and the passphrase is correct.");
         await NRVDialogs.alert(
-          appText("contacts.importFailed", `Could not import. ${detail} Your current contacts were not changed.`, { detail }),
+          appText("contacts.importFailed", `NRV couldn’t complete the import. Your saved information was not changed. ${detail}`, { detail }),
         );
       }
     });
@@ -11342,12 +11536,20 @@ const initializeApp = async () => {
       restorePassphraseInput.focus();
     });
 
-  const reportRestoreError = async (error) => {
+  const reportRestoreError = async (error, source = "backup") => {
     console.error("Unable to restore encrypted backup:", error);
+    if (error instanceof NewerDataVersionError) {
+      showStartupRecovery(
+        source === "dropbox"
+          ? "startup.futureData.dropbox"
+          : "startup.futureData",
+      );
+      return;
+    }
     await NRVDialogs.alert(
-      error instanceof NewerDataVersionError
-        ? appText("backup.newerData", "This data was saved by a newer version of the app. Update the app (reload it) before opening this data. Nothing was changed. Your current data was not replaced.")
-        : appText("backup.restoreFailed", "Could not restore that backup. Check that the file is valid and the passphrase is correct. Your current data was not replaced."),
+      source === "dropbox"
+        ? appText("dropbox.restoreFailed", "NRV couldn’t complete the Dropbox restore. Your saved information was not changed. Check that the Dropbox copy is valid and the passphrase is correct.")
+        : appText("backup.restoreFailed", "NRV couldn’t complete the restore. Your saved information was not changed. Check that the backup file is valid and the passphrase is correct."),
     );
   };
 
@@ -11394,40 +11596,52 @@ const initializeApp = async () => {
       return false;
     }
 
-    await writeStoredValues(database, [
-      ["settings", restored.encryptedSettings],
-      ["contacts", restored.encryptedContacts],
-      ...(restored.metadata ? [[ENCRYPTION_META_KEY, restored.metadata]] : []),
-    ]);
-    encryptionKey = restored.encryptionKey;
-    cryptoMetadata = restored.metadata;
-    settings = restored.settings;
-    contacts = restored.contacts;
-    resetContactSignatures();
-    settings.country = normalizeCountry(settings.country);
-    settings.addressingCountry = normalizeCountry(settings.addressingCountry);
-    updateAddressingProfile(settings.addressingCountry);
-    settings.state = normalizeLocationState(settings.country, settings.state);
-    populateCountryOptions();
-    populateMeForm();
-    savedDetailsState = captureDetailsState();
-    document.getElementById("setting-state").value = settings.state;
-    document.getElementById("setting-default-city").value =
-      settings.defaultCity || "";
-    populateDropdowns();
-    renderContacts();
-    updatePassphraseSection();
-    markBackupDone();
-    const installationTransfer = backup.transferPurpose === "installation";
-    await NRVDialogs.alert(
-      installationTransfer
-        ? encryptionKey && !restored.metadata?.recovery
-          ? appText("backup.installTransferRestoredNoRecovery", "Your NRV information has been restored to this copy. Please check that it is here; the original browser copy remains unchanged. This backup has no recovery code yet; open Settings → Data/Security → Passphrase to Open App and choose Make a New Recovery Code.")
-          : appText("backup.installTransferRestored", "Your NRV information has been restored to this copy. Please check that it is here; the original browser copy remains unchanged.")
-        : encryptionKey && !restored.metadata?.recovery
-          ? appText("backup.restoredNoRecovery", "Backup restored. It has no recovery code yet; open Settings → Data/Security → Passphrase to Open App and choose Make a New Recovery Code.")
-          : appText("backup.restored", "Backup restored successfully."),
+    const outcome = await commitAndRefreshUi(
+      () => writeStoredValues(database, [
+        ["settings", restored.encryptedSettings],
+        ["contacts", restored.encryptedContacts],
+        ...(restored.metadata ? [[ENCRYPTION_META_KEY, restored.metadata]] : []),
+      ]),
+      async () => {
+        encryptionKey = restored.encryptionKey;
+        cryptoMetadata = restored.metadata;
+        settings = restored.settings;
+        contacts = restored.contacts;
+        resetContactSignatures();
+        settings.country = normalizeCountry(settings.country);
+        settings.addressingCountry = normalizeCountry(settings.addressingCountry);
+        updateAddressingProfile(settings.addressingCountry);
+        settings.state = normalizeLocationState(settings.country, settings.state);
+        populateCountryOptions();
+        populateMeForm();
+        savedDetailsState = captureDetailsState();
+        document.getElementById("setting-state").value = settings.state;
+        document.getElementById("setting-default-city").value =
+          settings.defaultCity || "";
+        populateDropdowns();
+        renderContacts();
+        updatePassphraseSection();
+        markBackupDone();
+      },
     );
+    if (outcome.uiError) {
+      await showCommittedDataRecovery(outcome.uiError);
+    } else {
+      const installationTransfer = backup.transferPurpose === "installation";
+      try {
+        await NRVDialogs.alert(
+          installationTransfer
+            ? encryptionKey && !restored.metadata?.recovery
+              ? appText("backup.installTransferRestoredNoRecovery", "Your NRV information has been restored to this copy. Please check that it is here; the original browser copy remains unchanged. This backup has no recovery code yet; open Settings → Data/Security → Passphrase to Open App and choose Make a New Recovery Code.")
+              : appText("backup.installTransferRestored", "Your NRV information has been restored to this copy. Please check that it is here; the original browser copy remains unchanged.")
+            : encryptionKey && !restored.metadata?.recovery
+              ? appText("backup.restoredNoRecovery", "Backup restored. It has no recovery code yet; open Settings → Data/Security → Passphrase to Open App and choose Make a New Recovery Code.")
+              : appText("backup.restored", "Backup restored successfully."),
+        );
+      } catch (noticeError) {
+        console.error("Backup restore committed but its completion notice failed:", noticeError);
+      }
+    }
     return true;
   };
 
@@ -11437,15 +11651,21 @@ const initializeApp = async () => {
       return false;
     }
 
+    let writeCommitted = false;
     try {
       const backup = JSON.parse(await file.text());
       const restored = await restoreBackupObject(backup);
       if (restored) {
+        writeCommitted = true;
         backupFileInput.value = "";
         backupFileInput.dispatchEvent(new Event("change"));
       }
       return restored;
     } catch (error) {
+      if (writeCommitted) {
+        await showCommittedDataRecovery(error);
+        return true;
+      }
       await reportRestoreError(error);
       return false;
     }
@@ -11609,6 +11829,20 @@ const initializeApp = async () => {
   // device has none), which sends the user through the restore prompts.
   const readRemoteForMerge = async (remote) => {
     const backup = JSON.parse(await dropbox.download(remote.path));
+    if (
+      ["return-visits-backup", "return-visits-encrypted-backup"].includes(
+        backup?.format,
+      ) &&
+      isFutureDataFormatVersion(backup.version)
+    ) {
+      throw new NewerDataVersionError();
+    }
+    if (
+      backup?.format === "return-visits-encrypted-backup" &&
+      isFutureDataFormatVersion(backup.encryption?.version)
+    ) {
+      throw new NewerDataVersionError();
+    }
     if (backup.format === "return-visits-backup") {
       if (!backup.settings || !Array.isArray(backup.contacts)) return null;
       return normalizeRegionData(backup.settings, backup.contacts);
@@ -11653,26 +11887,33 @@ const initializeApp = async () => {
     if (localChanges !== startedAt) {
       throw new Error("Changes were made while syncing; trying again shortly.");
     }
-    await writeStoredValues(database, [
-      ["settings", encryptedSettings],
-      ["contacts", encryptedContacts],
-    ]);
     const uploadNeeded =
       JSON.stringify(merged.contacts) !== JSON.stringify(incoming.contacts) ||
       JSON.stringify(merged.settings) !== JSON.stringify(incoming.settings);
-    settings = merged.settings;
-    contacts = merged.contacts;
-    resetContactSignatures();
-    updateAddressingProfile(settings.addressingCountry);
-    populateMeForm();
-    document.getElementById("setting-state").value = settings.state || "";
-    document.getElementById("setting-default-city").value =
-      settings.defaultCity || "";
-    populateDropdowns();
-    renderContacts();
-    localStorage.setItem(CLOUD_SEEN_KEY, String(remote.modified));
-    if (uploadNeeded) localStorage.setItem(CLOUD_DIRTY_KEY, "1");
-    else localStorage.removeItem(CLOUD_DIRTY_KEY);
+    const outcome = await commitAndRefreshUi(
+      () => writeStoredValues(database, [
+        ["settings", encryptedSettings],
+        ["contacts", encryptedContacts],
+      ]),
+      async () => {
+        settings = merged.settings;
+        contacts = merged.contacts;
+        resetContactSignatures();
+        updateAddressingProfile(settings.addressingCountry);
+        populateMeForm();
+        document.getElementById("setting-state").value = settings.state || "";
+        document.getElementById("setting-default-city").value =
+          settings.defaultCity || "";
+        localStorage.setItem(CLOUD_SEEN_KEY, String(remote.modified));
+        if (uploadNeeded) localStorage.setItem(CLOUD_DIRTY_KEY, "1");
+        else localStorage.removeItem(CLOUD_DIRTY_KEY);
+        populateDropdowns();
+        renderContacts();
+      },
+    );
+    if (outcome.uiError) {
+      await showCommittedDataRecovery(outcome.uiError);
+    }
     return { uploadNeeded };
   };
 
@@ -11803,6 +12044,10 @@ const initializeApp = async () => {
       await refreshCloudUi();
       return true;
     } catch (error) {
+      if (error instanceof NewerDataVersionError) {
+        showStartupRecovery("startup.futureData.dropbox");
+        return false;
+      }
       if (error.code === "cloud-newer") {
         cloudPaused = true;
         refreshSyncIcon();
@@ -11838,10 +12083,12 @@ const initializeApp = async () => {
   };
 
   const restoreFromCloud = async (path, modified) => {
+    let writeCommitted = false;
     try {
       const backup = JSON.parse(await dropbox.download(path));
       setCloudStatus("");
       if (await restoreBackupObject(backup)) {
+        writeCommitted = true;
         localStorage.setItem(CLOUD_SEEN_KEY, String(modified));
         localStorage.removeItem(CLOUD_DIRTY_KEY);
         localStorage.removeItem(CLOUD_RECONNECT_DECISION_KEY);
@@ -11851,7 +12098,11 @@ const initializeApp = async () => {
       }
     } catch (error) {
       setCloudStatus("");
-      await reportRestoreError(error);
+      if (writeCommitted) {
+        await showCommittedDataRecovery(error);
+        return true;
+      }
+      await reportRestoreError(error, "dropbox");
     }
     return false;
   };
@@ -11895,12 +12146,17 @@ const initializeApp = async () => {
         merged = await mergeFromCloud(remote);
       } catch (error) {
         if (error instanceof NewerDataVersionError) {
-          setCloudStatus(
-            appText("dropbox.newerApp", "The Dropbox copy was made by a newer version of the app. Update the app, then try again."),
-          );
+          showStartupRecovery("startup.futureData.dropbox");
           return;
         }
-        throw error;
+        console.error("Unable to merge the Dropbox copy:", error);
+        setCloudStatus(
+          appText(
+            "dropbox.mergeFailed",
+            "NRV couldn’t combine this Dropbox copy with your saved information. Your saved information was not changed. Try checking Dropbox again.",
+          ),
+        );
+        return;
       }
       if (merged) {
         cloudPaused = false;
@@ -12071,6 +12327,10 @@ const initializeApp = async () => {
         setCloudStatus(appText("dropbox.backupSuccess", "Backed up to Dropbox."));
       } catch (error) {
         console.error(error);
+        if (error instanceof NewerDataVersionError) {
+          showStartupRecovery("startup.futureData.dropbox");
+          return;
+        }
         setCloudStatus(
           appText("dropbox.backupFailed", "Could not back up to Dropbox. Check your connection and try again."),
         );
@@ -12225,6 +12485,10 @@ const initializeApp = async () => {
         cloudPaused = false;
       } catch (error) {
         console.error(error);
+        if (error instanceof NewerDataVersionError) {
+          showStartupRecovery("startup.futureData.dropbox");
+          return;
+        }
         setCloudStatus(
           appText("dropbox.checkExistingFailed", "Dropbox is connected, but NRV could not check for existing backups. Automatic sync is paused until you choose Restore from Dropbox or Back Up to Dropbox Now."),
         );
@@ -12439,6 +12703,10 @@ const initializeApp = async () => {
         await NRVDialogs.alert(appText("dropbox.backupSuccess", "Backed up to Dropbox."));
       } catch (error) {
         console.error(error);
+        if (error instanceof NewerDataVersionError) {
+          showStartupRecovery("startup.futureData.dropbox");
+          return;
+        }
         await NRVDialogs.alert(appText("dropbox.backupFailed", "Could not back up to Dropbox. Check your connection and try again."));
       }
       return;

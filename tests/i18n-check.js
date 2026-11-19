@@ -235,7 +235,7 @@ if (storageHandler) {
     return message.startsWith("No se pudo ") && !message.includes(action);
   }), "storage errors translate every known action into Spanish");
   check(i18n.t("contacts.importFailed", { detail: i18n.t("contacts.invalidFile") }) ===
-    "No se pudo importar. El contenido del archivo de contacto no es válido. Tus contactos actuales no se modificaron." &&
+    "NRV no pudo completar la importación. No se modificó tu información guardada. El contenido del archivo de contacto no es válido." &&
     i18n.t("dropbox.latestCopy", { when: "2026-11-05" }) ===
     "Copia más reciente (2026-11-05)" &&
     i18n.t("map.myHome") === "Mi casa",
