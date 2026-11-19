@@ -1221,5 +1221,5 @@
   "map.zoomOut": "Zoom out",
   "map.closePopup": "Close popup",
   "release.current.title": "Help for startup and setup errors",
-  "release.current.change1": "Select an error code to see what it means, how long to wait before retrying, and when to ask for help."
+  "release.current.change1": "Select an error code to see what NRV found and the available next step."
 }

@@ -1221,5 +1221,5 @@
   "map.zoomOut": "Alejar",
   "map.closePopup": "Cerrar ventana emergente",
   "release.current.title": "Ayuda con errores de inicio y configuración",
-  "release.current.change1": "Selecciona un código de error para saber qué significa, cuánto esperar antes de volver a intentarlo y cuándo pedir ayuda."
+  "release.current.change1": "Selecciona un código de error para saber qué encontró NRV y cuál es el siguiente paso disponible."
 }
