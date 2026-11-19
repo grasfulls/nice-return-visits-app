@@ -242,6 +242,7 @@ async function main() {
   const handlerEnd = source.indexOf("  new MutationObserver(updateHeaderTitle)", handlerStart);
   assert(handlerStart >= 0 && handlerEnd > handlerStart);
   let handler;
+  const backupRestoreAction = { hidden: true };
   const button = { disabled: false };
   const status = { textContent: "" };
   let dialogs = 0;
@@ -264,6 +265,7 @@ async function main() {
   const handlerContext = {
     document: { getElementById(id) {
       if (id === "btn-check-updates") return { addEventListener(event, callback) { handler = callback; } };
+      if (id === "btn-open-backup-restore") return backupRestoreAction;
       if (id === "app-no-update-dialog") return { showModal() { dialogs += 1; } };
       throw new Error(`Unexpected element ${id}`);
     } },
@@ -295,19 +297,19 @@ async function main() {
   assert.strictEqual(status.textContent, catalogs.en["update.latest"]);
   deployed = { version: "0.10.0", revision: updatedRevision };
   await check();
-  assert(status.textContent.includes("0.10.0"));
+  assert.strictEqual(status.textContent, catalogs.en["update.notReady"]);
   assert.strictEqual(dialogs, 1);
   assert.strictEqual(reloads, 0);
   deployed = { version: "0.8.9", revision: updatedRevision };
   await check();
-  assert(status.textContent.includes("older"));
+  assert.strictEqual(status.textContent, catalogs.en["update.notReady"]);
   deployed = new Error("invalid metadata");
   await check();
   assert.strictEqual(status.textContent, catalogs.en["update.versionCheckFailed"]);
   assert(!button.disabled);
   deployed = { version: api.APP_VERSION, revision: updatedRevision };
   await check();
-  assert.strictEqual(status.textContent, catalogs.en["update.buildNotReady"]);
+  assert.strictEqual(status.textContent, catalogs.en["update.notReady"]);
   assert.strictEqual(dialogs, 1);
   assert.strictEqual(reloads, 0);
   deployed = { version: api.APP_VERSION, revision: updatedRevision };
@@ -333,24 +335,61 @@ async function main() {
   assert.strictEqual(status.textContent, "unsaved");
   assert.strictEqual(updateCalls, callsBeforeBlock);
   block = "";
+  delete handlerContext.navigator.serviceWorker;
+  await check();
+  assert.strictEqual(status.textContent, catalogs.en["update.unsupported"]);
+  assert.strictEqual(backupRestoreAction.hidden, false);
+  handlerContext.navigator.serviceWorker = { getRegistration: async () => registration };
   handlerContext.navigator.onLine = false;
   await check();
   assert.strictEqual(status.textContent, catalogs.en["update.offline"]);
+  assert.strictEqual(backupRestoreAction.hidden, true);
   handlerContext.navigator.onLine = true;
   updateError = true;
   await check();
   assert.strictEqual(status.textContent, catalogs.en["update.versionCheckFailed"]);
   assert.strictEqual(dialogs, 1);
   assert.strictEqual(reloads, 2);
+
+  const sectionStart = source.indexOf("  const openSettingsSection = async (sectionId) => {");
+  const sectionEnd = source.indexOf('\n  document\n    .getElementById("btn-setup-wizard-next")', sectionStart);
+  assert(sectionStart >= 0 && sectionEnd > sectionStart);
+  let openBackupRestore;
+  let targetSection;
+  let settingsView = "";
+  const backupSectionParent = { matches: (selector) => selector === "details.settings-section" };
+  targetSection = {
+    parentElement: backupSectionParent,
+    open: false,
+    scrollIntoView(options) { this.scrollOptions = options; },
+  };
+  const routeContext = {
+    document: {
+      getElementById(id) {
+        if (id === "btn-open-backup-restore") {
+          return { addEventListener(event, callback) { openBackupRestore = callback; } };
+        }
+        if (id === "settings-view") return { classList: { contains: () => false } };
+        if (id === "backup-section") return targetSection;
+        throw new Error(`Unexpected route element ${id}`);
+      },
+    },
+    goToView(viewId) { settingsView = viewId; },
+  };
+  vm.runInNewContext(source.slice(sectionStart, sectionEnd), routeContext);
+  await openBackupRestore();
+  assert.strictEqual(settingsView, "settings-view");
+  assert.strictEqual(targetSection.open, true);
+  assert.strictEqual(targetSection.scrollOptions.block, "start");
   console.log("PASS  update states, failure handling and unsaved-edit safeguard");
 
   for (const language of ["en", "es"]) {
     i18n._setCurrent(language);
-    for (const key of ["update.currentVersion", "update.versionMismatch", "update.versionNotReady", "update.buildNotReady", "app.versionLinkLabel", "update.done"]) {
-      const text = i18n.t(key, { version: "0.9.0", deployed: "0.8.0", current: "0.9.0" });
+    for (const key of ["update.currentVersion", "update.notReady", "update.versionCheckFailed", "update.unsupported", "update.openBackupRestore", "app.versionLinkLabel", "update.done"]) {
+      const text = i18n.t(key, { version: "0.9.0" });
       assert(!text.includes("{"), `${language} ${key} interpolates`);
-      if (key !== "update.buildNotReady") {
-        assert(text.includes("0.9.0") || text.includes("0.8.0"));
+      if (!catalogs[language][key].includes("{")) {
+        assert.strictEqual(text, catalogs[language][key]);
       }
     }
     const versionLabel = { textContent: "" };
@@ -366,6 +405,24 @@ async function main() {
     assert(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('id="app-current-version"'));
     assert.strictEqual(i18n.t("update.versionCheckFailed"), catalogs[language]["update.versionCheckFailed"]);
   }
+  assert.strictEqual(
+    catalogs.en["update.notReady"],
+    "NRV couldn’t confirm that an update is ready yet. Please try again later.",
+  );
+  assert.strictEqual(
+    catalogs.en["update.unsupported"],
+    "This browser can’t check for NRV updates. Before using NRV in another browser, make a backup of your saved information.",
+  );
+  assert.strictEqual(catalogs.en["update.openBackupRestore"], "Open Backup/Restore");
+  assert.strictEqual(
+    catalogs.es["update.notReady"],
+    "NRV aún no pudo confirmar que haya una actualización lista. Vuelve a intentarlo más tarde.",
+  );
+  assert.strictEqual(
+    catalogs.es["update.unsupported"],
+    "Este navegador no puede buscar actualizaciones de NRV. Antes de usar NRV en otro navegador, haz una copia de seguridad de tu información guardada.",
+  );
+  assert.strictEqual(catalogs.es["update.openBackupRestore"], "Abrir Copia de seguridad/restauración");
   console.log("PASS  version and update text is localized in English and Spanish");
 }
 

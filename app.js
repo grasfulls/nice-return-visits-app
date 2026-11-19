@@ -17,7 +17,7 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
 const APP_VERSION = "0.9.065";
-const APP_BUILD_REVISION = "sha256:8b455465c80bb60344f7846f06e66d3ffa65992e81e27de968dfcc15ff84c56d";
+const APP_BUILD_REVISION = "sha256:b166199ac9105428c6f90806b90d0efc3060ea2a80caeda950e694dd95548b4d";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -8701,6 +8701,10 @@ const initializeApp = async () => {
     .addEventListener("click", async (event) => {
       const button = event.currentTarget;
       const status = appUpdateStatus;
+      const backupRestoreAction = document.getElementById(
+        "btn-open-backup-restore",
+      );
+      backupRestoreAction.hidden = true;
       if (!navigator.onLine) {
         status.textContent = appText("update.offline", "Connect to the internet before checking for app updates.");
         return;
@@ -8712,7 +8716,11 @@ const initializeApp = async () => {
         return;
       }
       if (!("serviceWorker" in navigator)) {
-        status.textContent = appText("update.unsupported", "This browser does not support app updates. Open the website in a supported browser while online.");
+        status.textContent = appText(
+          "update.unsupported",
+          "This browser can’t check for NRV updates. Before using NRV in another browser, make a backup of your saved information.",
+        );
+        backupRestoreAction.hidden = false;
         return;
       }
 
@@ -8731,9 +8739,8 @@ const initializeApp = async () => {
         );
         if (versionComparison < 0) {
           status.textContent = appText(
-            "update.versionMismatch",
-            `The deployed NRV version ${deployedMetadata.version} is older than this version ${APP_VERSION}. Please try again later.`,
-            { deployed: deployedMetadata.version, current: APP_VERSION },
+            "update.notReady",
+            "NRV couldn’t confirm that an update is ready yet. Please try again later.",
           );
           button.disabled = false;
           return;
@@ -8744,11 +8751,8 @@ const initializeApp = async () => {
         if (!incoming && !appUpdateAvailable) {
           if (versionComparison > 0 || !revisionMatches) {
             status.textContent = appText(
-              versionComparison > 0 ? "update.versionNotReady" : "update.buildNotReady",
-              versionComparison > 0
-                ? `NRV ${deployedMetadata.version} is available, but its update is not ready yet. Please try again later.`
-                : "An NRV update is available, but its files are still being prepared. Please try again later.",
-              { version: deployedMetadata.version },
+              "update.notReady",
+              "NRV couldn’t confirm that an update is ready yet. Please try again later.",
             );
             button.disabled = false;
             return;
@@ -8780,8 +8784,8 @@ const initializeApp = async () => {
         }
         if (!updateActivated) {
           status.textContent = appText(
-            "update.buildNotReady",
-            "An NRV update is available, but its files are still being prepared. Please try again later.",
+            "update.notReady",
+            "NRV couldn’t confirm that an update is ready yet. Please try again later.",
           );
           button.disabled = false;
           return;
@@ -8803,7 +8807,7 @@ const initializeApp = async () => {
       } catch (error) {
         console.error("Unable to check for app updates:", error);
         status.textContent =
-          appText("update.versionCheckFailed", "Could not verify the deployed NRV version or check for updates. Check your connection and try again.");
+          appText("update.versionCheckFailed", "NRV couldn’t complete the update check. Please try again.");
         button.disabled = false;
       }
     });
@@ -13069,6 +13073,9 @@ const initializeInstallSetup = async () => {
     section.open = true;
     section.scrollIntoView({ block: "start" });
   };
+  document
+    .getElementById("btn-open-backup-restore")
+    .addEventListener("click", () => openSettingsSection("backup-section"));
   document
     .getElementById("btn-setup-wizard-next")
     .addEventListener("click", continueWizard);
