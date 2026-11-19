@@ -94,10 +94,10 @@ async function main() {
     assert(early.code().endsWith("NRV-S01"));
     assert.strictEqual(early.element("startup-recovery-title").textContent,
       catalogs[language]["startup.earlyFailureTitle"]);
-    assert(early.element("startup-recovery-message").textContent.includes(
-      catalogs[language]["startup.earlyFailureSafety"]));
-    assert(early.element("startup-recovery-message").textContent.includes(
-      catalogs[language]["startup.earlyFailureAction"]));
+    assert.strictEqual(
+      early.element("startup-recovery-message").textContent,
+      catalogs[language]["startup.verify.NRV-S01"],
+    );
     early.fallback.operational(early.element("app-container"));
     assert.strictEqual(early.element("startup-recovery-screen").hidden, false);
     assert.throws(() => early.fallback.beginData(), /blocked/);
@@ -112,10 +112,10 @@ async function main() {
     assert(late.code().endsWith("NRV-S02"));
     assert.strictEqual(late.element("startup-recovery-title").textContent,
       catalogs[language]["startup.lateFailureTitle"]);
-    assert.strictEqual(late.element("startup-recovery-message").textContent,
-      catalogs[language]["startup.lateFailureAction"]);
-    assert(!late.element("startup-recovery-message").textContent.includes(
-      catalogs[language]["startup.earlyFailureSafety"]));
+    assert.strictEqual(
+      late.element("startup-recovery-message").textContent,
+      catalogs[language]["startup.verify.NRV-S02"],
+    );
     assert.strictEqual(late.fallback.operational(late.element("app-container")), false);
     assert.strictEqual(late.element("startup-recovery-screen").hidden, false);
   }

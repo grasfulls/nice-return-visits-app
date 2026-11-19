@@ -155,6 +155,7 @@ const runBuildGate = async ({
   workerSourceRevision = revision,
   metadataRevision = revision,
   workerRevision = revision,
+  failUpdateOnCall = 0,
   reloadTarget = null,
   url = "https://example.test/app/",
   language = "en",
@@ -171,6 +172,8 @@ const runBuildGate = async ({
   const appendedScripts = [];
   const replacedUrls = [];
   let reloads = 0;
+  let updateCalls = 0;
+  let metadataFetches = 0;
   let languagePreferenceWrites = 0;
   const sessionValues = new Map(
     reloadTarget ? [["nrv-startup-reload-target", reloadTarget]] : [],
@@ -202,7 +205,10 @@ const runBuildGate = async ({
   };
   const registration = {
     active: activeWorker,
-    async update() {},
+    async update() {
+      updateCalls += 1;
+      if (updateCalls === failUpdateOnCall) throw new Error("update rejected");
+    },
   };
   const serviceWorker = {
     controller: activeWorker,
@@ -265,6 +271,7 @@ const runBuildGate = async ({
     console: { error() {} },
     fetch: async (input) => {
       const requestUrl = new URL(input);
+      if (requestUrl.pathname.endsWith("/version.json")) metadataFetches += 1;
       const body = requestUrl.pathname.endsWith("/version.json")
         ? metadata
         : requestUrl.pathname.endsWith("/app.js")
@@ -285,6 +292,8 @@ const runBuildGate = async ({
     elements,
     window,
     sessionValues,
+    get updateCalls() { return updateCalls; },
+    get metadataFetches() { return metadataFetches; },
     get reloads() { return reloads; },
     get languagePreferenceWrites() { return languagePreferenceWrites; },
   };
@@ -463,9 +472,25 @@ async function main() {
   assert.strictEqual(consistent.replacedUrls.length, 0);
   assert.strictEqual(consistent.languagePreferenceWrites, 1);
   consistent.window.NRVBuildGate.showFutureSchema();
+  const updatesBeforeFutureRetry = consistent.updateCalls;
+  const metadataBeforeFutureRetry = consistent.metadataFetches;
   await consistent.elements.get("startup-recovery-retry").handler();
   assert.strictEqual(consistent.reloads, 1);
+  assert.strictEqual(consistent.updateCalls, updatesBeforeFutureRetry + 1,
+    "future-format Check for Updates performs an update check before reloading");
+  assert(consistent.metadataFetches > metadataBeforeFutureRetry,
+    "future-format Check for Updates checks release metadata before reloading");
   assert.strictEqual(consistent.appendedScripts.length, 3, "retry reloads instead of executing app.js twice");
+  const failedFutureRetry = await runBuildGate({ failUpdateOnCall: 2 });
+  failedFutureRetry.window.NRVBuildGate.showFutureSchema();
+  await failedFutureRetry.elements.get("startup-recovery-retry").handler();
+  assert.strictEqual(failedFutureRetry.reloads, 0,
+    "a failed future-format update check keeps the safe recovery screen in place");
+  assert.strictEqual(
+    failedFutureRetry.elements.get("startup-recovery-code").textContent,
+    "Error code: NRV-V03",
+  );
+  assert.strictEqual(failedFutureRetry.elements.get("startup-recovery-retry").disabled, false);
   console.log("PASS app executes only after page, app, service worker, metadata, and active worker revisions agree");
 
   const mixed = await runBuildGate({

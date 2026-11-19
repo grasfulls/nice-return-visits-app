@@ -299,6 +299,11 @@ const runGate = async (options = {}) => {
     events,
     fetchCount,
     sessionValues,
+    window,
+    resolveWorkerMismatch() {
+      options.activeRevision = pageRevision;
+      options.controllerRevision = pageRevision;
+    },
     duration: Date.now() - startedAt,
     languagePreferenceWrites: options.languagePreferenceWrites || 0,
     code: codeText.split(": ").at(-1),
@@ -419,6 +424,26 @@ async function main() {
   });
   assert.strictEqual(reloadLoop.events.filter((event) => event === "reload").length, 0);
   assert.strictEqual(reloadLoop.code, "NRV-V12");
+  const updatesBeforeFailedRetry = reloadLoop.events.filter((event) => event === "update").length;
+  await reloadLoop.elements.get("startup-recovery-retry").handler();
+  assert.strictEqual(reloadLoop.events.filter((event) => event === "update").length,
+    updatesBeforeFailedRetry + 1, "V12 retry directly checks for updates");
+  assert.strictEqual(reloadLoop.code, "NRV-V12",
+    "an unresolved V12 mismatch remains blocked with its diagnostic code");
+
+  const recoveredV12 = await runGate({
+    activeRevision: otherRevision,
+    controllerRevision: otherRevision,
+    sessionValues: [["nrv-startup-reload-target", otherRevision]],
+  });
+  assert.strictEqual(recoveredV12.code, "NRV-V12");
+  const updatesBeforeRecovery = recoveredV12.events.filter((event) => event === "update").length;
+  recoveredV12.resolveWorkerMismatch();
+  await recoveredV12.elements.get("startup-recovery-retry").handler();
+  assert.strictEqual(recoveredV12.events.filter((event) => event === "update").length,
+    updatesBeforeRecovery + 1, "V12 recovery action checks for updates before re-verifying");
+  assert.strictEqual(recoveredV12.appendedScripts.length, 3,
+    "resolved V12 proceeds through normal verification and app startup");
   console.log("PASS updated worker causes one controlled reload and the marker prevents loops");
 
   await expectFailure("NRV-V02", {

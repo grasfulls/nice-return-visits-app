@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title data-i18n="page.welcome">NRV-Welcome</title>
-    <meta name="nrv-build-revision" content="sha256:604ad460f342befb7bd38ddf4b74e89e4d5310e80b26936af05d0bf13a2ab0d6" />
+    <meta name="nrv-build-revision" content="sha256:332f8eb1af7a699fc847e522ae770dc00f48ad1922ff64ee845aba2e4e7f047c" />
     <meta name="theme-color" content="#004080" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NRV" />
@@ -260,13 +260,11 @@
       </div>
     </section>
     <dialog id="nrv-error-help" aria-labelledby="nrv-error-help-title"
-      aria-describedby="nrv-error-help-meaning">
+      aria-describedby="nrv-error-help-code">
       <h2 id="nrv-error-help-title"></h2>
-      <p id="nrv-error-help-meaning"></p>
-      <p id="nrv-error-help-action"></p>
-      <p id="nrv-error-help-safety"></p>
-      <p id="nrv-error-help-support"></p>
-      <form method="dialog"><button id="nrv-error-help-close" autofocus>OK</button></form>
+      <p id="nrv-error-help-code"></p>
+      <button type="button" id="nrv-error-help-action-button" hidden></button>
+      <form method="dialog"><button id="nrv-error-help-close" autofocus>Close</button></form>
     </dialog>
     <script>
       window.NRVStartupFallback = (function () {
@@ -303,11 +301,12 @@
             ? (es ? "NRV no pudo terminar de iniciarse." : "NRV could not finish starting.")
             : (es ? "NRV no pudo iniciarse." : "NRV could not start.");
           message.textContent = dataStarted
-            ? (es ? "Anota el código de error y solicita ayuda con NRV."
-              : "Write down the error code and ask for NRV help.")
+            ? (es
+              ? "NRV comenzó a abrir tu información guardada, pero no pudo terminar de iniciarse."
+              : "NRV began opening your saved information but couldn’t finish starting.")
             : (es
-              ? "No se ha abierto ni modificado tu información guardada. Elige Intentar de nuevo para reiniciar NRV. Si vuelve a aparecer esta pantalla, anota el código de error y solicita ayuda con NRV."
-              : "Your saved information has not been opened or changed. Choose Try Again to restart NRV. If this screen returns, write down the error code and ask for NRV help.");
+              ? "NRV no pudo iniciarse. Se detuvo antes de abrir tu información guardada."
+              : "NRV couldn’t start. It stopped before opening your saved information.");
           code.textContent = (es ? "Código de error: " : "Error code: ") +
             (dataStarted ? "NRV-S02" : "NRV-S01");
           code.hidden = false;
@@ -400,31 +399,33 @@
       (function () {
         // Keep recovery help independent of files that may have failed to load.
         var meanings = {
-          "NRV-V01": ["This browser cannot run the required app safety check.", "Este navegador no puede realizar la comprobación de seguridad requerida."],
-          "NRV-V02": ["The browser could not register NRV's update service.", "El navegador no pudo registrar el servicio de actualización de NRV."],
-          "NRV-V03": ["NRV's update service could not check for an update.", "El servicio de actualización de NRV no pudo buscar una actualización."],
-          "NRV-V04": ["NRV's update service did not become active in time. Startup allows up to 60 seconds for this step.", "El servicio de actualización de NRV no se activó a tiempo. El inicio permite hasta 60 segundos para este paso."],
-          "NRV-V05": ["The update service is active, but is not yet connected to this app page.", "El servicio de actualización está activo, pero aún no está conectado a esta página de la aplicación."],
-          "NRV-V06": ["The update service did not answer NRV's safety check in time.", "El servicio de actualización no respondió a tiempo a la comprobación de seguridad de NRV."],
-          "NRV-V07": ["The update service returned an incomplete or invalid safety-check response.", "El servicio de actualización devolvió una respuesta incompleta o no válida a la comprobación de seguridad."],
-          "NRV-V08": ["A file needed to verify the app could not be retrieved.", "No se pudo obtener un archivo necesario para verificar la aplicación."],
-          "NRV-V09": ["The app's verification information was missing or invalid.", "Faltaba la información de verificación de la aplicación o no era válida."],
-          "NRV-V10": ["This page does not match the app's published verification information.", "Esta página no coincide con la información de verificación publicada de la aplicación."],
-          "NRV-V11": ["Some app files do not match the expected release.", "Algunos archivos de la aplicación no coinciden con la versión esperada."],
-          "NRV-V12": ["The active update service does not match the app release being verified.", "El servicio de actualización activo no coincide con la versión de la aplicación que se verifica."],
-          "NRV-V13": ["The update service connected to this page does not match the app release being verified.", "El servicio de actualización conectado a esta página no coincide con la versión de la aplicación que se verifica."],
-          "NRV-V14": ["The app version does not match its published verification information.", "La versión de la aplicación no coincide con su información de verificación publicada."],
-          "NRV-V15": ["An unexpected problem interrupted the app safety check.", "Un problema inesperado interrumpió la comprobación de seguridad de la aplicación."],
-          "NRV-V16": ["Registering the update service took too long.", "El registro del servicio de actualización tardó demasiado."],
-          "NRV-V17": ["Checking for an update took too long.", "La búsqueda de una actualización tardó demasiado."],
-          "NRV-V18": ["NRV could not send a safety-check message to its update service.", "NRV no pudo enviar un mensaje de comprobación de seguridad a su servicio de actualización."],
-          "NRV-V19": ["A response needed for the safety check could not be read.", "No se pudo leer una respuesta necesaria para la comprobación de seguridad."],
-          "NRV-V20": ["Retrieving a file needed for the safety check took too long.", "La obtención de un archivo necesario para la comprobación de seguridad tardó demasiado."],
-          "NRV-S01": ["NRV failed before it began opening your saved information. A required file or startup step may have failed.", "NRV falló antes de empezar a abrir tu información guardada. Puede haber fallado un archivo necesario o un paso del inicio."],
-          "NRV-S02": ["NRV began opening your information but did not finish starting. This code alone cannot confirm whether information changed.", "NRV empezó a abrir tu información, pero no terminó de iniciarse. Este código por sí solo no permite confirmar si la información cambió."],
-          "NRV-A01": ["NRV could not advance to the next setup step. This failed step did not save your setup progress.", "NRV no pudo avanzar al siguiente paso de configuración. Este paso fallido no guardó tu progreso de configuración."]
+          "NRV-V01": ["This installed copy can’t run the check it needs, so NRV can’t safely continue here.", "Esta copia instalada no puede realizar la comprobación que necesita, así que NRV no puede continuar de forma segura aquí."],
+          "NRV-V02": ["NRV couldn’t set up its update check, so it can’t confirm this copy is ready.", "NRV no pudo preparar su comprobación de actualizaciones, así que no puede confirmar que esta copia esté lista."],
+          "NRV-V03": ["NRV couldn’t complete its update check, so it can’t confirm this copy is ready.", "NRV no pudo completar su comprobación de actualizaciones, así que no puede confirmar que esta copia esté lista."],
+          "NRV-V04": ["NRV’s update check didn’t become ready in time, so NRV can’t confirm this copy is ready.", "La comprobación de actualizaciones de NRV no estuvo lista a tiempo, así que NRV no puede confirmar que esta copia esté lista."],
+          "NRV-V05": ["NRV couldn’t connect its check to this copy, so it can’t confirm this copy is ready.", "NRV no pudo conectar su comprobación con esta copia, así que no puede confirmar que esté lista."],
+          "NRV-V06": ["NRV didn’t receive an answer to its app check, so it can’t confirm this copy is ready.", "NRV no recibió una respuesta a la comprobación de la aplicación, así que no puede confirmar que esta copia esté lista."],
+          "NRV-V07": ["NRV received an incomplete answer to its app check, so it can’t confirm this copy is ready.", "NRV recibió una respuesta incompleta a la comprobación de la aplicación, así que no puede confirmar que esta copia esté lista."],
+          "NRV-V08": ["NRV couldn’t get a file it needs to check this copy, so it can’t safely continue.", "NRV no pudo obtener un archivo que necesita para comprobar esta copia, así que no puede continuar de forma segura."],
+          "NRV-V09": ["NRV couldn’t read the information it needs to check this copy, so it can’t safely continue.", "NRV no pudo leer la información que necesita para comprobar esta copia, así que no puede continuar de forma segura."],
+          "NRV-V10": ["This NRV page doesn’t match the release information NRV checked, so it can’t safely continue.", "Esta página de NRV no coincide con la información de la versión que NRV comprobó, así que no puede continuar de forma segura."],
+          "NRV-V11": ["Parts of NRV do not match the same release, so NRV can’t safely open your saved information.", "Partes de NRV no corresponden a la misma versión, así que NRV no puede abrir tu información guardada de forma segura."],
+          "NRV-V12": ["Parts of NRV do not match the same release, so NRV needs to check for an update before opening your saved information.", "Partes de NRV no corresponden a la misma versión, así que NRV debe buscar una actualización antes de abrir tu información guardada."],
+          "NRV-V13": ["Parts of NRV do not match the same release, so NRV can’t safely continue.", "Partes de NRV no corresponden a la misma versión, así que NRV no puede continuar de forma segura."],
+          "NRV-V14": ["NRV’s version doesn’t match the version information it checked, so it can’t confirm this copy is ready.", "La versión de NRV no coincide con la información de versión que comprobó, así que no puede confirmar que esta copia esté lista."],
+          "NRV-V15": ["NRV couldn’t finish checking this copy, so it can’t safely continue.", "NRV no pudo terminar de comprobar esta copia, así que no puede continuar de forma segura."],
+          "NRV-V16": ["NRV couldn’t set up its update check in time, so it can’t finish checking this copy.", "NRV no pudo preparar su comprobación de actualizaciones a tiempo, así que no puede terminar de comprobar esta copia."],
+          "NRV-V17": ["NRV’s update check took too long, so it can’t confirm this copy is ready.", "La comprobación de actualizaciones de NRV tardó demasiado, así que no puede confirmar que esta copia esté lista."],
+          "NRV-V18": ["NRV couldn’t send its app check, so it can’t confirm this copy is ready.", "NRV no pudo enviar la comprobación de la aplicación, así que no puede confirmar que esta copia esté lista."],
+          "NRV-V19": ["NRV couldn’t read an answer it needed for its app check, so it can’t confirm this copy is ready.", "NRV no pudo leer una respuesta necesaria para comprobar la aplicación, así que no puede confirmar que esta copia esté lista."],
+          "NRV-V20": ["NRV couldn’t get a file it needs before its app check timed out, so it can’t safely continue.", "NRV no pudo obtener un archivo que necesita antes de que terminara el tiempo de la comprobación, así que no puede continuar de forma segura."],
+          "NRV-S01": ["NRV couldn’t start. It stopped before opening your saved information.", "NRV no pudo iniciarse. Se detuvo antes de abrir tu información guardada."],
+          "NRV-S02": ["NRV began opening your saved information but couldn’t finish starting.", "NRV comenzó a abrir tu información guardada, pero no pudo terminar de iniciarse."],
+          "NRV-A01": ["NRV couldn’t continue setup to the next step. This attempt didn’t save your setup progress.", "NRV no pudo continuar con la configuración al siguiente paso. Este intento no guardó el progreso de configuración."]
         };
+        window.NRVStartupMessages = meanings;
         var dialog = document.getElementById("nrv-error-help");
+        var actionButton = document.getElementById("nrv-error-help-action-button");
         var previousFocus;
         function showHelp(event) {
           var button = event.target;
@@ -436,45 +437,32 @@
           var language = window.location.search.match(/(?:\?|&)lang=(en|es)(?:&|$)/);
           var es = language ? language[1] === "es" : document.documentElement.lang === "es";
           if (!language && !es && window.NRVStartupFallback) es = window.NRVStartupFallback.isSpanish();
-          var wait = /NRV-V(?:04|05|12|13)/.test(code) ? 60 : 10;
-          var action;
-          if (code === "NRV-V01") {
-            action = es
-              ? "Abre NRV en una pestaña normal de Safari en iPhone/iPad o de Chrome o Edge en otros dispositivos. Otra copia puede guardar información por separado: no borres la copia original."
-              : "Open NRV in a normal Safari tab on iPhone/iPad, or Chrome or Edge on other devices. Another copy may store information separately: do not erase the original copy.";
-          } else if (code === "NRV-A01") {
-            action = es
-              ? "Cierra y vuelve a abrir NRV; después, intenta continuar la configuración. No es necesario esperar un tiempo determinado."
-              : "Close and reopen NRV, then try continuing setup. No particular wait is required.";
-          } else {
-            action = es
-              ? "Comprueba tu conexión a internet. Espera al menos " + wait + " segundos y elige " +
-                (/NRV-S/.test(code) ? "Intentar de nuevo" : "Buscar actualizaciones") +
-                ". Es un intervalo recomendado, no una garantía de recuperación. Si falla otra vez, cierra y vuelve a abrir NRV."
-              : "Check your internet connection. Wait at least " + wait + " seconds, then choose " +
-                (/NRV-S/.test(code) ? "Try Again" : "Check for Updates") +
-                ". This is a suggested retry interval, not a guarantee of recovery. If it fails again, close and reopen NRV.";
-          }
-          document.getElementById("nrv-error-help-title").textContent =
-            (es ? "Ayuda para " : "Help for ") + code;
-          document.getElementById("nrv-error-help-meaning").textContent = meanings[code][es ? 1 : 0];
-          document.getElementById("nrv-error-help-action").textContent = action;
-          document.getElementById("nrv-error-help-safety").textContent =
-            (/NRV-V/.test(code) || code === "NRV-S01"
-              ? (es ? "Esta comprobación no ha abierto ni modificado tu información guardada. " : "This check has not opened or changed your saved information. ")
-              : "") +
-            (es
-              ? "No borres los datos del navegador ni desinstales NRV para resolver este problema sin antes tener una copia de seguridad verificada."
-              : "Do not clear browser data or uninstall NRV to fix this without first having a verified backup.");
-          document.getElementById("nrv-error-help-support").textContent = es
-            ? "Si el problema continúa, solicita ayuda con NRV. Incluye este código, tu dispositivo, navegador y versión de NRV si la conoces. No envíes contactos, contraseñas ni archivos de copia de seguridad."
-            : "If the problem continues, ask for NRV help. Include this code, your device, browser and NRV version if known. Do not send contacts, passwords or backup files.";
+          document.getElementById("nrv-error-help-title").textContent = meanings[code][es ? 1 : 0];
+          document.getElementById("nrv-error-help-code").textContent =
+            (es ? "Código de error: " : "Error code: ") + code;
+          actionButton.hidden = code === "NRV-V01";
+          actionButton.textContent = /NRV-S|NRV-A01/.test(code)
+            ? (es ? "Intentar de nuevo" : "Try Again")
+            : (es ? "Buscar actualizaciones" : "Check for Updates");
+          actionButton.dataset.code = code;
           document.getElementById("nrv-error-help-close").textContent = es ? "Cerrar" : "Close";
           dialog.lang = es ? "es" : "en";
           previousFocus = button;
           if (!dialog.open) dialog.showModal();
         }
         document.addEventListener("click", showHelp);
+        actionButton.addEventListener("click", function () {
+          var code = actionButton.dataset.code;
+          var target = code === "NRV-A01"
+            ? document.getElementById("btn-setup-wizard-next")
+            : document.getElementById("startup-recovery-retry");
+          if (!target || target.hidden || target.disabled) {
+            console.error("The requested NRV recovery action is unavailable:", code);
+            return;
+          }
+          dialog.close();
+          target.click();
+        });
         dialog.addEventListener("keydown", function (event) {
           if (event.key === "Escape") {
             event.preventDefault();
@@ -1565,7 +1553,7 @@
             />
           </div>
           <p id="setup-wizard-continue-error" role="alert" aria-live="assertive" tabindex="-1" hidden>
-            <span data-i18n="setup.continueFailure">NRV couldn’t continue setup. Your saved information has not been changed. Close and reopen NRV. If the problem continues, write down the error code and ask for NRV help.</span>
+            <span data-i18n="setup.continueFailure">NRV couldn’t continue setup to the next step. This attempt didn’t save your setup progress.</span>
             <br />
             <button type="button" id="setup-error-code" class="nrv-error-code"
               aria-haspopup="dialog" aria-controls="nrv-error-help"
@@ -2310,21 +2298,21 @@
           safeContinuationAllowed = false;
           if (window.NRVStartupFallback?.hasFailed()) return;
           const requestedLanguage = new URLSearchParams(window.location.search).get("lang");
-          const spanishFallback = window.nrvI18nError &&
-            (requestedLanguage === "es" || document.documentElement.lang === "es");
+          const fallbackSpanish = requestedLanguage
+            ? requestedLanguage === "es"
+            : document.documentElement.lang === "es" ||
+              (typeof window.NRVStartupFallback?.isSpanish === "function" &&
+                window.NRVStartupFallback.isSpanish());
+          const fallbackMeaning = window.NRVStartupMessages?.[error.code];
           title.textContent = translate(
             "startup.safeTitle",
             "NRV is keeping your information safe",
           );
-          message.textContent = error.code === verificationCodes.unexpectedVerificationFailure &&
-            window.nrvI18nError
-            ? spanishFallback
-              ? "NRV tuvo un problema al comprobar esta aplicación. Elige Buscar actualizaciones para intentarlo otra vez. Si el problema continúa, anota el código de error y solicita ayuda con NRV. No se ha abierto ni modificado tu información guardada."
-              : "NRV encountered a problem while checking this app. Choose Check for Updates to retry. If the problem continues, write down the error code and ask for NRV help. Your saved information has not been opened or changed."
-            : translate(
-              `startup.verify.${error.code}`,
-              "NRV could not verify this app. Your saved information has not been changed. Choose Check for Updates to try again.",
-            );
+          message.textContent = translate(
+            `startup.verify.${error.code}`,
+            fallbackMeaning?.[fallbackSpanish ? 1 : 0] ||
+              "NRV couldn’t finish checking this copy, so it can’t safely continue.",
+          );
           diagnosticCode.textContent =
             `${translate("startup.errorCode", "Error code")}: ${error.code}`;
           diagnosticCode.hidden = false;
@@ -2962,11 +2950,49 @@
             launching = false;
           }
         };
+        const checkForUpdatesBeforeReload = async () => {
+          if (checking) return;
+          checking = true;
+          retryButton.disabled = true;
+          updateState.error = null;
+          updateState.registration = null;
+          try {
+            if (navigator.onLine === false) {
+              fail(verificationCodes.updateFailed, "The browser is offline.");
+            }
+            const metadataPromise = readMetadata({ online: true });
+            const updatePromise = "serviceWorker" in navigator
+              ? updateRegistration()
+              : Promise.resolve();
+            const [metadataResult] = await Promise.all([
+              metadataPromise,
+              updatePromise,
+            ]);
+            if (updateState.error) throw updateState.error;
+            if (metadataResult.unavailable) {
+              throw metadataResult.error ||
+                new VerificationFailure(verificationCodes.updateFailed);
+            }
+            window.location.reload();
+          } catch (error) {
+            console.error("Unable to check for updates before reopening newer saved information:", error);
+            showFailure(
+              error instanceof VerificationFailure
+                ? error
+                : new VerificationFailure(
+                  verificationCodes.unexpectedVerificationFailure,
+                  error.message || error,
+                ),
+            );
+          } finally {
+            checking = false;
+            retryButton.disabled = false;
+          }
+        };
         const start = async () => {
           if (checking) return;
           if (appLoaded) {
-            window.location.reload();
-            return;
+            return checkForUpdatesBeforeReload();
           }
           checking = true;
           safeContinuationAllowed = false;
@@ -3139,7 +3165,7 @@
             );
             message.textContent = translate(
               "startup.futureData",
-              "This saved information needs a newer compatible NRV version. No information was changed. Connect to the internet and choose Check for Updates.",
+              "This saved information is in a format this version of NRV can’t safely handle. NRV stopped before changing it.",
             );
             diagnosticCode.hidden = true;
             continueButton.hidden = true;

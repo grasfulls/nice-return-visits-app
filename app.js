@@ -17,7 +17,7 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
 const APP_VERSION = "0.9.065";
-const APP_BUILD_REVISION = "sha256:604ad460f342befb7bd38ddf4b74e89e4d5310e80b26936af05d0bf13a2ab0d6";
+const APP_BUILD_REVISION = "sha256:332f8eb1af7a699fc847e522ae770dc00f48ad1922ff64ee845aba2e4e7f047c";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -2756,7 +2756,7 @@ const showStartupRecovery = () => {
   );
   document.getElementById("startup-recovery-message").textContent = appText(
     "startup.futureData",
-    "This saved information needs a newer compatible NRV version. No information was changed. Connect to the internet and try again.",
+    "This saved information is in a format this version of NRV can’t safely handle. NRV stopped before changing it.",
   );
   document.getElementById("startup-recovery-retry").hidden = false;
   screen.hidden = false;
