@@ -140,7 +140,13 @@ async function main() {
   assert(dismissCode.includes('localStorage.setItem(LAUNCH_MODE_KEY, "browser")'));
   assert(!dismissCode.includes("deleteDatabase"));
   assert(!dismissCode.includes("eraseAllData"));
-  assert(transferCode.includes("Your browser information has not changed"));
+  assert(transferCode.includes("runExportWithRetry("));
+  assert(transferCode.includes("install.preserve.backupFailed"));
+  assert(transferCode.includes(
+    "NRV couldn’t create your backup. Your saved information was not changed.",
+  ));
+  assert(!transferCode.includes("Your browser information has not changed"));
+  assert(!transferCode.includes("install without copying"));
 
   const english = JSON.parse(fs.readFileSync(path.join(root, "locales", "en.json"), "utf8"));
   const spanish = JSON.parse(fs.readFileSync(path.join(root, "locales", "es.json"), "utf8"));

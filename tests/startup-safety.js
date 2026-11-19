@@ -500,16 +500,23 @@ async function main() {
   assert(app.includes('document.getElementById("change-passphrase-form")'));
   console.log("PASS first-time passphrase creation is no longer a startup fallback");
 
-  const continueStart = app.indexOf("const continueWizard = () => {");
+  const continueStart = app.indexOf("const saveWizardProgress = () => {");
   const continueEnd = app.indexOf("\n  const openSettingsSection", continueStart);
   assert(continueStart >= 0 && continueEnd > continueStart);
   const continueSource = app.slice(continueStart, continueEnd);
   const runContinueWizard = ({ failToAdvance = false } = {}) => {
     const writes = [];
     let focused = false;
+    let retryHandler;
     const errorMessage = {
       hidden: true,
       focus() { focused = true; },
+    };
+    const errorText = { textContent: "" };
+    const errorCode = { hidden: false };
+    const retryButton = {
+      hidden: true,
+      addEventListener(_event, callback) { retryHandler = callback; },
     };
     const stepTwo = { hidden: true };
     const context = {
@@ -517,7 +524,13 @@ async function main() {
       wizardStepKey: "setup-wizard-step",
       document: {
         getElementById(id) {
-          return id === "setup-wizard-continue-error" ? errorMessage : stepTwo;
+          return ({
+            "setup-wizard-continue-error": errorMessage,
+            "setup-wizard-continue-error-text": errorText,
+            "setup-error-code": errorCode,
+            "btn-retry-setup-progress": retryButton,
+            "setup-wizard-step-2": stepTwo,
+          })[id];
         },
       },
       localStorage: {
@@ -534,7 +547,16 @@ async function main() {
       context,
     );
     context.runContinueWizard();
-    return { writes, errorMessage, stepTwo, get focused() { return focused; } };
+    return {
+      writes,
+      errorMessage,
+      errorText,
+      errorCode,
+      retryButton,
+      stepTwo,
+      get focused() { return focused; },
+      retryHandler,
+    };
   };
   const continued = runContinueWizard();
   assert.strictEqual(continued.stepTwo.hidden, false);

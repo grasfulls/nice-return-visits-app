@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title data-i18n="page.welcome">NRV-Welcome</title>
-    <meta name="nrv-build-revision" content="sha256:b166199ac9105428c6f90806b90d0efc3060ea2a80caeda950e694dd95548b4d" />
+    <meta name="nrv-build-revision" content="sha256:3b403cbde26281601182b4733a7f33d951650ce8cbd64f25f552cd6a12208c70" />
     <meta name="theme-color" content="#004080" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NRV" />
@@ -1555,13 +1555,6 @@
               hidden
             />
           </div>
-          <p id="setup-wizard-continue-error" role="alert" aria-live="assertive" tabindex="-1" hidden>
-            <span data-i18n="setup.continueFailure">NRV couldn’t continue setup to the next step. This attempt didn’t save your setup progress.</span>
-            <br />
-            <button type="button" id="setup-error-code" class="nrv-error-code"
-              aria-haspopup="dialog" aria-controls="nrv-error-help"
-              data-i18n="setup.continueFailureCode">Error code: NRV-A01</button>
-          </p>
         </section>
         <section
           id="setup-wizard-step-2"
@@ -1597,6 +1590,16 @@
             </button>
           </div>
         </section>
+        <p id="setup-wizard-continue-error" role="alert" aria-live="assertive" tabindex="-1" hidden>
+          <span id="setup-wizard-continue-error-text" data-i18n="setup.continueFailure">NRV couldn’t continue setup to the next step. This attempt didn’t save your setup progress.</span>
+          <br />
+          <button type="button" id="setup-error-code" class="nrv-error-code"
+            aria-haspopup="dialog" aria-controls="nrv-error-help"
+            data-i18n="setup.continueFailureCode">Error code: NRV-A01</button>
+          <button type="button" id="btn-retry-setup-progress" hidden data-i18n="common.tryAgain">
+            Try Again
+          </button>
+        </p>
         <div hidden aria-hidden="true">
           <button type="button" id="btn-setup-wizard-skip-icon"></button>
           <select id="setup-device-type">

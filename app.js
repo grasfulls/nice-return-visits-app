@@ -17,7 +17,7 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
 const APP_VERSION = "0.9.065";
-const APP_BUILD_REVISION = "sha256:b166199ac9105428c6f90806b90d0efc3060ea2a80caeda950e694dd95548b4d";
+const APP_BUILD_REVISION = "sha256:3b403cbde26281601182b4733a7f33d951650ce8cbd64f25f552cd6a12208c70";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -3296,6 +3296,64 @@ const showStorageError = async (action, error) => {
   );
 };
 
+const askToRetry = (message) =>
+  NRVDialogs.confirm(message, {
+    acceptLabel: appText("common.tryAgain", "Try Again"),
+    cancelLabel: appText("common.close", "Close"),
+  });
+
+const markInstalledSetupCompleteWithRetry = async () => {
+  while (!markInstalledSetupComplete()) {
+    if (!(await askToRetry(appText(
+      "setup.saveDeviceProgressFailed",
+      "NRV couldn’t save this setup step. Your saved information was not changed.",
+    )))) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const runExportWithRetry = async (
+  action,
+  failureMessageKey,
+  failureMessage,
+  exportOperation,
+) => {
+  while (true) {
+    try {
+      await exportOperation();
+      return true;
+    } catch (error) {
+      console.error(`Unable to ${action}:`, error);
+      if (!(await askToRetry(appText(failureMessageKey, failureMessage)))) {
+        return false;
+      }
+    }
+  }
+};
+
+const runPrintWithRetry = async (printContainer, printOperation) => {
+  while (true) {
+    printContainer.hidden = false;
+    printContainer.setAttribute("aria-hidden", "false");
+    try {
+      printOperation();
+      return;
+    } catch (error) {
+      printContainer.hidden = true;
+      printContainer.setAttribute("aria-hidden", "true");
+      console.error("Unable to open the print dialog:", error);
+      if (!(await askToRetry(appText(
+        "print.openFailed",
+        "NRV couldn’t open the print window. Try again.",
+      )))) {
+        return;
+      }
+    }
+  }
+};
+
 const LAST_BACKUP_KEY = "return_visits_last_backup_at";
 const LAST_BACKUP_PROMPT_KEY = "return_visits_last_backup_prompt";
 const markBackupDone = () => {
@@ -5560,6 +5618,9 @@ const initializeApp = async () => {
     .getElementById("change-passphrase-form")
     .addEventListener("submit", async (event) => {
       event.preventDefault();
+      const changePassphraseForm = document.getElementById(
+        "change-passphrase-form",
+      );
       const currentPassphrase = document.getElementById(
         "current-passphrase",
       );
@@ -5572,6 +5633,8 @@ const initializeApp = async () => {
       const appContainer = document.getElementById("app-container");
       const wasProtected = Boolean(cryptoMetadata);
       let statusMessage = "";
+      let writeCommitted = false;
+      let retryChange = false;
       status.textContent = "";
       submitButton.disabled = true;
       appContainer.inert = true;
@@ -5655,6 +5718,7 @@ const initializeApp = async () => {
             [ENCRYPTION_META_KEY, newMetadata],
           ],
         );
+        writeCommitted = true;
         encryptionKey = newKey;
         cryptoMetadata = newMetadata;
         statusMessage = wasProtected
@@ -5664,17 +5728,41 @@ const initializeApp = async () => {
         updatePassphraseSection();
         await showRecoveryCodeDialog(newRecoveryCode);
       } catch (error) {
-        console.error("Unable to change passphrase:", error);
-        statusMessage =
-          error.message === "Saved data changed during the passphrase update."
-            ? appText("security.dataChanged", "Your data changed while the passphrase was being updated. No changes were made; please try again.")
-            : error.message ||
-              appText("security.changeFailed", "Could not change the passphrase. Your existing passphrase remains active and your saved data was not changed.");
+        if (writeCommitted) {
+          console.error("Passphrase change committed but its confirmation failed:", error);
+          statusMessage = appText(
+            "security.changeCommittedUiFailed",
+            "NRV changed the passphrase, but couldn’t finish the confirmation. The new passphrase is active.",
+          );
+        } else {
+          console.error("Unable to change passphrase:", error);
+          const validationMessages = [
+            appText("security.newMinLength", `Use a new passphrase with at least ${MIN_PASSPHRASE_LENGTH} characters.`, { count: MIN_PASSPHRASE_LENGTH }),
+            appText("security.newMismatch", "The new passphrases do not match."),
+            appText("security.newMustDiffer", "Choose a new passphrase that differs from the current one."),
+          ];
+          if (error.message === "Saved data changed during the passphrase update.") {
+            statusMessage = appText(
+              "security.dataChanged",
+              "Your saved information changed while NRV was changing the passphrase. NRV did not apply the passphrase change. Try again to use the current saved information.",
+            );
+            retryChange = await askToRetry(statusMessage);
+          } else if (validationMessages.includes(error.message)) {
+            statusMessage = error.message;
+          } else {
+            statusMessage = appText(
+              "security.changeFailed",
+              "NRV couldn’t complete the passphrase change. Your saved information was not changed.",
+            );
+            retryChange = await askToRetry(statusMessage);
+          }
+        }
       } finally {
         appContainer.inert = false;
         submitButton.disabled = false;
         status.textContent = statusMessage;
       }
+      if (retryChange) changePassphraseForm.requestSubmit();
     });
 
   // Helper: Calculate days between a timestamp and now
@@ -7184,10 +7272,6 @@ const initializeApp = async () => {
   const setupNextStepsNotice = document.getElementById(
     "setup-next-steps-notice",
   );
-  const notifySetupSaveFailure = async () =>
-    await NRVDialogs.alert(
-      appText("setup.saveDeviceProgressFailed", "We could not save your setup progress on this device. Check device storage and try again."),
-    );
   const showSetupNextStepsIfReady = () => {
     try {
       if (
@@ -7203,10 +7287,7 @@ const initializeApp = async () => {
   document
     .getElementById("btn-setup-add-first-contact")
     .addEventListener("click", async () => {
-      if (!markInstalledSetupComplete()) {
-        await notifySetupSaveFailure();
-        return;
-      }
+      if (!(await markInstalledSetupCompleteWithRetry())) return;
       setupNextStepsDialog.close();
       setupNextStepsNotice.hidden = true;
       try {
@@ -7234,10 +7315,7 @@ const initializeApp = async () => {
   document
     .getElementById("btn-setup-continue-later")
     .addEventListener("click", async () => {
-      if (!markInstalledSetupComplete()) {
-        await notifySetupSaveFailure();
-        return;
-      }
+      if (!(await markInstalledSetupCompleteWithRetry())) return;
       setupNextStepsNotice.hidden = true;
       try {
         localStorage.removeItem("return_visits_setup_pending");
@@ -9779,16 +9857,7 @@ const initializeApp = async () => {
       </header>
       ${content}
     `;
-    printContainer.hidden = false;
-    printContainer.setAttribute("aria-hidden", "false");
-    try {
-      window.print();
-    } catch (error) {
-      printContainer.hidden = true;
-      printContainer.setAttribute("aria-hidden", "true");
-      console.error("Unable to open the print dialog:", error);
-      await NRVDialogs.alert(appText("print.openFailed", "Could not open the print dialog. Please try again."));
-    }
+    await runPrintWithRetry(printContainer, () => window.print());
   };
 
   window.addEventListener("afterprint", () => {
@@ -10699,23 +10768,26 @@ const initializeApp = async () => {
   };
 
   const downloadEncryptedBackup = async (encrypt = Boolean(encryptionKey)) => {
-    try {
-      const backup = await buildBackup(encrypt);
-      const file = new Blob([JSON.stringify(backup, null, 2)], {
-        type: "application/json",
-      });
-      const downloadUrl = URL.createObjectURL(file);
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = `return-visits-backup-${new Date()
-        .toISOString()
-        .slice(0, 10)}.json`;
-      link.click();
-      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
-      markBackupDone();
-    } catch (error) {
-      await showStorageError("export encrypted backup", error);
-    }
+    await runExportWithRetry(
+      "create backup",
+      "backup.exportFailed",
+      "NRV couldn’t create your backup. Your saved information was not changed.",
+      async () => {
+        const backup = await buildBackup(encrypt);
+        const file = new Blob([JSON.stringify(backup, null, 2)], {
+          type: "application/json",
+        });
+        const downloadUrl = URL.createObjectURL(file);
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = `return-visits-backup-${new Date()
+          .toISOString()
+          .slice(0, 10)}.json`;
+        link.click();
+        window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+        markBackupDone();
+      },
+    );
   };
 
   const preservationScreen = document.getElementById(
@@ -10795,29 +10867,34 @@ const initializeApp = async () => {
     const saveButton = document.getElementById("btn-preservation-save");
     saveButton.disabled = true;
     error.hidden = true;
-    try {
-      const backup = await buildBackup(Boolean(encryptionKey), {
-        transferPurpose: "installation",
-      });
-      const blob = new Blob([JSON.stringify(backup, null, 2)], {
-        type: "application/json",
-      });
-      if (preservationDownloadUrl) URL.revokeObjectURL(preservationDownloadUrl);
-      preservationDownloadUrl = URL.createObjectURL(blob);
-      preservationLink.href = preservationDownloadUrl;
-      preservationLink.download = `return-visits-backup-${new Date()
-        .toISOString()
-        .slice(0, 10)}.json`;
-      preservationBackup.hidden = false;
-      preservationChoice.hidden = true;
-      document.getElementById("install-preservation-status").textContent =
-        appText("install.preserve.ready", "Your NRV backup is ready. Download it, then confirm below before continuing.");
-      preservationLink.focus();
-    } catch (backupError) {
-      console.error("Unable to create an installation-transfer backup:", backupError);
+    const created = await runExportWithRetry(
+      "create installation-transfer backup",
+      "install.preserve.backupFailed",
+      "NRV couldn’t create your backup. Your saved information was not changed.",
+      async () => {
+        const backup = await buildBackup(Boolean(encryptionKey), {
+          transferPurpose: "installation",
+        });
+        const blob = new Blob([JSON.stringify(backup, null, 2)], {
+          type: "application/json",
+        });
+        if (preservationDownloadUrl) URL.revokeObjectURL(preservationDownloadUrl);
+        preservationDownloadUrl = URL.createObjectURL(blob);
+        preservationLink.href = preservationDownloadUrl;
+        preservationLink.download = `return-visits-backup-${new Date()
+          .toISOString()
+          .slice(0, 10)}.json`;
+        preservationBackup.hidden = false;
+        preservationChoice.hidden = true;
+        document.getElementById("install-preservation-status").textContent =
+          appText("install.preserve.ready", "Your NRV backup is ready. Download it, then confirm below before continuing.");
+        preservationLink.focus();
+      },
+    );
+    if (!created) {
       error.textContent = appText(
         "install.preserve.backupFailed",
-        "NRV could not create the backup. Your browser information has not changed. Try again or install without copying.",
+        "NRV couldn’t create your backup. Your saved information was not changed.",
       );
       error.hidden = false;
       saveButton.disabled = false;
@@ -10901,35 +10978,38 @@ const initializeApp = async () => {
   });
 
   const downloadContactsSubset = async (list, encrypt) => {
-    try {
-      const useKey = encrypt && encryptionKey;
-      const data = { contacts: list };
-      const transfer = {
-        format: useKey ? ENCRYPTED_CONTACTS_FORMAT : PLAIN_CONTACTS_FORMAT,
-        version: 1,
-        exportedAt: new Date().toISOString(),
-        ...(useKey
-          ? {
-              encryption: cryptoMetadata,
-              data: await encryptValue(data, encryptionKey),
-            }
-          : { data }),
-      };
-      const downloadUrl = URL.createObjectURL(
-        new Blob([JSON.stringify(transfer, null, 2)], {
-          type: "application/json",
-        }),
-      );
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = `return-visits-contacts-${new Date()
-        .toISOString()
-        .slice(0, 10)}.json`;
-      link.click();
-      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
-    } catch (error) {
-      await showStorageError("export contacts", error);
-    }
+    await runExportWithRetry(
+      "create contact export",
+      "contacts.exportFailed",
+      "NRV couldn’t create the contact export. Your saved information was not changed.",
+      async () => {
+        const useKey = encrypt && encryptionKey;
+        const data = { contacts: list };
+        const transfer = {
+          format: useKey ? ENCRYPTED_CONTACTS_FORMAT : PLAIN_CONTACTS_FORMAT,
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          ...(useKey
+            ? {
+                encryption: cryptoMetadata,
+                data: await encryptValue(data, encryptionKey),
+              }
+            : { data }),
+        };
+        const downloadUrl = URL.createObjectURL(
+          new Blob([JSON.stringify(transfer, null, 2)], {
+            type: "application/json",
+          }),
+        );
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = `return-visits-contacts-${new Date()
+          .toISOString()
+          .slice(0, 10)}.json`;
+        link.click();
+        window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+      },
+    );
   };
 
   const exportEncryptDialog = document.getElementById("export-encrypt-dialog");
@@ -11256,62 +11336,64 @@ const initializeApp = async () => {
 
   const exportContact = async (contact) => {
     // With no passphrase on this device, export a plain file with no prompts.
-    const passphrase = encryptionKey
-      ? await requestContactTransferPassphrase("export")
-      : null;
-    if (encryptionKey && passphrase === null) return;
-    try {
-      const contactData = {
-        ...contact,
-        areas: getContactAreas(contact),
-        areaAssignments: contact.area
-          ? [
-              {
-                name: contact.area,
-                region: contact.region,
-                city: contact.city,
-              },
-            ]
-          : [],
-        notesHistory: contact.notesHistory || [],
-      };
-      let transfer;
-      if (passphrase === null) {
-        transfer = {
-          format: PLAIN_CONTACT_FORMAT,
-          version: 1,
-          exportedAt: new Date().toISOString(),
-          data: contactData,
+    await runExportWithRetry(
+      "create contact export",
+      "contacts.exportFailed",
+      "NRV couldn’t create the contact export. Your saved information was not changed.",
+      async () => {
+        const passphrase = encryptionKey
+          ? await requestContactTransferPassphrase("export")
+          : null;
+        if (encryptionKey && passphrase === null) return;
+        const contactData = {
+          ...contact,
+          areas: getContactAreas(contact),
+          areaAssignments: contact.area
+            ? [
+                {
+                  name: contact.area,
+                  region: contact.region,
+                  city: contact.city,
+                },
+              ]
+            : [],
+          notesHistory: contact.notesHistory || [],
         };
-      } else {
-        const metadata = createCryptoMetadata();
-        const transferKey = await deriveEncryptionKey(passphrase, metadata);
-        transfer = {
-          format: "return-visits-encrypted-contact",
-          version: 1,
-          exportedAt: new Date().toISOString(),
-          encryption: metadata,
-          data: await encryptValue(contactData, transferKey),
-        };
-      }
-      const downloadUrl = URL.createObjectURL(
-        new Blob([JSON.stringify(transfer, null, 2)], {
-          type: "application/json",
-        }),
-      );
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = `return-visits-contact-${contact.firstName
-        .trim()
-        .replace(/[^a-z0-9_-]+/gi, "-")
-        .replace(/^-|-$/g, "")
-        .toLowerCase() || "export"}.json`;
-      link.click();
-      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
-    } catch (error) {
-      console.error("Unable to export contact:", error);
-      await NRVDialogs.alert(appText("contacts.exportFailed", "Could not export this contact. No contact data was changed."));
-    }
+        let transfer;
+        if (passphrase === null) {
+          transfer = {
+            format: PLAIN_CONTACT_FORMAT,
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            data: contactData,
+          };
+        } else {
+          const metadata = createCryptoMetadata();
+          const transferKey = await deriveEncryptionKey(passphrase, metadata);
+          transfer = {
+            format: "return-visits-encrypted-contact",
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            encryption: metadata,
+            data: await encryptValue(contactData, transferKey),
+          };
+        }
+        const downloadUrl = URL.createObjectURL(
+          new Blob([JSON.stringify(transfer, null, 2)], {
+            type: "application/json",
+          }),
+        );
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = `return-visits-contact-${contact.firstName
+          .trim()
+          .replace(/[^a-z0-9_-]+/gi, "-")
+          .replace(/^-|-$/g, "")
+          .toLowerCase() || "export"}.json`;
+        link.click();
+        window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+      },
+    );
   };
 
   const backupFileInput = document.getElementById("backup-file-input");
@@ -12974,18 +13056,23 @@ const initializeInstallSetup = async () => {
     navButton?.click();
   };
   const startSetup = async () => {
-    installBanner.hidden = true;
-    try {
-      localStorage.setItem(installBannerKey, "true");
-      localStorage.setItem(setupPendingKey, "true");
-      localStorage.removeItem(wizardStepKey);
-    } catch (error) {
-      console.error("Unable to save the setup status:", error);
-      await NRVDialogs.alert(
-        appText("setup.saveProgressFailed", "We could not save your setup progress. Please check device storage and try again."),
-      );
-      installBanner.hidden = false;
-      return false;
+    while (true) {
+      installBanner.hidden = true;
+      try {
+        localStorage.setItem(installBannerKey, "true");
+        localStorage.setItem(setupPendingKey, "true");
+        localStorage.removeItem(wizardStepKey);
+        break;
+      } catch (error) {
+        console.error("Unable to save the setup status:", error);
+        installBanner.hidden = false;
+        if (!(await askToRetry(appText(
+          "setup.saveProgressFailed",
+          "NRV couldn’t save this setup step. Your saved information was not changed.",
+        )))) {
+          return false;
+        }
+      }
     }
     const appContainer = document.getElementById("app-container");
     appContainer.hidden = false;
@@ -13011,12 +13098,7 @@ const initializeInstallSetup = async () => {
       }, 0);
     });
   const skipSetup = async () => {
-    if (!markInstalledSetupComplete()) {
-      await NRVDialogs.alert(
-        appText("setup.saveDeviceProgressFailed", "We could not save your setup progress on this device. Check device storage and try again."),
-      );
-      return;
-    }
+    if (!(await markInstalledSetupCompleteWithRetry())) return;
     try {
       localStorage.setItem(installBannerKey, "true");
       localStorage.removeItem(setupPendingKey);
@@ -13035,9 +13117,43 @@ const initializeInstallSetup = async () => {
     document.getElementById("app-title").textContent = document.title;
     goToView("contacts-view");
   };
+  const saveWizardProgress = () => {
+    try {
+      localStorage.setItem(wizardStepKey, "2");
+      return true;
+    } catch (error) {
+      console.error("Unable to save the setup walkthrough progress:", error);
+      return false;
+    }
+  };
+  const showWizardProgressSaveError = () => {
+    const errorMessage = document.getElementById("setup-wizard-continue-error");
+    document.getElementById("setup-wizard-continue-error-text").textContent =
+      appText(
+        "setup.saveProgressFailed",
+        "NRV couldn’t save this setup step. Your saved information was not changed.",
+      );
+    document.getElementById("setup-error-code").hidden = true;
+    document.getElementById("btn-retry-setup-progress").hidden = false;
+    errorMessage.hidden = false;
+    errorMessage.focus();
+  };
+  const retryWizardProgressSave = () => {
+    if (!saveWizardProgress()) {
+      showWizardProgressSaveError();
+      return;
+    }
+    document.getElementById("setup-wizard-continue-error").hidden = true;
+    document.getElementById("btn-retry-setup-progress").hidden = true;
+  };
+  document
+    .getElementById("btn-retry-setup-progress")
+    .addEventListener("click", retryWizardProgressSave);
   const continueWizard = () => {
     const errorMessage = document.getElementById("setup-wizard-continue-error");
     errorMessage.hidden = true;
+    document.getElementById("btn-retry-setup-progress").hidden = true;
+    document.getElementById("setup-error-code").hidden = false;
     try {
       showWizardStep(2, true);
       if (
@@ -13046,11 +13162,7 @@ const initializeInstallSetup = async () => {
       ) {
         throw new Error("The setup walkthrough did not advance.");
       }
-      try {
-        localStorage.setItem(wizardStepKey, "2");
-      } catch (error) {
-        console.error("Unable to save the setup walkthrough progress:", error);
-      }
+      if (!saveWizardProgress()) showWizardProgressSaveError();
     } catch (error) {
       console.error("Unable to continue the setup walkthrough:", error);
       errorMessage.hidden = false;

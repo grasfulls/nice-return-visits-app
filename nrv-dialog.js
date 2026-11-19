@@ -6,9 +6,9 @@
     return root.NRVI18n?.t(key, undefined, fallback) || fallback;
   }
 
-  function present(message, confirmation) {
+  function present(message, confirmation, labels = {}) {
     return new Promise((resolve) => {
-      queue.push({ message, confirmation, resolve });
+      queue.push({ message, confirmation, labels, resolve });
       if (!active) showNext();
     });
   }
@@ -58,8 +58,8 @@
       "role",
       request.confirmation ? "dialog" : "alertdialog",
     );
-    accept.textContent = text("common.ok", "OK");
-    cancel.textContent = text("common.cancel", "Cancel");
+    accept.textContent = request.labels.acceptLabel || text("common.ok", "OK");
+    cancel.textContent = request.labels.cancelLabel || text("common.cancel", "Cancel");
     dialog.addEventListener("cancel", onCancel);
     dialog.addEventListener("close", onClose);
     dialog.showModal();
@@ -72,8 +72,8 @@
     alert(message) {
       return present(String(message), false).then(() => undefined);
     },
-    confirm(message) {
-      return present(String(message), true);
+    confirm(message, labels) {
+      return present(String(message), true, labels);
     },
   };
 })(typeof window !== "undefined" ? window : globalThis);

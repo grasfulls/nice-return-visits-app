@@ -144,6 +144,15 @@ async function main() {
   cancel.dispatch("click");
   assert.strictEqual(await cancelled, false, "cancel control resolves false");
 
+  const retry = NRVDialogs.confirm("No se pudo completar.", {
+    acceptLabel: "Intentar de nuevo",
+    cancelLabel: "Cerrar",
+  });
+  assert.strictEqual(accept.textContent, "Intentar de nuevo");
+  assert.strictEqual(cancel.textContent, "Cerrar");
+  cancel.dispatch("click");
+  assert.strictEqual(await retry, false, "custom retry dialog resolves the close action");
+
   const first = NRVDialogs.alert("Primero");
   const second = NRVDialogs.confirm("Segundo");
   assert.strictEqual(elements["nrv-message-content"].textContent, "Primero");
