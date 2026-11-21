@@ -123,6 +123,27 @@ preserving that copy fails, NRV does not update the latest file. With capacity
 unknown, a failed upload is not treated as proof that an older recovery point
 can safely be discarded; NRV leaves the current latest copy untouched.
 
+### Dropbox OAuth and public-release gate
+
+The browser integration uses Dropbox's authorization-code flow with PKCE. It
+generates a browser-cryptographic verifier and state value, sends the S256 code
+challenge and origin-derived `/app/` redirect URI to Dropbox, validates the
+returned state, and exchanges the code with the verifier without an app
+secret. The public Dropbox app key is the only application identifier needed
+by this browser client. Access and refresh tokens are kept in this browser's
+local storage for the connected user's Dropbox account; they are not included
+in NRV data backups, printed output, or NRV-controlled server storage. NRV
+attempts to revoke the refresh token when disconnecting and removes the local
+token record.
+
+Before NRV’s Dropbox integration is made generally available, verify the
+Dropbox application configuration, obtain the provider status or approval
+required for the intended public audience, and verify that ordinary users can
+authorize their own Dropbox accounts through the normal OAuth flow without GF
+distributing application credentials, secrets, access tokens, or test-user
+enrollment. Development status remains acceptable for the current limited
+testing period.
+
 ### Contact reminders and printed emergency record
 
 Contact reminders are separate records from `notesHistory`. Each has its own
