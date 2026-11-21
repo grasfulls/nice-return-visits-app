@@ -90,10 +90,22 @@ async function main() {
   assert(transferCode.includes('transferPurpose: "installation"'));
   assert(app.includes('{ transferPurpose: options.transferPurpose }'));
   assert(transferCode.includes("markBackupDone()"));
+  const preservationDownloadHandlerStart = transferCode.indexOf(
+    'preservationLink.addEventListener("click"',
+  );
+  const preservationSavedHandlerStart = transferCode.indexOf(
+    'preservationSaved.addEventListener("change"',
+    preservationDownloadHandlerStart,
+  );
+  assert(preservationDownloadHandlerStart >= 0 && preservationSavedHandlerStart > preservationDownloadHandlerStart);
+  assert(!transferCode.slice(preservationDownloadHandlerStart, preservationSavedHandlerStart).includes("markBackupDone()"),
+    "clicking the download link is not a successful backup");
   const continuationStart = transferCode.indexOf("const continueInstallation =");
   const continuationEnd = transferCode.indexOf("const cancelInstallation =", continuationStart);
   assert(continuationStart >= 0 && continuationEnd > continuationStart);
   const continuationCode = transferCode.slice(continuationStart, continuationEnd);
+  assert(continuationCode.includes("if (preservationSaved.checked) markBackupDone()"),
+    "the user's saved-file confirmation is required before resetting the reminder");
   assert(continuationCode.indexOf("readSavedInstallRoute()") < continuationCode.indexOf("closePreservationScreen()"));
   assert(continuationCode.includes("launchInstall({ route: savedRoute })"));
   assert(continuationCode.includes("showLaunchChoice({"));

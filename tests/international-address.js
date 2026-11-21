@@ -75,10 +75,12 @@ const declarations = [
   "displayCountry",
   "normalizeWorkingNeedGreater",
   "normalizeWorkingDesignation",
+  "normalizeContactReminders",
   "normalizeTransferredContact",
   "normalizeGoalsAndMilestones",
   "goalItemKey",
   "normalizeRegionData",
+  "isFutureDataFormatVersion",
   "decryptBackup",
 ].map(declaration).join("\n");
 vm.runInNewContext(
@@ -234,6 +236,24 @@ const transferredPeruContact = helpers.normalizeTransferredContact({
 assert.strictEqual(transferredPeruContact.postalCode, "15074");
 assert.strictEqual(transferredPeruContact.addressingCountry, "Japan");
 assert.strictEqual(transferredPeruContact.workingNeedDesignation, "SW");
+assert.deepStrictEqual(Array.from(transferredPeruContact.reminders), []);
+const transferredReminderContact = helpers.normalizeTransferredContact({
+  ...peruContact,
+  reminders: [{
+    id: "follow-up-1",
+    text: "Call again",
+    createdAt: "2026-03-01T10:00:00.000Z",
+  }],
+});
+assert.strictEqual(transferredReminderContact.reminders[0].text, "Call again");
+assert.strictEqual(transferredReminderContact.reminders[0].updatedAt, "2026-03-01T10:00:00.000Z");
+assert.throws(
+  () => helpers.normalizeTransferredContact({
+    ...peruContact,
+    reminders: [{ id: "invalid", text: " ", createdAt: "not-a-date" }],
+  }),
+  /reminders are invalid/,
+);
 console.log("PASS  formatted and transferred addresses retain locality, region, district, and postal code");
 const japaneseAddress = helpers.normalizeRegionData(
   {

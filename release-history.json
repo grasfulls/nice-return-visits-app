@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.9.066",
+    "en": {
+      "title": "Safer backups, reminders, and recovery",
+      "changes": [
+        "Dropbox keeps up to three automatic recovery copies and protects the latest backup when space is limited.",
+        "Track contact Reminders / Follow-ups separately from visit notes and print a private NRV information record.",
+        "Get clearer backup confirmations and safer guidance when moving devices or recovering from startup problems."
+      ]
+    },
+    "es": {
+      "title": "Copias de seguridad, recordatorios y recuperación más seguros",
+      "changes": [
+        "Dropbox conserva hasta tres copias automáticas de recuperación y protege la última copia de seguridad cuando el espacio es limitado.",
+        "Registra recordatorios y seguimientos de contactos por separado de las notas de visita e imprime un registro privado de información de NRV.",
+        "Recibe confirmaciones más claras de las copias de seguridad e instrucciones más seguras al cambiar de dispositivo o recuperarte de problemas de inicio."
+      ]
+    }
+  },
+  {
     "version": "0.9.065",
     "en": {
       "title": "Help for startup and setup errors",

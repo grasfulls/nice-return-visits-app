@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title data-i18n="page.welcome">NRV-Welcome</title>
-    <meta name="nrv-build-revision" content="sha256:2a78e9ff7bad1a3d9d9d7d99d1f13c5ec9a54cca395410ea1a113f437ec6fc6a" />
+    <meta name="nrv-build-revision" content="sha256:4597861b072fa10fc04e65fcd64be36ac6faf5afcc42c36e761e85eb4b49738d" />
     <meta name="theme-color" content="#004080" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NRV" />
@@ -249,6 +249,7 @@
         <p id="startup-recovery-message">
           Verifying this app before opening your saved information. Your information will not be changed.
         </p>
+        <a id="startup-recovery-help" href="./help.html#backup" hidden>Backup and recovery help</a>
         <button type="button" id="startup-recovery-code" class="nrv-error-code"
           aria-haspopup="dialog" aria-controls="nrv-error-help" hidden></button>
         <button type="button" id="startup-recovery-continue" hidden>
@@ -271,6 +272,7 @@
         var screen = document.getElementById("startup-recovery-screen");
         var title = document.getElementById("startup-recovery-title");
         var message = document.getElementById("startup-recovery-message");
+        var help = document.getElementById("startup-recovery-help");
         var code = document.getElementById("startup-recovery-code");
         var retry = document.getElementById("startup-recovery-retry");
         var continuation = document.getElementById("startup-recovery-continue");
@@ -279,7 +281,7 @@
         var dataStarted = false;
         var recovering = false;
         var timer;
-        var release = "0.9.065";
+        var release = "0.9.066";
         function spanish() {
           if (/(?:\?|&)lang=es(?:&|$)/.test(window.location.search)) return true;
           if (/(?:\?|&)lang=en(?:&|$)/.test(window.location.search)) return false;
@@ -302,11 +304,15 @@
             : (es ? "NRV no pudo iniciarse." : "NRV could not start.");
           message.textContent = dataStarted
             ? (es
-              ? "NRV comenzó a abrir tu información guardada, pero no pudo terminar de iniciarse."
-              : "NRV began opening your saved information but couldn’t finish starting.")
+              ? "NRV comenzó a abrir tu información guardada, pero no pudo terminar de iniciarse. Intentar de nuevo actualiza NRV; no borra tu información. Este mensaje no significa que hayas perdido tu información. Si Intentar de nuevo no funciona, consulta la ayuda de copias de seguridad y recuperación para localizar y restaurar una copia. Reinstala NRV solo si la guía de recuperación lo recomienda."
+              : "NRV began opening your saved information but couldn’t finish starting. Try Again refreshes NRV; it does not erase your information. This message does not mean your information is lost. If Try Again does not work, use Backup and recovery help to find and restore a backup. Reinstall NRV only if the recovery guidance recommends it.")
             : (es
               ? "NRV no pudo iniciarse. Se detuvo antes de abrir tu información guardada."
               : "NRV couldn’t start. It stopped before opening your saved information.");
+          help.hidden = !dataStarted;
+          help.textContent = es
+            ? "Ayuda sobre copias de seguridad y recuperación"
+            : "Backup and recovery help";
           code.textContent = (es ? "Código de error: " : "Error code: ") +
             (dataStarted ? "NRV-S02" : "NRV-S01");
           code.hidden = false;
@@ -420,7 +426,7 @@
           "NRV-V19": ["NRV couldn’t read an answer it needed for its app check, so it can’t confirm this copy is ready.", "NRV no pudo leer una respuesta necesaria para comprobar la aplicación, así que no puede confirmar que esta copia esté lista."],
           "NRV-V20": ["NRV couldn’t get a file it needs before its app check timed out, so it can’t safely continue.", "NRV no pudo obtener un archivo que necesita antes de que terminara el tiempo de la comprobación, así que no puede continuar de forma segura."],
           "NRV-S01": ["NRV couldn’t start. It stopped before opening your saved information.", "NRV no pudo iniciarse. Se detuvo antes de abrir tu información guardada."],
-          "NRV-S02": ["NRV began opening your saved information but couldn’t finish starting.", "NRV comenzó a abrir tu información guardada, pero no pudo terminar de iniciarse."],
+          "NRV-S02": ["NRV began opening your saved information but couldn’t finish starting. Try Again refreshes NRV; it does not erase your information. This message does not mean your information is lost. If Try Again does not work, use Backup and recovery help to find and restore a backup. Reinstall NRV only if the recovery guidance recommends it.", "NRV comenzó a abrir tu información guardada, pero no pudo terminar de iniciarse. Intentar de nuevo actualiza NRV; no borra tu información. Este mensaje no significa que hayas perdido tu información. Si Intentar de nuevo no funciona, consulta la ayuda de copias de seguridad y recuperación para localizar y restaurar una copia. Reinstala NRV solo si la guía de recuperación lo recomienda."],
           "NRV-A01": ["NRV couldn’t continue setup to the next step. This attempt didn’t save your setup progress.", "NRV no pudo continuar con la configuración al siguiente paso. Este intento no guardó el progreso de configuración."]
         };
         window.NRVStartupMessages = meanings;
@@ -474,7 +480,7 @@
         });
       })();
     </script>
-    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.065"
+    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.066"
       media="print" onload="this.media='all'" onerror="window.NRVStartupFallback.show()" />
     <section
       id="unlock-screen"
@@ -751,6 +757,11 @@
               <button type="button" id="btn-dismiss-goals-notice" data-i18n="goals.dismiss">Dismiss</button>
             </div>
           </aside>
+          <details id="reminders-panel" class="reminders-panel" hidden>
+            <summary id="reminders-summary"></summary>
+            <ul id="reminders-list"></ul>
+            <p id="reminders-overview-status" role="status" aria-live="polite"></p>
+          </details>
           <div id="contacts-list"></div>
         </div>
 
@@ -1219,14 +1230,23 @@
             <details class="settings-section" id="backup-section">
               <summary data-i18n="backup.orRestore">Backup/Restore</summary>
               <p class="settings-group-note" data-i18n="backup.protects">
-                Backups protect you from losing your contacts.
+                A separate, recent backup gives you another way to recover or move your information. No backup method can prevent every kind of loss.
+              </p>
+              <p data-i18n="backup.workingStorage">
+                NRV keeps everyday information in the browser or installed app you use. This working copy is separate from a backup you save.
+              </p>
+              <p data-i18n="backup.deviceChange">
+                Before changing devices, browsers or profiles, make a recent backup and make sure you can access it. A device transfer may move NRV without all of its saved information.
               </p>
               <p data-i18n="backup.strategy">
-                One device: Local backup is normally sufficient. Multiple
-                devices: use Dropbox to help keep your NRV contacts synchronized
-                across devices. Keep a separate recovery copy somewhere NRV
-                cannot manage.
+                You can save a backup file on this device or connect optional Dropbox. For extra protection, keep a separate copy somewhere outside NRV’s Return Visits folder.
               </p>
+              <p data-i18n="print.emergencyDescription">
+                Print a private, human-readable contact record with recent notes and current reminders. It is not a restorable backup.
+              </p>
+              <button type="button" id="btn-print-nrv-information" data-i18n="print.emergencyButton">
+                Print My NRV Information
+              </button>
               <p id="backup-mode-status" role="status"></p>
               <button type="button" id="btn-backup-mode-switch"></button>
             <details class="settings-section">
@@ -1239,9 +1259,7 @@
                 Encrypted if a passphrase is on.
               </p>
               <p data-i18n="backup.localSurvives">
-                A downloaded Local backup survives Erase All Data. For a
-                protected recovery copy, keep a separate copy outside NRV’s
-                working storage.
+                NRV cannot see whether your browser saved the file or where it went. Check your browser’s downloads and keep the file somewhere you can find it.
               </p>
               <label for="backup-file-input" data-i18n="setup.restoreFile">Restore from a backup file</label>
               <input
@@ -1355,9 +1373,7 @@
                   Disconnect Dropbox
                 </button>
                 <p data-i18n="dropbox.backupSchedule">
-                  The app backs up when you open it if your last backup is more
-                  than a day old, and shortly after you make changes. Dropbox
-                  keeps your latest copy plus up to 10 dated copies.
+                  When Dropbox is connected, NRV updates the latest copy when you open the app if needed and shortly after changes. It keeps up to three earlier automatic recovery copies. Separate backup files you choose to save are not included in automatic cleanup.
                 </p>
                 <p data-i18n="dropbox.multiDevice">Using more than one device? Each device combines its changes with Dropbox automatically: when you open the app, every couple of minutes while it is open, and as soon as the connection returns after being offline. Visits and contacts added on different devices are all kept. If you have no signal, your changes stay saved on the device and upload as soon as it can reach Dropbox. The cloud icon at the top shows the state (tap it to sync now). You can also tap Check for a Newer Backup.</p>
                 <p data-i18n="dropbox.concurrentChanges">
@@ -1396,9 +1412,11 @@
               <details class="settings-section">
                 <summary data-i18n="update.whatsNew">What's New</summary>
                 <!-- release-notes:start -->
-                <p data-i18n="release.current.title">Help for startup and setup errors</p>
+                <p data-i18n="release.current.title">Safer backups, reminders, and recovery</p>
                 <ul>
-                  <li data-i18n="release.current.change1">Select an error code to see what NRV found and the available next step.</li>
+                  <li data-i18n="release.current.change1">Dropbox keeps up to three automatic recovery copies and protects the latest backup when space is limited.</li>
+                  <li data-i18n="release.current.change2">Track contact Reminders / Follow-ups separately from visit notes and print a private NRV information record.</li>
+                  <li data-i18n="release.current.change3">Get clearer backup confirmations and safer guidance when moving devices or recovering from startup problems.</li>
                 </ul>
                 <!-- release-notes:end -->
               </details>
@@ -2068,6 +2086,28 @@
               placeholder="Note text for new visit..."
               data-i18n-attr="placeholder:visits.notePlaceholder"
             ></textarea>
+            <section id="contact-reminders-section" class="contact-reminders-section" aria-labelledby="contact-reminders-title">
+              <h3 id="contact-reminders-title" data-i18n="reminders.title">Reminders / Follow-ups</h3>
+              <p data-i18n="reminders.explanation">
+                Notes record what happened. Reminders are things to do later and appear on the Contacts screen when due while NRV is open.
+              </p>
+              <ul id="modal-reminders-list"></ul>
+              <label for="contact-reminder-text" data-i18n="reminders.textLabel">What do you need to do?</label>
+              <textarea
+                id="contact-reminder-text"
+                rows="2"
+                maxlength="1000"
+                placeholder="For example: Remind me to add a note"
+                data-i18n-attr="placeholder:reminders.textPlaceholder"
+                disabled
+              ></textarea>
+              <label for="contact-reminder-due" data-i18n="reminders.dueLabel">Due date and time (optional)</label>
+              <input type="datetime-local" id="contact-reminder-due" disabled />
+              <button type="button" id="btn-add-contact-reminder" data-i18n="reminders.addButton" disabled>
+                Add Reminder
+              </button>
+              <p id="contact-reminder-status" role="status" aria-live="polite" tabindex="-1"></p>
+            </section>
             </details>
 
           </div>
@@ -2231,8 +2271,8 @@
 
     <section id="print-container" hidden aria-hidden="true"></section>
 
-    <script src="nrv-dialog.js?nrv-release=0.9.065"></script>
-    <script src="i18n.js?nrv-release=0.9.065"></script>
+    <script src="nrv-dialog.js?nrv-release=0.9.066"></script>
+    <script src="i18n.js?nrv-release=0.9.066"></script>
     <script>
       window.nrvI18nError = null;
       if (window.NRVI18n) {

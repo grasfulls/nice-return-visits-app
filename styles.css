@@ -1075,6 +1075,72 @@ main {
     min-height: 44px;
 }
 
+.reminders-panel {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border: 1px solid #b8c5d3;
+    border-radius: 6px;
+    background: #f7f9fc;
+}
+
+.reminders-panel > summary {
+    min-height: 32px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.reminders-list,
+#reminders-list,
+#modal-reminders-list {
+    margin: 8px 0;
+    padding-left: 22px;
+}
+
+.reminder-item {
+    margin: 8px 0;
+    padding: 8px;
+    border: 1px solid #d5dce5;
+    border-radius: 5px;
+    background: #fff;
+}
+
+.reminder-item p {
+    margin: 4px 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.reminder-item-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.reminder-item-actions button,
+#btn-add-contact-reminder {
+    min-height: 40px;
+}
+
+.contact-reminders-section {
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid #d5dce5;
+}
+
+.contact-reminders-section h3 {
+    margin-bottom: 4px;
+}
+
+.contact-reminders-section textarea {
+    width: 100%;
+}
+
+.contact-reminder-date {
+    color: #4b5563;
+    font-size: 0.9em;
+}
+
 .contact-add-button {
     justify-self: start;
     width: auto !important;
@@ -2172,6 +2238,28 @@ input:not(:placeholder-shown) + .new-contact-area-actions button:first-child {
 
     .print-contact-entry {
         border-bottom: 1px solid #bbb;
+    }
+
+    .emergency-print-contact h3,
+    .emergency-print-contact h4 {
+        margin: 4pt 0;
+        font-size: 10pt;
+    }
+
+    .emergency-print-section {
+        margin-top: 6pt;
+    }
+
+    .emergency-print-reminders,
+    .emergency-print-notes {
+        margin: 3pt 0 0;
+        padding-left: 18pt;
+    }
+
+    .emergency-print-contact .print-note-text,
+    .emergency-print-reminders li {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
     }
 
     .print-contact-entry h3,

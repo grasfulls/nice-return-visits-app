@@ -116,6 +116,8 @@ async function main() {
       late.element("startup-recovery-message").textContent,
       catalogs[language]["startup.verify.NRV-S02"],
     );
+    assert.match(catalogs[language]["startup.verify.NRV-S02"], /restore a backup|restaurar una copia/);
+    assert.match(catalogs[language]["startup.verify.NRV-S02"], /only if the recovery guidance recommends it|solo si la guía de recuperación lo recomienda/);
     assert.strictEqual(late.fallback.operational(late.element("app-container")), false);
     assert.strictEqual(late.element("startup-recovery-screen").hidden, false);
   }

@@ -6,6 +6,8 @@ and the [README](../README.md).
 
 | File | What it is |
 |---|---|
+| `ERROR_CODES.md` | Authoritative developer reference for App error codes, recovery behavior, and backup safety |
+| `STORAGE_BACKUP_RECOVERY.md` | App working-storage, backup, cross-device recovery, S02, and reminder architecture |
 | `Branding-and-Website-Audit.md` | Read-only audit of branding, naming, and website/domain references |
 | `Branding-and-Website-Implementation-Plan.md` | Implementation plan based on the audit |
 | `install-browser-en.png`, `install-browser-es.png` | Current installation-guide browser selection examples |

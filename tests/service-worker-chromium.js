@@ -87,7 +87,7 @@ async function main() {
   assert.strictEqual((await fetch(origin + "/control.html")).status, 200);
   browser = spawn(chrome, [
     "--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`,
-    "--no-first-run", "--no-default-browser-check", "about:blank",
+    "--no-first-run", "--no-default-browser-check", "--disable-extensions", "about:blank",
   ], { stdio: "ignore" });
   let launchError;
   browser.on("error", error => { launchError = error; });
@@ -196,10 +196,143 @@ async function main() {
     document.getElementById("btn-accept-agreement").click();
   })()`);
   await waitFor(`!document.getElementById("unlock-screen")`, "Synthetic user did not finish initialization");
+  const guardedWrite = await evaluate(`(async () => {
+    const db = await openAppDatabase();
+    const before = JSON.stringify([
+      await readStoredValue(db, "settings"),
+      await readStoredValue(db, "contacts"),
+    ]);
+    const fallback = window.NRVStartupFallback;
+    window.NRVStartupFallback = { hasFailed: () => true };
+    let blocked = false;
+    try {
+      await writeStoredValues(db, [
+        ["settings", { marker: "must-not-write" }],
+        ["contacts", []],
+      ]);
+    } catch (error) {
+      blocked = error.message === "Startup is blocked.";
+    } finally {
+      window.NRVStartupFallback = fallback;
+      db.close();
+    }
+    return { blocked, before };
+  })()`);
+  assert(guardedWrite.blocked, "S02 must block a pending IndexedDB write in Chromium");
+  const guardedState = await evaluate(`(async () => {
+    const db = await openAppDatabase();
+    const state = JSON.stringify([
+      await readStoredValue(db, "settings"),
+      await readStoredValue(db, "contacts"),
+    ]);
+    db.close();
+    return state;
+  })()`);
+  assert.strictEqual(guardedState, guardedWrite.before, "S02 guard must preserve both stored records");
+  console.log("PASS Chromium IndexedDB guard blocks writes after startup failure without changing saved records");
+  await evaluate(`(async () => {
+    const db = await openAppDatabase();
+    await writeStoredValue(db, "contacts", [{
+      id: "nrv-reminder-integration",
+      firstName: "Tia",
+      lastName: "Example",
+      country: "United States",
+      city: "",
+      region: "",
+      area: "",
+      streetAddress: "1 Test Street",
+      notesHistory: [
+        { id: "old-note", text: "Older integration note", date: "2026-01-01", rawDate: "2026-01-01T10:00:00.000Z" },
+        { id: "middle-note", text: "Middle integration note", date: "2026-02-01", rawDate: "2026-02-01T10:00:00.000Z" },
+        { id: "newest-note", text: "Newest integration note", date: "2026-03-01", rawDate: "2026-03-01T10:00:00.000Z" },
+      ],
+      reminders: [{
+        id: "overdue-integration-reminder",
+        text: "Overdue integration task",
+        createdAt: new Date(Date.now() - 172800000).toISOString(),
+        updatedAt: new Date(Date.now() - 172800000).toISOString(),
+        dueAt: new Date(Date.now() - 86400000).toISOString(),
+        completedAt: null,
+      }],
+    }]);
+    db.close();
+  })()`);
   for (const language of ["en", "es"]) {
     await navigate(origin + "/app/?lang=" + language);
     await waitFor(`document.getElementById("startup-recovery-screen").hidden && !document.getElementById("unlock-screen")`,
       "Saved synthetic user did not restart");
+    if (language === "en") {
+      const reminderPanel = await evaluate(`(() => {
+        const panel = document.getElementById("reminders-panel");
+        const done = document.querySelector("#reminders-list li button:last-child");
+        return {
+          visible: !panel.hidden,
+          expanded: panel.open,
+          entries: document.querySelectorAll("#reminders-list li").length,
+          doneLabel: done?.getAttribute("aria-label"),
+          liveStatus: document.getElementById("reminders-overview-status").getAttribute("aria-live"),
+        };
+      })()`);
+      assert.strictEqual(reminderPanel.visible, true);
+      assert.strictEqual(reminderPanel.expanded, true, "due reminders expand the overview");
+      assert.strictEqual(reminderPanel.entries, 1);
+      assert.match(reminderPanel.doneLabel, /Tia Example/);
+      assert.strictEqual(reminderPanel.liveStatus, "polite");
+      await evaluate(`document.querySelector("#reminders-list li button:last-child").click()`);
+      await waitFor(
+        `document.getElementById("reminders-panel").hidden`,
+        "Completing the only due reminder did not update the overview",
+      );
+      await evaluate(`window.editContact("nrv-reminder-integration", "reminders")`);
+      await evaluate(`(() => {
+        document.getElementById("contact-reminder-text").value = "New integration follow-up";
+        document.getElementById("btn-add-contact-reminder").click();
+      })()`);
+      await waitFor(
+        `document.getElementById("contact-reminder-status").textContent==="Reminder added."`,
+        "Adding a follow-up did not report success",
+      );
+      const reminderSave = await evaluate(`(async () => {
+        const db = await openAppDatabase();
+        const saved = await readStoredValue(db, "contacts");
+        db.close();
+        const contact = saved.find(item => item.id === "nrv-reminder-integration");
+        return {
+          noteIds: contact.notesHistory.map(note => note.id),
+          reminders: contact.reminders.map(reminder => ({
+            text: reminder.text,
+            completed: Boolean(reminder.completedAt),
+          })),
+        };
+      })()`);
+      assert.deepStrictEqual(reminderSave.noteIds, ["old-note", "middle-note", "newest-note"]);
+      assert(reminderSave.reminders.some((reminder) =>
+        reminder.text === "Overdue integration task" && reminder.completed));
+      assert(reminderSave.reminders.some((reminder) =>
+        reminder.text === "New integration follow-up" && !reminder.completed));
+      await evaluate(`document.getElementById("close-modal").click()`);
+      await evaluate(`document.getElementById("btn-open-backup-restore").click()`);
+      await waitFor(
+        `document.getElementById("settings-view").classList.contains("active") &&
+          document.getElementById("backup-section").open`,
+        "Backup and Restore settings did not open",
+      );
+      await evaluate(`(() => {
+        window.__nrvPrintCaptured = "";
+        window.print = () => {
+          window.__nrvPrintCaptured = document.getElementById("print-container").innerHTML;
+        };
+        document.getElementById("btn-print-nrv-information").click();
+      })()`);
+      await waitFor(`window.__nrvPrintCaptured.length > 0`, "Print My NRV Information did not invoke printing");
+      const printContent = await evaluate(`window.__nrvPrintCaptured`);
+      assert(printContent.includes("Tia Example"));
+      assert(printContent.includes("Newest integration note"));
+      assert(!printContent.includes("Older integration note"));
+      assert(printContent.includes("New integration follow-up"));
+      assert(!printContent.includes("nrv-reminder-integration"));
+      console.log("PASS Chromium reminder completion/addition, accessible due list, Notes separation, and emergency print");
+    }
     await evaluate(`document.getElementById("btn-open-goals").click()`);
     await waitFor(`document.getElementById("goals-view").classList.contains("active")`, "Goals view did not open");
     const catalog = JSON.parse(fs.readFileSync(path.join(root, "locales", language + ".json"), "utf8"));
@@ -327,13 +460,78 @@ async function main() {
     await send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
     console.log(`PASS ${language} real Goals setup/edit/conflict/cancel/undo/repeat/history and offline restart persistence`);
   }
+  await evaluate(`(async () => {
+    const passphrase = "NRV-integration-passphrase-90210";
+    const db = await openAppDatabase();
+    const originalSettings = await readStoredValue(db, "settings");
+    const originalContacts = await readStoredValue(db, "contacts");
+    const legacySettings = { ...originalSettings, schemaVersion: SCHEMA_VERSION - 1 };
+    const metadata = createCryptoMetadata();
+    const key = await deriveEncryptionKey(passphrase, metadata);
+    await writeStoredValues(db, [
+      ["settings", await encryptValue(legacySettings, key)],
+      ["contacts", await encryptValue(originalContacts, key)],
+      ["encryption-meta", metadata],
+    ]);
+    db.close();
+    localStorage.setItem("nrv-test-encrypted-migration-original", JSON.stringify({
+      settings: originalSettings,
+      contacts: originalContacts,
+    }));
+  })()`);
+  await navigate(origin + "/app/?lang=en");
+  await waitFor(`document.getElementById("unlock-screen") && !document.getElementById("unlock-screen").hidden`,
+    "Encrypted migration did not show the unlock screen");
+  await evaluate(`(() => {
+    const passphrase = "NRV-integration-passphrase-90210";
+    document.getElementById("encryption-passphrase").value = passphrase;
+    document.getElementById("unlock-form").dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
+  })()`);
+  await waitFor(`!document.getElementById("unlock-screen")`, "Encrypted legacy records did not unlock");
+  const encryptedMigration = await evaluate(`(async () => {
+    const passphrase = "NRV-integration-passphrase-90210";
+    let db = await openAppDatabase();
+    const original = JSON.parse(localStorage.getItem("nrv-test-encrypted-migration-original"));
+    const metadata = await readStoredValue(db, "encryption-meta");
+    const key = await deriveEncryptionKey(passphrase, metadata);
+    const storedSettings = await decryptValue(await readStoredValue(db, "settings"), key);
+    const storedContacts = await decryptValue(await readStoredValue(db, "contacts"), key);
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction("appData", "readwrite");
+      const store = transaction.objectStore("appData");
+      store.put({ key: "settings", value: original.settings });
+      store.put({ key: "contacts", value: original.contacts });
+      store.delete("encryption-meta");
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+    db.close();
+    localStorage.removeItem("nrv-test-encrypted-migration-original");
+    return {
+      savedSchema: storedSettings.schemaVersion,
+      savedContacts: storedContacts.length,
+      originalContacts: original.contacts.length,
+    };
+  })()`);
+  assert.strictEqual(encryptedMigration.savedSchema, await evaluate("SCHEMA_VERSION"));
+  assert.strictEqual(encryptedMigration.savedContacts, encryptedMigration.originalContacts);
+  console.log("PASS Chromium unlocks, decrypts, migrates and transactionally stores encrypted legacy records");
 }
 main().catch(error => { console.error(error.stack); process.exitCode = 1; }).finally(async () => {
   if (socket?.readyState === WebSocket.OPEN) {
     await send("Browser.close").catch(() => {});
     await delay(500); socket.close();
   }
-  if (browser && browser.exitCode === null) browser.kill();
+  if (browser && browser.exitCode === null) {
+    browser.kill();
+    await Promise.race([
+      new Promise(resolve => browser.once("exit", resolve)),
+      delay(3000),
+    ]);
+  }
   server.closeAllConnections(); server.close();
   for (const item of pending.values()) clearTimeout(item.timer);
   for (let i = 0; i < 20; i++) {

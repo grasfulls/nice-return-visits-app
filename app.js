@@ -16,8 +16,8 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 // Set to true to require a passphrase when no encryption has been set up yet.
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
-const APP_VERSION = "0.9.065";
-const APP_BUILD_REVISION = "sha256:2a78e9ff7bad1a3d9d9d7d99d1f13c5ec9a54cca395410ea1a113f437ec6fc6a";
+const APP_VERSION = "0.9.066";
+const APP_BUILD_REVISION = "sha256:4597861b072fa10fc04e65fcd64be36ac6faf5afcc42c36e761e85eb4b49738d";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -1674,8 +1674,11 @@ const writeStoredValue = (database, key, value) =>
     transaction.onabort = () => reject(transaction.error);
   });
 
-const writeStoredValues = (database, entries) =>
-  new Promise((resolve, reject) => {
+const writeStoredValues = (database, entries) => {
+  if (window.NRVStartupFallback?.hasFailed?.()) {
+    return Promise.reject(new Error("Startup is blocked."));
+  }
+  return new Promise((resolve, reject) => {
     const transaction = database.transaction("appData", "readwrite");
     const store = transaction.objectStore("appData");
     entries.forEach(([key, value]) => store.put({ key, value }));
@@ -1683,6 +1686,7 @@ const writeStoredValues = (database, entries) =>
     transaction.onerror = () => reject(transaction.error);
     transaction.onabort = () => reject(transaction.error);
   });
+};
 
 const commitAndRefreshUi = async (commit, refreshUi) => {
   await commit();
@@ -2000,6 +2004,60 @@ const decryptContactTransfer = async (transfer, passphrase) => {
   return normalizeTransferredContact(contact);
 };
 
+const normalizeContactReminders = (reminders) => {
+  if (reminders === undefined) return [];
+  if (!Array.isArray(reminders)) {
+    throw new Error("The contact reminders are invalid.");
+  }
+  const validTimestamp = (value) =>
+    typeof value === "string" && !Number.isNaN(Date.parse(value));
+  return reminders.map((reminder) => {
+    if (
+      !reminder ||
+      typeof reminder.id !== "string" ||
+      !reminder.id ||
+      typeof reminder.text !== "string" ||
+      !reminder.text.trim() ||
+      !validTimestamp(reminder.createdAt) ||
+      (reminder.updatedAt !== undefined && !validTimestamp(reminder.updatedAt)) ||
+      (reminder.dueAt != null && !validTimestamp(reminder.dueAt)) ||
+      (reminder.completedAt != null && !validTimestamp(reminder.completedAt))
+    ) {
+      throw new Error("The contact reminders are invalid.");
+    }
+    return {
+      ...reminder,
+      text: reminder.text.trim(),
+      dueAt: reminder.dueAt || null,
+      updatedAt: reminder.updatedAt || reminder.createdAt,
+      completedAt: reminder.completedAt || null,
+    };
+  });
+};
+
+const getCurrentContactReminders = (contact) =>
+  (Array.isArray(contact?.reminders) ? contact.reminders : [])
+    .filter((reminder) => reminder && !reminder.completedAt)
+    .sort((a, b) => {
+      const dueA = Date.parse(a.dueAt || "");
+      const dueB = Date.parse(b.dueAt || "");
+      const sortA = Number.isFinite(dueA) ? dueA : Number.MAX_SAFE_INTEGER;
+      const sortB = Number.isFinite(dueB) ? dueB : Number.MAX_SAFE_INTEGER;
+      return sortA - sortB || Date.parse(a.createdAt) - Date.parse(b.createdAt);
+    });
+
+const getMostRecentSubstantiveNotes = (contact, limit = 2) =>
+  (Array.isArray(contact?.notesHistory) ? contact.notesHistory : [])
+    .filter((note) => note && typeof note.text === "string" && note.text.trim())
+    .sort((a, b) => {
+      const time = (note) => {
+        const parsed = Date.parse(note.rawDate || note.date || "");
+        return Number.isFinite(parsed) ? parsed : 0;
+      };
+      return time(b) - time(a);
+    })
+    .slice(0, limit);
+
 const normalizeTransferredContact = (contact) => {
   if (
     !contact ||
@@ -2068,6 +2126,7 @@ const normalizeTransferredContact = (contact) => {
       : {}),
     areaAssignments: contact.areaAssignments || [],
     notesHistory: contact.notesHistory || [],
+    reminders: normalizeContactReminders(contact.reminders),
   };
 };
 
@@ -2572,6 +2631,7 @@ const normalizeRegionData = (settings, contacts) => {
       addressingCountry: normalizeCountry(
         contact.addressingCountry || addressingCountry,
       ),
+      reminders: normalizeContactReminders(contact.reminders),
       ...(workingNeedDesignation ? { workingNeedDesignation } : {}),
       updatedAt: contact.updatedAt || getContactLastActivity(contact),
     };
@@ -3087,7 +3147,6 @@ const initializeAppData = async () => {
             try {
               localStorage.removeItem("return_visits_settings");
               localStorage.removeItem("return_visits_contacts");
-              localStorage.setItem("return_visits_last_backup_reminder", Date.now());
             } catch (error) {
               console.error("Unable to finish startup restore bookkeeping:", error);
             }
@@ -7841,6 +7900,167 @@ const initializeApp = async () => {
     return true;
   };
 
+  const renderContactReminderEntries = (contact) => {
+    const list = document.getElementById("modal-reminders-list");
+    if (!list) return;
+    list.replaceChildren();
+    const reminders = getCurrentContactReminders(contact);
+    if (!reminders.length) {
+      const empty = document.createElement("li");
+      empty.textContent = appText(
+        "reminders.pendingNone",
+        "No current reminders for this contact.",
+      );
+      list.appendChild(empty);
+      return;
+    }
+    reminders.forEach((reminder) => {
+      const item = document.createElement("li");
+      item.className = "reminder-item";
+      const text = document.createElement("p");
+      text.textContent = reminder.text;
+      const due = document.createElement("p");
+      due.className = "contact-reminder-date";
+      if (!reminder.dueAt) {
+        due.textContent = appText("reminders.noDate", "No due date");
+      } else {
+        const dueDate = new Date(reminder.dueAt);
+        due.textContent = dueDate.getTime() <= Date.now()
+          ? appText("reminders.overdueSince", `Overdue since ${dueDate.toLocaleString()}`, { date: dueDate.toLocaleString() })
+          : appText("reminders.dueOn", `Due: ${dueDate.toLocaleString()}`, { date: dueDate.toLocaleString() });
+      }
+      const done = document.createElement("button");
+      done.type = "button";
+      done.textContent = appText("reminders.markDone", "Done");
+      done.setAttribute(
+        "aria-label",
+        appText(
+          "reminders.markDoneFor",
+          `Mark reminder done: ${reminder.text}`,
+          { name: `${contact.firstName} ${contact.lastName}`.trim(), text: reminder.text },
+        ),
+      );
+      done.addEventListener("click", () =>
+        completeContactReminder(
+          contact.id,
+          reminder.id,
+          document.getElementById("contact-reminder-status"),
+        ),
+      );
+      item.append(text, due, done);
+      list.appendChild(item);
+    });
+  };
+
+  const completeContactReminder = async (
+    contactId,
+    reminderId,
+    statusElement,
+  ) => {
+    const contact = contacts.find(
+      (candidate) => String(candidate.id) === String(contactId),
+    );
+    const reminder = contact?.reminders?.find(
+      (candidate) => candidate.id === reminderId,
+    );
+    if (!reminder || reminder.completedAt) return false;
+    const previousCompletedAt = reminder.completedAt;
+    const previousUpdatedAt = reminder.updatedAt;
+    const previousContactUpdatedAt = contact.updatedAt;
+    reminder.completedAt = new Date().toISOString();
+    reminder.updatedAt = reminder.completedAt;
+    if (!(await saveContacts())) {
+      reminder.completedAt = previousCompletedAt;
+      reminder.updatedAt = previousUpdatedAt;
+      contact.updatedAt = previousContactUpdatedAt;
+      return false;
+    }
+    if (
+      document.getElementById("contact-id").value &&
+      String(document.getElementById("contact-id").value) === String(contactId)
+    ) {
+      renderContactReminderEntries(contact);
+    }
+    if (statusElement) {
+      statusElement.textContent = appText(
+        "reminders.completed",
+        "Reminder marked done.",
+      );
+    }
+    const focusTarget =
+      statusElement?.id === "reminders-overview-status" &&
+      !document.getElementById("reminders-panel").hidden
+        ? document.getElementById("reminders-summary")
+        : statusElement?.id === "contact-reminder-status"
+          ? document.getElementById("btn-add-contact-reminder")
+          : document.getElementById("btn-open-modal");
+    focusTarget?.focus();
+    return true;
+  };
+
+  const addContactReminder = async () => {
+    const status = document.getElementById("contact-reminder-status");
+    const contactId = document.getElementById("contact-id").value;
+    const contact = contacts.find(
+      (candidate) => String(candidate.id) === String(contactId),
+    );
+    if (!contact) {
+      status.textContent = appText(
+        "reminders.saveContactFirst",
+        "Save this contact before adding a reminder.",
+      );
+      return false;
+    }
+    const textInput = document.getElementById("contact-reminder-text");
+    const dueInput = document.getElementById("contact-reminder-due");
+    const text = textInput.value.trim();
+    if (!text) {
+      status.textContent = appText(
+        "reminders.empty",
+        "Enter a reminder or follow-up.",
+      );
+      textInput.focus();
+      return false;
+    }
+    const dueDate = dueInput.value ? new Date(dueInput.value) : null;
+    if (dueDate && Number.isNaN(dueDate.getTime())) {
+      status.textContent = appText(
+        "reminders.invalidDate",
+        "Enter a valid reminder date and time.",
+      );
+      dueInput.focus();
+      return false;
+    }
+    const now = new Date().toISOString();
+    const reminder = {
+      id: `rem_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
+      text,
+      createdAt: now,
+      dueAt: dueDate ? dueDate.toISOString() : null,
+      updatedAt: now,
+      completedAt: null,
+    };
+    const previousContactUpdatedAt = contact.updatedAt;
+    const previousReminders = contact.reminders;
+    if (!Array.isArray(contact.reminders)) contact.reminders = [];
+    contact.reminders.push(reminder);
+    if (!(await saveContacts())) {
+      if (previousReminders === undefined) delete contact.reminders;
+      else contact.reminders = previousReminders;
+      contact.updatedAt = previousContactUpdatedAt;
+      return false;
+    }
+    textInput.value = "";
+    dueInput.value = "";
+    renderContactReminderEntries(contact);
+    status.textContent = appText("reminders.added", "Reminder added.");
+    updatePrintContactAvailability();
+    return true;
+  };
+  document
+    .getElementById("btn-add-contact-reminder")
+    .addEventListener("click", addContactReminder);
+
   // Modal Elements & Interactive Picker Map
   const modal = document.getElementById("contact-modal");
   const btnOpenModal = document.getElementById("btn-open-modal");
@@ -8980,8 +9200,8 @@ const initializeApp = async () => {
         // An existing pin starts collapsed; no pin keeps the tools open.
         pinPanelOpen = !(lat !== null && lng !== null);
         updatePinUi();
-        contactInfoSection.open = view !== "visits";
-        contactVisitsSection.open = view === "visits";
+        contactInfoSection.open = view !== "visits" && view !== "reminders";
+        contactVisitsSection.open = view === "visits" || view === "reminders";
         resolve();
       }, 150);
     });
@@ -9001,6 +9221,13 @@ const initializeApp = async () => {
     document.getElementById("contact-cross-street").value = "";
     document.getElementById("contact-id").value = "";
     document.getElementById("contact-record-id").hidden = true;
+    document.getElementById("contact-reminder-text").value = "";
+    document.getElementById("contact-reminder-due").value = "";
+    document.getElementById("contact-reminder-text").disabled = true;
+    document.getElementById("contact-reminder-due").disabled = true;
+    document.getElementById("btn-add-contact-reminder").disabled = true;
+    document.getElementById("contact-reminder-status").textContent = "";
+    renderContactReminderEntries({ reminders: [] });
     contactSecondaryActions.hidden = true;
     [printContactButton, shareContactButton, exportContactButton].forEach(
       (button) => {
@@ -9494,9 +9721,95 @@ const initializeApp = async () => {
     return true;
   };
 
+  let previousDueReminderCount = 0;
+  const renderContactRemindersOverview = () => {
+    const panel = document.getElementById("reminders-panel");
+    const summary = document.getElementById("reminders-summary");
+    const list = document.getElementById("reminders-list");
+    const status = document.getElementById("reminders-overview-status");
+    if (!panel || !summary || !list || !status) return;
+    const pending = contacts.flatMap((contact) =>
+      getCurrentContactReminders(contact).map((reminder) => ({
+        contact,
+        reminder,
+      })),
+    );
+    const now = Date.now();
+    const dueCount = pending.filter(
+      ({ reminder }) => reminder.dueAt && Date.parse(reminder.dueAt) <= now,
+    ).length;
+    panel.hidden = pending.length === 0;
+    if (!pending.length) {
+      list.replaceChildren();
+      status.textContent = "";
+      panel.open = false;
+      previousDueReminderCount = 0;
+      return;
+    }
+    summary.textContent = appText(
+      "reminders.overviewSummary",
+      `${pending.length} reminders / follow-ups • ${dueCount} due`,
+      { count: pending.length, due: dueCount },
+    );
+    if (dueCount > previousDueReminderCount) panel.open = true;
+    previousDueReminderCount = dueCount;
+    list.replaceChildren();
+    pending.forEach(({ contact, reminder }) => {
+      const item = document.createElement("li");
+      item.className = "reminder-item";
+      const name = `${contact.firstName} ${contact.lastName}`.trim();
+      const heading = document.createElement("strong");
+      heading.textContent = name;
+      const text = document.createElement("p");
+      text.textContent = reminder.text;
+      const due = document.createElement("p");
+      due.className = "contact-reminder-date";
+      if (!reminder.dueAt) {
+        due.textContent = appText("reminders.noDate", "No due date");
+      } else {
+        const dueDate = new Date(reminder.dueAt);
+        due.textContent = dueDate.getTime() <= now
+          ? appText("reminders.overdueSince", `Overdue since ${dueDate.toLocaleString()}`, { date: dueDate.toLocaleString() })
+          : appText("reminders.dueOn", `Due: ${dueDate.toLocaleString()}`, { date: dueDate.toLocaleString() });
+      }
+      const actions = document.createElement("div");
+      actions.className = "reminder-item-actions";
+      const openButton = document.createElement("button");
+      openButton.type = "button";
+      openButton.textContent = appText("reminders.openContact", "Open Contact");
+      openButton.addEventListener("click", () =>
+        window.editContact(contact.id, "reminders"),
+      );
+      const doneButton = document.createElement("button");
+      doneButton.type = "button";
+      doneButton.textContent = appText("reminders.markDone", "Done");
+      doneButton.setAttribute(
+        "aria-label",
+        appText(
+          "reminders.markDoneFor",
+          `Mark reminder for ${name} done: ${reminder.text}`,
+          { name, text: reminder.text },
+        ),
+      );
+      doneButton.addEventListener("click", () =>
+        completeContactReminder(contact.id, reminder.id, status),
+      );
+      actions.append(openButton, doneButton);
+      item.append(heading, text, due, actions);
+      list.appendChild(item);
+    });
+  };
+  window.setInterval(renderContactRemindersOverview, 60000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      renderContactRemindersOverview();
+    }
+  });
+
   const renderContacts = () => {
     updateCopyNotice();
     renderGoalAcknowledgement();
+    renderContactRemindersOverview();
     updateWorkingNeedFilterOptions();
     populateMapLocationOptions();
     if (document.body.classList.contains("map-view-active")) {
@@ -9859,6 +10172,129 @@ const initializeApp = async () => {
     `;
     await runPrintWithRetry(printContainer, () => window.print());
   };
+
+  const getEmergencyPrintGroup = (contact) => {
+    const country = contact.country ? displayCountry(contact.country) : "";
+    const locationParts = [
+      country,
+      contact.city,
+      contact.region,
+      contact.area,
+    ].filter((value) => typeof value === "string" && value.trim());
+    const values = [country, contact.city, contact.region, contact.area].map(
+      (value) => String(value || "").trim().toLocaleLowerCase(),
+    );
+    const title = locationParts.length
+      ? locationParts.join(" → ")
+      : appText("print.noLocationGroup", "No location assigned");
+    return {
+      key: JSON.stringify(values),
+      title,
+      sortTitle: title,
+    };
+  };
+
+  const buildEmergencyRecordContent = (sourceContacts) => {
+    const groups = new Map();
+    sourceContacts.forEach((contact) => {
+      const group = getEmergencyPrintGroup(contact);
+      if (!groups.has(group.key)) {
+        groups.set(group.key, {
+          title: group.title,
+          sortTitle: group.sortTitle,
+          contacts: [],
+        });
+      }
+      groups.get(group.key).contacts.push(contact);
+    });
+    return [...groups.values()]
+      .sort((a, b) => a.sortTitle.localeCompare(b.sortTitle))
+      .map((group) => {
+        const entries = group.contacts
+          .sort((a, b) => {
+            const nameA = `${a.lastName || ""} ${a.firstName || ""}`.trim();
+            const nameB = `${b.lastName || ""} ${b.firstName || ""}`.trim();
+            return nameA.localeCompare(nameB) ||
+              String(a.id).localeCompare(String(b.id));
+          })
+          .map((contact) => {
+            const fullName = `${contact.firstName || ""} ${contact.lastName || ""}`.trim();
+            const address = getFormattedContactAddress(contact);
+            const notes = getMostRecentSubstantiveNotes(contact);
+            const reminders = getCurrentContactReminders(contact);
+            const notesMarkup = notes.length
+              ? notes.map((note) => `
+                  <li>
+                    <span class="print-note-date">${escapeHtml(getPrintableNoteDate(note))}</span>
+                    <p class="print-note-text">${escapeHtml(note.text)}</p>
+                  </li>
+                `).join("")
+              : `<li>${escapeHtml(appText("print.emergencyNoNotes", "No substantive notes recorded."))}</li>`;
+            const remindersMarkup = reminders.length
+              ? `
+                <section class="emergency-print-section">
+                  <h4>${escapeHtml(appText("print.emergencyRemindersHeading", "Current Reminders / Follow-ups"))}</h4>
+                  <ul class="emergency-print-reminders">
+                    ${reminders.map((reminder) => {
+                      const dueDate = reminder.dueAt
+                        ? new Date(reminder.dueAt).toLocaleString()
+                        : "";
+                      const dueLabel = dueDate
+                        ? appText("reminders.dueOn", `Due: ${dueDate}`, { date: dueDate })
+                        : appText("reminders.noDate", "No due date");
+                      return `<li><strong>${escapeHtml(dueLabel)}:</strong> ${escapeHtml(reminder.text)}</li>`;
+                    }).join("")}
+                  </ul>
+                </section>
+              `
+              : "";
+            return `
+              <article class="print-contact-entry emergency-print-contact">
+                <h3>${escapeHtml(fullName)}</h3>
+                ${address ? `<p>${escapeHtml(appText("print.emergencyAddress", `Address: ${address}`, { value: address }))}</p>` : ""}
+                ${contact.phone ? `<p>${escapeHtml(appText("contacts.phoneValue", `Phone: ${contact.phone}`, { value: contact.phone }))}</p>` : ""}
+                ${contact.email ? `<p>${escapeHtml(appText("contacts.emailValue", `Email: ${contact.email}`, { value: contact.email }))}</p>` : ""}
+                <section class="emergency-print-section">
+                  <h4>${escapeHtml(appText("print.emergencyNotesHeading", "Recent Notes / History"))}</h4>
+                  <ul class="emergency-print-notes">${notesMarkup}</ul>
+                </section>
+                ${remindersMarkup}
+              </article>
+            `;
+          })
+          .join("");
+        return `
+          <section class="print-location-group">
+            <h2>${escapeHtml(group.title)}</h2>
+            ${entries}
+          </section>
+        `;
+      })
+      .join("");
+  };
+
+  const printMyNrvInformation = async () => {
+    if (!contacts.length) {
+      await NRVDialogs.alert(
+        appText("print.emergencyNoContacts", "There are no contacts to print."),
+      );
+      return false;
+    }
+    const printedAt = new Date().toLocaleDateString();
+    await printContent(
+      appText("print.emergencyTitle", "Nice Return Visits — Emergency Record"),
+      appText(
+        "print.emergencySubtitle",
+        `${contacts.length} contacts • printed ${printedAt} • keep private • not a restorable backup`,
+        { count: contacts.length, date: printedAt },
+      ),
+      buildEmergencyRecordContent(contacts),
+    );
+    return true;
+  };
+  document
+    .getElementById("btn-print-nrv-information")
+    .addEventListener("click", printMyNrvInformation);
 
   window.addEventListener("afterprint", () => {
     printContainer.hidden = true;
@@ -10469,6 +10905,13 @@ const initializeApp = async () => {
     document.getElementById("contact-cross-street").value = "";
     setLocationStatus("");
     document.getElementById("contact-id").value = contact.id;
+    document.getElementById("contact-reminder-text").value = "";
+    document.getElementById("contact-reminder-due").value = "";
+    document.getElementById("contact-reminder-text").disabled = false;
+    document.getElementById("contact-reminder-due").disabled = false;
+    document.getElementById("btn-add-contact-reminder").disabled = false;
+    document.getElementById("contact-reminder-status").textContent = "";
+    renderContactReminderEntries(contact);
     contactSecondaryActions.hidden = false;
     [printContactButton, shareContactButton, exportContactButton].forEach(
       (button) => {
@@ -10683,6 +11126,9 @@ const initializeApp = async () => {
       Number.isFinite(lat) && Number.isFinite(lng) ? lng : null,
       view,
     );
+    if (view === "reminders") {
+      document.getElementById("contact-reminder-text").focus();
+    }
   };
 
   window.deleteContact = async (id) => {
@@ -10768,7 +11214,9 @@ const initializeApp = async () => {
   };
 
   const downloadEncryptedBackup = async (encrypt = Boolean(encryptionKey)) => {
-    await runExportWithRetry(
+    let filename = "";
+    let requestedAt = null;
+    const exported = await runExportWithRetry(
       "create backup",
       "backup.exportFailed",
       "NRV couldn’t create your backup. Your saved information was not changed.",
@@ -10780,14 +11228,27 @@ const initializeApp = async () => {
         const downloadUrl = URL.createObjectURL(file);
         const link = document.createElement("a");
         link.href = downloadUrl;
-        link.download = `return-visits-backup-${new Date()
-          .toISOString()
-          .slice(0, 10)}.json`;
+        requestedAt = new Date();
+        filename = `return-visits-backup-${requestedAt.toISOString().slice(0, 10)}.json`;
+        link.download = filename;
         link.click();
         window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
-        markBackupDone();
       },
     );
+    if (!exported) return false;
+    const saved = await NRVDialogs.confirm(
+      appText(
+        "backup.localReceipt",
+        `NRV requested a download named ${filename} at ${requestedAt.toLocaleString()}. It cannot see whether your browser saved the file or where it went. Check your browser’s downloads and keep the file somewhere you can find it. Did you save this backup?`,
+        { filename, date: requestedAt.toLocaleString() },
+      ),
+      {
+        acceptLabel: appText("backup.savedAction", "I Saved It"),
+        cancelLabel: appText("backup.reminderNotNow", "Not Now"),
+      },
+    );
+    if (saved) markBackupDone();
+    return saved;
   };
 
   const preservationScreen = document.getElementById(
@@ -10905,7 +11366,6 @@ const initializeApp = async () => {
     .addEventListener("click", createInstallTransferBackup);
   preservationLink.addEventListener("click", () => {
     if (preservationLink.hasAttribute("href")) {
-      markBackupDone();
       preservationSaved.disabled = false;
       preservationSaved.focus();
     }
@@ -10914,6 +11374,7 @@ const initializeApp = async () => {
     preservationContinue.disabled = !preservationSaved.checked;
   });
   const continueInstallation = () => {
+    if (preservationSaved.checked) markBackupDone();
     const savedRoute = readSavedInstallRoute();
     closePreservationScreen();
     if (savedRoute) {
@@ -11707,7 +12168,6 @@ const initializeApp = async () => {
         populateDropdowns();
         renderContacts();
         updatePassphraseSection();
-        markBackupDone();
       },
     );
     if (outcome.uiError) {
@@ -11780,19 +12240,21 @@ const initializeApp = async () => {
   const DAY_MS = 24 * 60 * 60 * 1000;
   const CLOUD_LAST_KEY = "return_visits_cloud_last_backup";
   const CLOUD_SNAPSHOT_KEY = "return_visits_cloud_last_snapshot";
+  const CLOUD_RETENTION_WARNING_KEY = "return_visits_cloud_retention_warning";
   // Dropbox's own "modified" time of latest.json as of this device's last
   // upload or restore, and whether this device has changes not yet uploaded.
   const CLOUD_SEEN_KEY = "return_visits_cloud_seen";
   const CLOUD_DIRTY_KEY = "return_visits_cloud_dirty";
   const CLOUD_RECONNECT_DECISION_KEY =
     "return_visits_cloud_reconnect_decision_required";
-  const CLOUD_SNAPSHOTS_KEPT = 10;
+  const CLOUD_SNAPSHOTS_KEPT = 3;
+  const CLOUD_SNAPSHOT_ROTATION_LIMIT = CLOUD_SNAPSHOTS_KEPT + 1;
   const dropbox = window.RVDropbox;
   const cloudSection = document.getElementById("cloud-section");
   const cloudStatus = document.getElementById("cloud-status");
-  const setCloudStatus = (message) => {
+  const setCloudStatus = (message, scrollIntoView = true) => {
     cloudStatus.textContent = message;
-    if (message) cloudStatus.scrollIntoView({ block: "nearest" });
+    if (message && scrollIntoView) cloudStatus.scrollIntoView({ block: "nearest" });
   };
   const showCloudStep = (stepId) => {
     ["cloud-question", "cloud-signup", "cloud-connect"].forEach((id) => {
@@ -11872,6 +12334,12 @@ const initializeApp = async () => {
     document.getElementById("cloud-last-backup").textContent = last
       ? appText("dropbox.lastBackup", `Last Dropbox backup: ${new Date(last).toLocaleString()}`, { date: new Date(last).toLocaleString() })
       : appText("dropbox.noBackup", "No Dropbox backup yet.");
+    if (localStorage.getItem(CLOUD_RETENTION_WARNING_KEY) === "1") {
+      cloudStatus.textContent = appText(
+        "dropbox.retentionWarning",
+        "NRV could not tidy older automatic recovery copies. Existing copies were left in place.",
+      );
+    }
     const accountStatus = document.getElementById("cloud-account-status");
     accountStatus.textContent = appText("dropbox.connected", "Connected to Dropbox.");
     try {
@@ -11884,11 +12352,30 @@ const initializeApp = async () => {
 
   const pruneCloudSnapshots = async () => {
     const files = (await dropbox.list())
-      .filter((file) => /^backup-.*\.json$/.test(file.name))
-      .sort((a, b) => b.name.localeCompare(a.name));
+      .filter((file) => /^automatic-recovery-.*\.json$/.test(file.name))
+      .sort((a, b) => Date.parse(b.server_modified) - Date.parse(a.server_modified));
     for (const file of files.slice(CLOUD_SNAPSHOTS_KEPT)) {
       await dropbox.remove(file.path_lower);
     }
+    localStorage.removeItem(CLOUD_RETENTION_WARNING_KEY);
+  };
+
+  const cloudRecoveryFileName = (remote) => {
+    const stamp = new Date(remote.modified).toISOString().replace(/[:.]/g, "-");
+    const revision = String(remote.rev || remote.modified).replace(/[^a-z0-9_-]/gi, "-");
+    return `automatic-recovery-${stamp}-${revision}.json`;
+  };
+
+  const uploadCloudFile = async (path, text) => {
+    const uploaded = await dropbox.upload(path, text);
+    if (
+      !uploaded ||
+      typeof uploaded.path_display !== "string" ||
+      typeof uploaded.server_modified !== "string"
+    ) {
+      throw new Error("Dropbox did not confirm the uploaded backup file.");
+    }
+    return uploaded;
   };
 
   const getRemoteLatest = async () => {
@@ -12021,9 +12508,9 @@ const initializeApp = async () => {
   let cloudBackupRunning = false;
   let cloudBackupQueued = false;
   // Combines with a newer Dropbox copy when possible, then uploads the live
-  // copy, plus a dated copy at most once a day (or when forced). Throws on
-  // failure, or with code "cloud-newer" when Dropbox holds a newer copy that
-  // cannot be combined automatically (unless overwrite is set).
+  // copy and preserve earlier automatic recovery points before replacing it.
+  // Throws on failure, or with code "cloud-newer" when Dropbox holds a newer
+  // copy that cannot be combined automatically (unless overwrite is set).
   const runCloudBackup = async ({
     forceSnapshot = false,
     overwrite = false,
@@ -12046,10 +12533,38 @@ const initializeApp = async () => {
       let rev;
       let uploaded;
       let text;
+      let manualBackupPath = "";
+      let manualBackupUploaded = false;
+      let manualBackupAt = 0;
       for (let attempt = 0; ; attempt += 1) {
-        let remote = null;
+        let files = await dropbox.list();
+        let listedRecoveryFiles = files.filter((file) =>
+          /^automatic-recovery-.*\.json$/.test(file.name),
+        );
+        if (
+          localStorage.getItem(CLOUD_RETENTION_WARNING_KEY) === "1" ||
+          listedRecoveryFiles.length > CLOUD_SNAPSHOTS_KEPT
+        ) {
+          try {
+            await pruneCloudSnapshots();
+            files = await dropbox.list();
+            listedRecoveryFiles = files.filter((file) =>
+              /^automatic-recovery-.*\.json$/.test(file.name),
+            );
+          } catch (error) {
+            console.error("Unable to tidy older automatic Dropbox recovery copies:", error);
+            localStorage.setItem(CLOUD_RETENTION_WARNING_KEY, "1");
+          }
+        }
+        let remoteFile = files.find((entry) => entry.name === "latest.json");
+        let remote = remoteFile
+          ? {
+              path: remoteFile.path_lower,
+              modified: Date.parse(remoteFile.server_modified),
+              rev: remoteFile.rev,
+            }
+          : null;
         if (!overwrite) {
-          remote = await getRemoteLatest();
           if (remoteIsNewer(remote)) {
             const result = await mergeFromCloud(remote);
             if (!result) {
@@ -12059,15 +12574,90 @@ const initializeApp = async () => {
               throw newer;
             }
             if (!result.uploadNeeded && !forceSnapshot) {
-              localStorage.setItem(CLOUD_LAST_KEY, String(Date.now()));
               cloudPaused = false;
-              return;
+              return { latestUploaded: false, alreadyCurrent: true };
             }
           }
         }
-        rev = remote?.rev;
-        localStorage.removeItem(CLOUD_DIRTY_KEY);
+        rev = overwrite ? undefined : remote?.rev;
         text = JSON.stringify(await buildBackup(), null, 2);
+        if (forceSnapshot && userInitiated && !manualBackupUploaded) {
+          manualBackupPath = `/saved-backup-${new Date()
+            .toISOString()
+            .replace(/[:.]/g, "-")}.json`;
+          const manualUpload = await uploadCloudFile(manualBackupPath, text);
+          manualBackupUploaded = true;
+          manualBackupAt = Date.parse(manualUpload.server_modified) || Date.now();
+          markBackupDone();
+        }
+        if (remote) {
+          const recoveryFiles = listedRecoveryFiles;
+          const lastSnapshot = Number(
+            localStorage.getItem(CLOUD_SNAPSHOT_KEY) || 0,
+          );
+          const snapshotDue =
+            forceSnapshot ||
+            attempt > 0 ||
+            recoveryFiles.length === 0 ||
+            Date.now() - lastSnapshot >= DAY_MS;
+          const recoveryName = cloudRecoveryFileName(remote);
+          const recoveryAlreadyPreserved = recoveryFiles.some(
+            (file) => file.name === recoveryName,
+          );
+          if (snapshotDue && !recoveryAlreadyPreserved) {
+            try {
+              if (recoveryFiles.length >= CLOUD_SNAPSHOT_ROTATION_LIMIT) {
+                throw new Error(
+                  "NRV cannot safely rotate another Dropbox recovery copy until older automatic copies can be cleaned up.",
+                );
+              }
+              const priorBackup = await dropbox.download(remote.path);
+              try {
+                await uploadCloudFile(`/` + recoveryName, priorBackup);
+              } catch (error) {
+                if (
+                  !error.insufficientSpace ||
+                  recoveryFiles.length < CLOUD_SNAPSHOTS_KEPT
+                ) {
+                  throw error;
+                }
+                const oldestFirst = [...recoveryFiles].sort(
+                  (a, b) =>
+                    Date.parse(a.server_modified) -
+                    Date.parse(b.server_modified),
+                );
+                const oldestRecovery = oldestFirst[0];
+                await dropbox.remove(oldestRecovery.path_lower);
+                await uploadCloudFile(`/` + recoveryName, priorBackup);
+              }
+              localStorage.setItem(CLOUD_SNAPSHOT_KEY, String(Date.now()));
+              try {
+                await pruneCloudSnapshots();
+              } catch (error) {
+                console.error("Unable to remove old automatic Dropbox recovery copies:", error);
+                localStorage.setItem(CLOUD_RETENTION_WARNING_KEY, "1");
+              }
+            } catch (error) {
+              const recoveryError = new Error(
+                "NRV could not preserve the current Dropbox backup before updating it.",
+              );
+              recoveryError.code = "cloud-recovery-preserve-failed";
+              recoveryError.cause = error;
+              if (manualBackupUploaded) {
+                return {
+                  latestUploaded: false,
+                  manualBackupUploaded: true,
+                  manualBackupPath,
+                  confirmedAt: manualBackupAt,
+                  error: recoveryError,
+                };
+              }
+              throw recoveryError;
+            }
+          } else if (snapshotDue) {
+            localStorage.setItem(CLOUD_SNAPSHOT_KEY, String(Date.now()));
+          }
+        }
         try {
           uploaded = await dropbox.upload("/latest.json", text, rev);
           break;
@@ -12075,8 +12665,24 @@ const initializeApp = async () => {
           localStorage.setItem(CLOUD_DIRTY_KEY, "1");
           // Another device uploaded first: merge with it and try again.
           if (error.conflict && attempt < 2) continue;
+          if (manualBackupUploaded) {
+            return {
+              latestUploaded: false,
+              manualBackupUploaded: true,
+              manualBackupPath,
+              confirmedAt: manualBackupAt,
+              error,
+            };
+          }
           throw error;
         }
+      }
+      if (
+        !uploaded ||
+        typeof uploaded.path_display !== "string" ||
+        typeof uploaded.server_modified !== "string"
+      ) {
+        throw new Error("Dropbox did not confirm the latest backup.");
       }
       if (uploaded && uploaded.server_modified) {
         localStorage.setItem(
@@ -12084,22 +12690,16 @@ const initializeApp = async () => {
           String(Date.parse(uploaded.server_modified)),
         );
       }
-      const lastSnapshot = Number(
-        localStorage.getItem(CLOUD_SNAPSHOT_KEY) || 0,
-      );
-      if (forceSnapshot || Date.now() - lastSnapshot >= DAY_MS) {
-        const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-        await dropbox.upload(`/backup-${stamp}.json`, text);
-        localStorage.setItem(CLOUD_SNAPSHOT_KEY, String(Date.now()));
-        try {
-          await pruneCloudSnapshots();
-        } catch (error) {
-          console.error("Unable to remove old Dropbox backups:", error);
-        }
-      }
+      localStorage.removeItem(CLOUD_DIRTY_KEY);
       localStorage.setItem(CLOUD_LAST_KEY, String(Date.now()));
       cloudPaused = false;
       markBackupDone();
+      return {
+        latestUploaded: true,
+        manualBackupUploaded,
+        manualBackupPath,
+        confirmedAt: Date.now(),
+      };
     } finally {
       cloudBackupRunning = false;
       cloudBusy = false;
@@ -12125,9 +12725,21 @@ const initializeApp = async () => {
       refreshSyncIcon();
       return false;
     }
+    setCloudStatus(appText("dropbox.backingUp", "Backing up to Dropbox…"), false);
     try {
-      await runCloudBackup();
+      const result = await runCloudBackup();
       await refreshCloudUi();
+      if (result?.latestUploaded) {
+        setCloudStatus(
+          appText("dropbox.autoBackupComplete", "Backup complete."),
+          false,
+        );
+      } else if (result?.alreadyCurrent) {
+        setCloudStatus(
+          appText("dropbox.upToDate", "This device is up to date with Dropbox."),
+          false,
+        );
+      }
       return true;
     } catch (error) {
       if (error instanceof NewerDataVersionError) {
@@ -12139,12 +12751,24 @@ const initializeApp = async () => {
         refreshSyncIcon();
         setCloudStatus(
           appText("dropbox.autoPausedDifferentPassphrase", "Automatic backup is paused because Dropbox has a backup from another device that uses a different passphrase, so it cannot be combined automatically. Tap Check for a Newer Backup to restore it, or Back Up to Dropbox Now to replace it with this device's data."),
+          false,
+        );
+        return false;
+      }
+      if (error.code === "cloud-recovery-preserve-failed") {
+        setCloudStatus(
+          appText(
+            "dropbox.recoveryPreserveFailed",
+            "NRV could not create a recovery copy before updating Dropbox, so it left your existing Dropbox backup unchanged. Check your connection and Dropbox storage, then try again.",
+          ),
+          false,
         );
         return false;
       }
       console.error("Automatic Dropbox backup failed:", error);
       setCloudStatus(
         appText("dropbox.autoSyncFailed", "The last automatic Dropbox sync did not finish. Your changes are saved on this device and it will try again."),
+        false,
       );
       window.clearTimeout(cloudTimer);
       cloudTimer = window.setTimeout(() => {
@@ -12385,8 +13009,9 @@ const initializeApp = async () => {
       }
       setCloudStatus(appText("dropbox.backingUp", "Backing up to Dropbox…"));
       try {
+        let result;
         try {
-          await runCloudBackup({
+          result = await runCloudBackup({
             forceSnapshot: true,
             overwrite: reconnectNeedsDecision,
             userInitiated: true,
@@ -12401,20 +13026,49 @@ const initializeApp = async () => {
             setCloudStatus(appText("dropbox.notBackedUp", "Not backed up. Dropbox still has the newer backup."));
             return;
           }
-          await runCloudBackup({
+          result = await runCloudBackup({
             forceSnapshot: true,
             overwrite: true,
             userInitiated: true,
           });
         }
+        if (!result.latestUploaded) {
+          cloudPaused = true;
+          setCloudStatus(
+            appText(
+              "dropbox.manualCopyOnly",
+              `A separate backup file was uploaded to Dropbox as {filename} on {date}, but NRV did not update the latest Dropbox copy. The existing latest copy was left unchanged.`,
+              {
+                filename: result.manualBackupPath.split("/").pop(),
+                date: new Date(result.confirmedAt).toLocaleString(),
+              },
+            ),
+          );
+          return;
+        }
         localStorage.removeItem(CLOUD_RECONNECT_DECISION_KEY);
         cloudPaused = false;
         await refreshCloudUi();
-        setCloudStatus(appText("dropbox.backupSuccess", "Backed up to Dropbox."));
+        setCloudStatus(
+          appText(
+            "dropbox.backupSuccess",
+            `NRV confirmed a separate backup file and the latest copy in the Return Visits folder in your Dropbox on {date}.`,
+            { date: new Date(result.confirmedAt).toLocaleString() },
+          ),
+        );
       } catch (error) {
         console.error(error);
         if (error instanceof NewerDataVersionError) {
           showStartupRecovery("startup.futureData.dropbox");
+          return;
+        }
+        if (error.code === "cloud-recovery-preserve-failed") {
+          setCloudStatus(
+            appText(
+              "dropbox.recoveryPreserveFailed",
+              "NRV could not create a recovery copy before updating Dropbox, so it left your existing Dropbox backup unchanged. Check your connection and Dropbox storage, then try again.",
+            ),
+          );
           return;
         }
         setCloudStatus(
@@ -12478,11 +13132,15 @@ const initializeApp = async () => {
       return;
     }
     const backups = files
-      .filter((file) => /^(latest|backup-.*)\.json$/.test(file.name))
+      .filter((file) =>
+        /^(latest|backup-.*|automatic-recovery-.*|saved-backup-.*)\.json$/.test(
+          file.name,
+        ),
+      )
       .sort((a, b) => {
         if (a.name === "latest.json") return -1;
         if (b.name === "latest.json") return 1;
-        return b.name.localeCompare(a.name);
+        return Date.parse(b.server_modified) - Date.parse(a.server_modified);
       });
     if (!backups.length) {
       setCloudStatus(appText("dropbox.noBackupsFound", "No backups were found in your Dropbox yet."));
@@ -12496,8 +13154,13 @@ const initializeApp = async () => {
       const option = document.createElement("option");
       option.value = file.path_lower;
       const when = new Date(file.server_modified).toLocaleString();
-      option.textContent =
-        file.name === "latest.json" ? appText("dropbox.latestCopy", `Latest copy (${when})`, { when }) : when;
+      option.textContent = file.name === "latest.json"
+        ? appText("dropbox.latestCopy", `Latest copy (${when})`, { when })
+        : file.name.startsWith("saved-backup-")
+          ? appText("dropbox.savedCopy", `Separate saved backup (${when})`, { when })
+          : file.name.startsWith("automatic-recovery-")
+            ? appText("dropbox.automaticRecoveryOption", `Automatic recovery copy (${when})`, { when })
+            : appText("dropbox.datedCopy", `Dated backup (${when})`, { when });
       cloudRestoreSelect.appendChild(option);
     });
     cloudRestoreDialog.showModal();
@@ -12551,7 +13214,9 @@ const initializeApp = async () => {
     if (!contacts.length) {
       try {
         const existing = (await dropbox.list()).filter((file) =>
-          /^(latest|backup-.*)\.json$/.test(file.name),
+          /^(latest|backup-.*|automatic-recovery-.*|saved-backup-.*)\.json$/.test(
+            file.name,
+          ),
         );
         if (existing.length) {
           if (
@@ -12610,15 +13275,34 @@ const initializeApp = async () => {
         overwrite = true;
       }
       setCloudStatus(appText("dropbox.firstBackup", "Dropbox connected. Making your first backup…"));
-      await runCloudBackup({
+      const backupResult = await runCloudBackup({
         forceSnapshot: true,
         overwrite,
         userInitiated: true,
       });
+      if (!backupResult.latestUploaded) {
+        setCloudStatus(
+          appText(
+            "dropbox.manualCopyOnly",
+            `Dropbox accepted the separate backup file {filename} on {date}, but this attempt did not update the latest copy.`,
+            {
+              filename: backupResult.manualBackupPath.split("/").pop(),
+              date: new Date(backupResult.confirmedAt).toLocaleString(),
+            },
+          ),
+        );
+        return;
+      }
       localStorage.removeItem(CLOUD_RECONNECT_DECISION_KEY);
       cloudPaused = false;
       await refreshCloudUi();
-      setCloudStatus(appText("dropbox.firstBackupSaved", "Dropbox connected and your first backup is saved."));
+      setCloudStatus(
+        appText(
+          "dropbox.firstBackupSaved",
+          "NRV confirmed that Dropbox accepted your separate backup file and latest copy on {date}.",
+          { date: new Date(backupResult.confirmedAt).toLocaleString() },
+        ),
+      );
     } catch (error) {
       console.error(error);
       setCloudStatus(
@@ -12739,9 +13423,7 @@ const initializeApp = async () => {
   const REMIND_AFTER_DAYS = 10;
   let lastBackupAt = Number(localStorage.getItem(LAST_BACKUP_KEY) || 0);
   if (!lastBackupAt || !contacts.length) {
-    lastBackupAt =
-      Number(localStorage.getItem("return_visits_last_backup_reminder") || 0) ||
-      Date.now();
+    lastBackupAt = Date.now();
     if (!contacts.length) lastBackupAt = Date.now();
     localStorage.setItem(LAST_BACKUP_KEY, String(lastBackupAt));
   }
@@ -12766,43 +13448,15 @@ const initializeApp = async () => {
     if (
       !await NRVDialogs.confirm(
         appText("backup.reminder", `You haven't backed up in ${days} days. Back up now?`, { days }),
+        {
+          acceptLabel: appText("backup.reminderBackUpNow", "Back Up Now"),
+          cancelLabel: appText("backup.reminderNotNow", "Not Now"),
+        },
       )
     ) {
       return;
     }
-    if (dropbox.isConnected()) {
-      if (localStorage.getItem(CLOUD_RECONNECT_DECISION_KEY) === "1") {
-        showSettingsView();
-        cloudSection.open = true;
-        setCloudStatus(
-          appText("dropbox.autoPausedDecision", "Automatic Dropbox sync is paused until you choose to restore the existing backup or deliberately replace it."),
-        );
-        cloudSection.scrollIntoView({ block: "start" });
-        return;
-      }
-      try {
-        await runCloudBackup({
-          forceSnapshot: true,
-          userInitiated: true,
-        });
-        await refreshCloudUi();
-        await NRVDialogs.alert(appText("dropbox.backupSuccess", "Backed up to Dropbox."));
-      } catch (error) {
-        console.error(error);
-        if (error instanceof NewerDataVersionError) {
-          showStartupRecovery("startup.futureData.dropbox");
-          return;
-        }
-        await NRVDialogs.alert(appText("dropbox.backupFailed", "Could not back up to Dropbox. Check your connection and try again."));
-      }
-      return;
-    }
-    showSettingsView();
-    const backupSection = document
-      .getElementById("btn-export-backup")
-      .closest("details");
-    backupSection.open = true;
-    backupSection.scrollIntoView({ block: "start" });
+    await downloadEncryptedBackup();
   };
   window.setTimeout(async () => {
     await finishDropboxReturn();

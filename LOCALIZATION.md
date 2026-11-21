@@ -80,9 +80,12 @@ The app uses a runtime i18n system (`i18n.js`) that:
 3. **Fallback:** Defaults to English if no language preference is found or the stored preference is unavailable
 4. **Language is persisted** in the browser's local storage on the device and survives installation as a Home Screen app
 
-The app does not provide an in-app language selector. To change the app's language after initial setup, users must:
-- Reinstall the app from the desired language's website page (if the website is updated to pass `?lang=` parameters in the future)
-- Clear browser data and revisit the app URL with an explicit `?lang=<code>` parameter
+The setup walkthrough provides a language selector while setup is available;
+Settings does not provide a language selector after setup. A valid
+`?lang=<code>` parameter selects and persists the requested supported
+language. Do not recommend clearing browser data or reinstalling to change
+language: either action can put the current local NRV data at risk or make it
+appear unavailable.
 
 ### Home Screen Apps (Installed PWA)
 
@@ -91,7 +94,7 @@ When NRV is installed as a Home Screen app (PWA):
 - Each installed copy maintains its own language preference in its own browser storage
 - Installing NRV in Browser A with Spanish selected does NOT affect Browser B or other devices
 - The Home Screen copy and the browser copy are independent and may have different languages
-- Changing language requires clearing data and reinstalling, or accessing the app with an explicit `?lang=` parameter
+- Use a supported `?lang=<code>` launch URL to select a language without clearing data or reinstalling. The preference is stored in the copy that processes that URL; do not assume another browser or installed copy shares its data or language preference.
 
 ---
 

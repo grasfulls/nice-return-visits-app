@@ -152,6 +152,14 @@
     const text = await response.text();
     const error = new Error(`Dropbox request failed (${response.status}). ${text}`);
     error.status = response.status;
+    try {
+      const body = JSON.parse(text);
+      if (typeof body.error_summary === "string") {
+        error.errorSummary = body.error_summary;
+      }
+    } catch (parseError) {
+      // Dropbox may return plain text for errors without structured details.
+    }
     return error;
   };
 
@@ -188,6 +196,9 @@
     if (!response.ok) {
       const error = await apiError(response);
       error.conflict = response.status === 409 && /conflict/.test(error.message);
+      error.insufficientSpace =
+        response.status === 507 ||
+        /(?:^|\/)insufficient_space(?:\/|$)/.test(error.errorSummary || "");
       throw error;
     }
     return response.json();

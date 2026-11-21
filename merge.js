@@ -7,6 +7,10 @@
   };
   const noteKey = (note) =>
     note.id ? String(note.id) : `${note.rawDate || note.date || ""}|${note.text || ""}`;
+  const reminderKey = (reminder) =>
+    reminder.id
+      ? String(reminder.id)
+      : `${reminder.createdAt || ""}|${reminder.text || ""}`;
 
   const unionBy = (lists, keyOf) => {
     const seen = new Map();
@@ -35,6 +39,29 @@
     return Array.from(latest.values());
   };
 
+  const mergeReminders = (a, b) => {
+    const merged = new Map();
+    [a, b].forEach((list) =>
+      (Array.isArray(list) ? list : []).forEach((reminder) => {
+        if (!reminder || typeof reminder !== "object") return;
+        const key = reminderKey(reminder);
+        const current = merged.get(key);
+        const reminderTime = time(reminder.updatedAt || reminder.createdAt);
+        const currentTime = time(current?.updatedAt || current?.createdAt);
+        if (
+          !current ||
+          reminderTime > currentTime ||
+          (reminderTime === currentTime &&
+            reminder.completedAt &&
+            !current.completedAt)
+        ) {
+          merged.set(key, reminder);
+        }
+      }),
+    );
+    return Array.from(merged.values());
+  };
+
   const mergeContact = (local, remote) => {
     const remoteWins = time(remote.updatedAt) > time(local.updatedAt);
     const winner = remoteWins ? remote : local;
@@ -51,6 +78,9 @@
     const merged = { ...winner };
     if (notes.length || winner.notesHistory || loser.notesHistory) {
       merged.notesHistory = notes;
+    }
+    if (winner.reminders || loser.reminders) {
+      merged.reminders = mergeReminders(local.reminders, remote.reminders);
     }
     if (deletedNotes.length) merged.deletedNotes = deletedNotes;
     merged.updatedAt = new Date(

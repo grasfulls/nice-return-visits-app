@@ -87,11 +87,11 @@ check(en["agreement.notice.small"] ===
   catalogs.es["agreement.notice.small"] ===
   "Dropbox, el uso compartido de contactos y las búsquedas de direcciones solo se utilizan cuando eliges usar esas funciones.",
   "privacy feature-choice wording is equivalent in English and Spanish");
-check(en["backup.strategy"].includes("use Dropbox to help keep your NRV contacts synchronized across devices") &&
-  catalogs.es["backup.strategy"].includes("usa Dropbox para ayudar a mantener sincronizados tus contactos de NRV entre dispositivos") &&
+check(en["backup.strategy"].includes("optional Dropbox") &&
+  catalogs.es["backup.strategy"].includes("Dropbox, que es opcional") &&
   en["setup.securityDetails"].includes("use Dropbox to help keep your NRV contacts synchronized across devices") &&
   catalogs.es["setup.securityDetails"].includes("usa Dropbox para ayudar a mantener sincronizados tus contactos de NRV entre dispositivos"),
-  "Dropbox wording avoids promising automatic or error-free synchronization");
+  "Dropbox remains optional and does not promise automatic or error-free synchronization");
 
 const runtimeKeys = new Set();
 for (const filename of ["app.js", "dropbox.js", "i18n.js"]) {

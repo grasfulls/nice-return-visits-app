@@ -17,12 +17,18 @@ const initStart = app.indexOf("const initializeAppData = async () => {");
 const initEnd = app.indexOf("const showStorageError =", initStart);
 assert(initStart >= 0 && initEnd > initStart);
 const initSource = app.slice(initStart, initEnd);
+const storedWriterStart = app.indexOf("const writeStoredValues = (database, entries) => {");
+const storedWriterEnd = app.indexOf("const commitAndRefreshUi", storedWriterStart);
+assert(storedWriterStart >= 0 && storedWriterEnd > storedWriterStart);
+const storedWriterSource = app.slice(storedWriterStart, storedWriterEnd);
 
 const runInitializeAppData = async ({
   settings,
   contacts,
   metadata = null,
   language = "en",
+  failDuringInitialRead = false,
+  failDuringMigrationEncryption = false,
 }) => {
   const values = new Map([
     ["settings", settings],
@@ -33,6 +39,7 @@ const runInitializeAppData = async ({
   const writes = [];
   const removedLocalKeys = [];
   let promptCalls = 0;
+  let startupFailed = false;
   let initialRestoreFocused = false;
   let initialRestoreClickHandler;
   let backupPickerCalls = 0;
@@ -83,7 +90,13 @@ const runInitializeAppData = async ({
   ]);
   const database = {};
   const context = {
-    window: {},
+    window: {
+      NRVStartupFallback: {
+        beginData() {},
+        hasFailed: () => startupFailed,
+        operational() {},
+      },
+    },
     DEFAULT_SETTINGS: { schemaVersion: 10, cities: [], areas: [] },
     SCHEMA_VERSION: 10,
     ENCRYPTION_META_KEY: "encryption-meta",
@@ -97,9 +110,18 @@ const runInitializeAppData = async ({
     NewerDataVersionError,
     InvalidEncryptedStructureError,
     openAppDatabase: async () => database,
-    readStoredKeys: async () => [...values.keys()],
+    readStoredKeys: async () => {
+      if (failDuringInitialRead) {
+        await new Promise((resolve) => setImmediate(resolve));
+        startupFailed = true;
+      }
+      return [...values.keys()];
+    },
     readStoredValue: async (_database, key) => values.get(key),
     writeStoredValues: async (_database, entries) => {
+      if (context.window.NRVStartupFallback.hasFailed()) {
+        throw new Error("Startup is blocked.");
+      }
       writes.push(entries);
       entries.forEach(([key, value]) => values.set(key, value));
     },
@@ -125,7 +147,10 @@ const runInitializeAppData = async ({
     resolvePassphrase: (...args) => resolvePassphrase(...args),
     deriveEncryptionKey: async () => "key",
     decryptValue: async (value) => value.plaintext,
-    encryptValue: async (value) => value,
+    encryptValue: async (value) => {
+      if (failDuringMigrationEncryption) startupFailed = true;
+      return value;
+    },
     appText: (_key, fallback) => fallback,
     localStorage: {
       getItem: () => null,
@@ -330,6 +355,43 @@ const runBuildGate = async ({
 };
 
 async function main() {
+  const runStoredWriter = (startupFailed) => {
+    let transactions = 0;
+    let puts = 0;
+    const database = {
+      transaction() {
+        transactions += 1;
+        return {
+          objectStore() {
+            return { put() { puts += 1; } };
+          },
+          set oncomplete(callback) { queueMicrotask(callback); },
+        };
+      },
+    };
+    const context = {
+      window: { NRVStartupFallback: { hasFailed: () => startupFailed } },
+      Promise,
+    };
+    const write = vm.runInNewContext(
+      `${storedWriterSource}\nwriteStoredValues;`,
+      context,
+    );
+    return {
+      write: () => write(database, [["settings", {}], ["contacts", []]]),
+      get transactions() { return transactions; },
+      get puts() { return puts; },
+    };
+  };
+  const blockedWriter = runStoredWriter(true);
+  await assert.rejects(blockedWriter.write(), /Startup is blocked/);
+  assert.strictEqual(blockedWriter.transactions, 0);
+  const availableWriter = runStoredWriter(false);
+  await availableWriter.write();
+  assert.strictEqual(availableWriter.transactions, 1);
+  assert.strictEqual(availableWriter.puts, 2);
+  console.log("PASS S02 write guard prevents new IndexedDB transactions while preserving normal atomic writes");
+
   const settings = {
     schemaVersion: 10,
     country: "Peru",
@@ -394,6 +456,16 @@ async function main() {
   assert.strictEqual(legacy.writes.length, 1, "older supported schemas still migrate");
   console.log("PASS supported legacy data migration remains available");
 
+  const interruptedRead = await runInitializeAppData({
+    settings: { schemaVersion: 9, cities: [], areas: [] },
+    contacts: [],
+    failDuringInitialRead: true,
+  });
+  await assert.rejects(interruptedRead.pending, /Startup is blocked/);
+  assert.strictEqual(interruptedRead.writes.length, 0);
+  assert.strictEqual(interruptedRead.values.get("settings").schemaVersion, 9);
+  console.log("PASS S02 raised during pending initialization reads blocks schema migration");
+
   const future = await runInitializeAppData({
     settings: { ...settings, schemaVersion: 11 },
     contacts,
@@ -429,6 +501,32 @@ async function main() {
   assert.strictEqual(unlocked.metadata.algorithm, "AES-GCM");
   assert.deepStrictEqual(encrypted.writes, [], "current encrypted schema is not rewritten on unlock");
   console.log("PASS genuine passphrase data still requires the correct passphrase without rewriting schema-10 records");
+
+  const interruptedEncryptedMigration = await runInitializeAppData({
+    settings: { plaintext: { schemaVersion: 9, cities: [], areas: [] } },
+    contacts: { plaintext: [] },
+    metadata: {
+      version: 1,
+      algorithm: "AES-GCM",
+      keyDerivation: "PBKDF2-SHA-256",
+      iterations: 100000,
+      salt: "valid",
+    },
+    failDuringMigrationEncryption: true,
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  interruptedEncryptedMigration.prompt.passphraseInput.value = "correct passphrase";
+  await interruptedEncryptedMigration.submitHandler({ preventDefault() {} });
+  assert.strictEqual(interruptedEncryptedMigration.writes.length, 0);
+  assert.strictEqual(
+    interruptedEncryptedMigration.values.get("settings").plaintext.schemaVersion,
+    9,
+  );
+  assert.strictEqual(
+    interruptedEncryptedMigration.values.get("contacts").plaintext.length,
+    0,
+  );
+  console.log("PASS S02 raised during encrypted migration preparation prevents its transaction");
 
   const invalidDecryptedStructure = await runInitializeAppData({
     settings: {

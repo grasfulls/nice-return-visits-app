@@ -346,20 +346,21 @@ After the reload, unlock with the same passphrase if one is turned on.
 ### Error-code help
 
 Select an underlined error code on the startup recovery or setup screen for a
-popup explaining its meaning, suggested retry steps and when to ask for help.
-It covers NRV-V01 through NRV-V20, NRV-S01, NRV-S02 and NRV-A01 in English and
-Spanish. Suggested waits are 60 seconds for update-service activation,
-connection or revision transitions (V04, V05, V12, V13), and 10 seconds for other
-retryable startup failures; these are retry recommendations, not guaranteed
-recovery times. V01 offers browser guidance, and A01 recommends reopening.
+popup with its current meaning and available action. The 23 codes are
+`NRV-V01` through `NRV-V20`, `NRV-S01`, `NRV-S02`, and `NRV-A01`, with
+English and Spanish messages. The dialog does not include suggested wait
+times or an ask-for-help threshold; `NRV-V01` has no retry action, while
+`NRV-S01`/`NRV-S02` offer **Try Again** and `NRV-A01` retries setup.
+See [docs/ERROR_CODES.md](docs/ERROR_CODES.md) for the audited triggers,
+exact text, controls, behavior, and data-risk assessment.
 
 The recovery dialog, critical styles and bilingual help are inline in
 `index.html` so they remain available offline or when other app files or
 language catalogs fail to load. Keep this recovery-only wording aligned with
-the verification codes and translated startup messages. Opening or closing help
-does not retry, bypass verification or change saved information. S02 does not
-claim that data was unopened or unchanged. Do not clear browser data or uninstall
-as a troubleshooting step without a verified backup.
+the verification codes and translated startup messages. Opening or closing
+help does not retry, bypass verification or change saved information. S02 does
+not claim that data was unopened or unchanged. Do not clear browser data or
+uninstall as a troubleshooting step without a verified backup.
 
 ### App version and releases
 

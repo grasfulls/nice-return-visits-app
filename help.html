@@ -857,14 +857,15 @@
 
       <h2 id="backup">Protect your information and make a backup</h2>
       <p>
-        Your contacts and settings are stored in this device's browser, and are
-        encrypted if you have turned on a passphrase. They are not uploaded to
-        an account and are not automatically backed up unless you turn on the
-        optional
-        <a href="#cloud-backup">cloud backup</a>. Clearing browser data, losing
-        the device, or forgetting the passphrase (if one is on) can make the
-        local records unavailable. Make backups regularly and keep them
-        somewhere safe.
+        NRV keeps your everyday working information in the browser or installed
+        app that supports the NRV copy you use. This working copy is separate
+        from a backup file or an optional <a href="#cloud-backup">Dropbox copy</a>.
+        Different devices, browsers, profiles, or app environments may hold
+        separate information, and a device transfer may move NRV without all
+        of its working information. Before changing or replacing a device,
+        create a recent backup and make sure you can access it. Keeping a
+        separate copy provides additional protection, though no backup method
+        can prevent every kind of loss.
       </p>
       <p>
         <strong>A full backup is complete.</strong> It contains all of the
@@ -893,7 +894,10 @@
           >
           to download a full backup at any time. The top of that section also
           shows whether your browser has agreed to protect the app's storage
-          from being cleared; backups are still recommended either way.
+          from being cleared; backups are still recommended either way. NRV
+          cannot see whether the browser saved the download or where it went.
+          Check your browser's download list and keep the file somewhere you
+          can find it.
         </li>
         <li>
           To move your full collection to a new device, open the app there and
@@ -993,20 +997,20 @@
       <h3>How it works</h3>
       <ul>
         <li>
-          The app checks Dropbox when you open it, and backs up about 15 seconds
-          after you make changes or as you leave the app. While it is open it
-          also checks every couple of minutes. A web app cannot back up while it
-          is closed, so this happens when you use it.
+          The app checks Dropbox when you open it and uploads changes shortly
+          after they are saved. It makes a best-effort attempt when you leave
+          the app and checks for changes every couple of minutes while open. A
+          web app cannot back up while it is closed, so an upload still waiting
+          when you leave may need another visit to NRV.
         </li>
         <li>
-          Dropbox keeps a <strong>latest copy</strong> plus up to 10 dated
-          copies (at most one new dated copy per day). Older dated copies are
-          removed automatically. Each dated copy is a separate
-          <strong>.json</strong> file in the Return Visits folder, named with
-          the date and time it was made, so you can choose an earlier copy under
-          <strong>Restore from Dropbox</strong>. When you tap
-          <strong>Back Up to Dropbox Now</strong>, a message above the buttons
-          shows the progress and then confirms the backup.
+          Dropbox keeps the latest copy and up to three earlier automatic
+          recovery copies. Older automatic copies may be removed only after a
+          new recovery copy has been confirmed. A separate backup file you
+          deliberately save to Dropbox is kept apart from this automatic
+          rotation. When you tap <strong>Back Up to Dropbox Now</strong>, NRV
+          saves a separate copy and updates the latest copy; the status tells
+          you which uploads Dropbox confirmed.
         </li>
         <li>
           <strong>Encryption:</strong> if a passphrase is on, backups sent to
@@ -1161,20 +1165,23 @@
 
       <h3>Backup reminder</h3>
       <p>
-        If 10 days or more pass without a successful backup (file or Dropbox),
-        the app asks "You haven't backed up in N days. Back up now?". It asks at
-        most once a day. With Dropbox connected, choosing Yes backs up
-        immediately; otherwise it opens
-        <strong
-          >Settings → Data/Security → Backup or Restore → Local Backup/Restore</strong
-        >. Only a successful backup resets the count.
+        After 10 days without a confirmed backup, NRV offers
+        <strong>Back Up Now</strong> and <strong>Not Now</strong>, at most once
+        per day. Not Now closes the reminder but does not count as a backup.
+        Back Up Now always requests a local backup file, even when Dropbox is
+        connected. NRV cannot see whether or where the browser saved it, so
+        only your confirmation that you saved it resets the reminder. A
+        successful configured Dropbox upload can satisfy the reminder before
+        it appears. Restoring a backup does not reset the reminder.
       </p>
 
       <h2 id="consolidate">Consolidate copies and remove unused data</h2>
       <p>
         NRV cannot determine in advance whether saved information will be
         available when opened another way. Before changing browsers, devices,
-        or how you open NRV, make and verify a backup of information you need.
+        or how you open NRV, make a recent backup and make sure you can access
+        it. An automatic device transfer may move NRV without all of its
+        working information.
         A full backup restore replaces all contacts and settings at its
         destination; it does not merge two full backups.
       </p>
@@ -1234,6 +1241,12 @@
       </p>
 
       <h2 id="use-the-app-on-another-device">Use the app on another device</h2>
+      <p>
+        Before changing or replacing a phone, tablet, or computer, make a
+        recent NRV backup and confirm you can access it. An automatic device
+        transfer may move NRV itself without moving all of its saved
+        information.
+      </p>
       <p>
         On another device, the best approach is to
         <strong>add the app to your Home Screen first</strong> (see the
