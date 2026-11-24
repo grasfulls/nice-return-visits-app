@@ -1,6 +1,6 @@
-const BUILD_REVISION = "sha256:ab41bde10d13a85f6241f71584ba7692ddf13cfa6ce0b58cfe8c0a60050d40f0";
+const BUILD_REVISION = "sha256:8a476964d1e8fa72e317bb5c5415e51e5031edbd12f5b60215f105b61b3dbb16";
 const CACHE_NAME = `return-visits-shell-${BUILD_REVISION.slice(7)}`;
-const RELEASE_VERSION = "0.9.067";
+const RELEASE_VERSION = "0.9.068";
 const APP_SHELL = [
   "./",
   "./index.html",

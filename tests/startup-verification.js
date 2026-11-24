@@ -118,6 +118,7 @@ const runGate = async (options = {}) => {
     },
     NRVStartupFallback: {
       assetUrl: (path) => path,
+      isSpanish: () => false,
       gateStarted() {},
       resume() {},
       show() {
@@ -344,7 +345,7 @@ async function main() {
     localCache: true,
   });
   assert.strictEqual(delayedUpdate.appendedScripts.length, 3);
-  assert(delayedUpdate.duration < 100, "a slow update check does not block a coherent local startup");
+  assert(delayedUpdate.duration < 1000, "a slow update check does not block coherent local startup beyond status feedback");
   assert(delayedUpdate.events.includes("register") && delayedUpdate.events.includes("update"));
   const pendingLanguage = await runGate({
     localCache: true,

@@ -16,8 +16,8 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 // Set to true to require a passphrase when no encryption has been set up yet.
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
-const APP_VERSION = "0.9.067";
-const APP_BUILD_REVISION = "sha256:ab41bde10d13a85f6241f71584ba7692ddf13cfa6ce0b58cfe8c0a60050d40f0";
+const APP_VERSION = "0.9.068";
+const APP_BUILD_REVISION = "sha256:8a476964d1e8fa72e317bb5c5415e51e5031edbd12f5b60215f105b61b3dbb16";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -1156,7 +1156,7 @@ const showJustUpdatedNotice = () => {
   const dialog = document.getElementById("app-updated-dialog");
   document.getElementById("app-updated-message").textContent = appText(
     "update.done",
-    `NRV ${APP_VERSION} has refreshed. Your saved contacts remain on this device.`,
+    "Update applied.",
     { version: APP_VERSION },
   );
   updatePublicVersionLink(document.getElementById("app-updated-whats-new"));
@@ -8998,8 +8998,8 @@ const initializeApp = async () => {
   };
   appUpdatePromptHandler = showAppUpdatePrompt;
   document.getElementById("app-current-version").textContent = appText(
-    "update.currentNotAvailable",
-    "Current version: Not available right now",
+    "update.currentChecking",
+    "Current version: Checking…",
   );
   document.getElementById("app-running-version").textContent = appText(
     "update.runningVersion",
@@ -9053,7 +9053,7 @@ const initializeApp = async () => {
       const getUpdateButton = document.getElementById("btn-get-app-update");
       getUpdateButton.hidden = true;
       document.getElementById("app-current-version").textContent =
-        appText("update.currentNotAvailable", "Current version: Not available right now");
+        appText("update.currentChecking", "Current version: Checking…");
       document.getElementById("app-running-version").textContent =
         appText("update.runningVersion", `Your version: ${APP_VERSION}`, { version: APP_VERSION });
       if (!navigator.onLine) {

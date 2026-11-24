@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.9.068",
+    "en": {
+      "title": "Clearer startup updates and V12 recovery",
+      "changes": [
+        "NRV now checks for updates automatically at startup and clearly reports checking, applied, or up-to-date status.",
+        "V12 appears only when automatic update recovery leaves the mismatch unresolved.",
+        "App Updates uses clearer checking and unsaved-edit wording."
+      ]
+    },
+    "es": {
+      "title": "Actualizaciones de inicio y recuperación V12 más claras",
+      "changes": [
+        "NRV ahora busca actualizaciones automáticamente al iniciarse y informa claramente cuándo está comprobando, aplicada o al día.",
+        "V12 aparece solo cuando la recuperación automática deja sin resolver la diferencia.",
+        "Actualizaciones de la aplicación usa instrucciones más claras al comprobar y al haber cambios sin guardar."
+      ]
+    }
+  },
+  {
     "version": "0.9.067",
     "en": {
       "title": "Clearer errors, Help, and app updates",

@@ -89,9 +89,9 @@ assert.doesNotMatch(help.es, /no aparecerán automáticamente|copias separadas|n
 
 for (const language of ["en", "es"]) {
   const note = locales[language]["release.current.change1"];
-  assert(/error code|código(s)? de error/i.test(note), `${language}: What's New mentions error codes`);
-  assert(/what NRV found|qué encontró NRV/i.test(note), `${language}: What's New describes known condition`);
-  assert(/available next step|siguiente paso disponible/i.test(note), `${language}: What's New describes next step`);
+  assert(/checks for updates|busca actualizaciones/i.test(note), `${language}: What's New mentions startup updates`);
+  assert(/automatically|automáticamente/i.test(note), `${language}: What's New describes automatic startup`);
+  assert(/status|informa|indica/i.test(note), `${language}: What's New describes update status`);
   assert(!/how long|cuánto esperar|cuánto tiempo/i.test(note), `${language}: no unsupported retry timing claim`);
 }
 
