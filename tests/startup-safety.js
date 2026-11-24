@@ -234,6 +234,7 @@ const runBuildGate = async ({
     ["startup-recovery-screen", { hidden: false }],
     ["startup-recovery-title", { textContent: "" }],
     ["startup-recovery-message", { textContent: "" }],
+    ["startup-recovery-instruction", { textContent: "", hidden: true }],
     ["startup-recovery-code", { textContent: "", hidden: true }],
     ["startup-recovery-continue", {
       hidden: true,

@@ -59,7 +59,9 @@ const runGate = async (options = {}) => {
     ["startup-recovery-screen", { hidden: false }],
     ["startup-recovery-title", { textContent: "" }],
     ["startup-recovery-message", { textContent: "" }],
+    ["startup-recovery-instruction", { textContent: "", hidden: true }],
     ["startup-recovery-code", { textContent: "", hidden: true }],
+    ["startup-recovery-read-more", { textContent: "", hidden: true, href: "" }],
     ["startup-recovery-continue", {
       textContent: "",
       hidden: true,
@@ -73,6 +75,12 @@ const runGate = async (options = {}) => {
     }],
   ]);
   const events = [];
+  const messages = [];
+  let messageText = "";
+  Object.defineProperty(elements.get("startup-recovery-message"), "textContent", {
+    get: () => messageText,
+    set: (value) => { messageText = value; messages.push(value); },
+  });
   const appendedScripts = [];
   const sessionValues = new Map(options.sessionValues || []);
   const sessionStorage = {
@@ -118,7 +126,7 @@ const runGate = async (options = {}) => {
     },
     NRVStartupFallback: {
       assetUrl: (path) => path,
-      isSpanish: () => false,
+      isSpanish: () => options.language === "es",
       gateStarted() {},
       resume() {},
       show() {
@@ -163,10 +171,25 @@ const runGate = async (options = {}) => {
   };
   const serviceWorkerListeners = new Map();
   const registrationListeners = new Map();
+  let updateCount = 0;
+  const waitingWorker = options.waitingRevision ? {
+    state: "installed",
+    addEventListener() {},
+    postMessage(_message, ports) {
+      setTimeout(() => {
+        if (options.activateWhileQueryingWaiting) {
+          options.activeRevision = pageRevision;
+          options.controllerRevision = pageRevision;
+          registration.waiting = null;
+        }
+        ports[0].peer.onmessage({ data: { revision: options.waitingRevision } });
+      }, 0);
+    },
+  } : null;
   const registration = {
     active: options.noActive ? null : activeWorker,
     installing: null,
-    waiting: null,
+    waiting: waitingWorker,
     addEventListener(type, handler) {
       const listeners = registrationListeners.get(type) || [];
       listeners.push(handler);
@@ -177,9 +200,11 @@ const runGate = async (options = {}) => {
     },
     async update() {
       events.push("update");
+      updateCount += 1;
       if (options.updateReject) throw new Error("update rejected");
       if (options.updateHangs) return new Promise(() => {});
-      if (options.delayedActivation) {
+      if (options.delayedActivation &&
+          (!options.activationOnAttempt || updateCount === options.activationOnAttempt)) {
         const installing = {
           state: "installing",
           addEventListener(_type, handler) { this.stateHandler = handler; },
@@ -188,6 +213,10 @@ const runGate = async (options = {}) => {
         (registrationListeners.get("updatefound") || []).forEach((handler) => handler());
         setTimeout(() => {
           installing.state = "activated";
+          if (options.activationRevision) {
+            options.activeRevision = options.activationRevision;
+            options.controllerRevision = options.activationRevision;
+          }
           this.installing = null;
           this.active = activeWorker;
           navigator.serviceWorker.controller = controllerWorker;
@@ -245,6 +274,7 @@ const runGate = async (options = {}) => {
     body: {
       appendChild(script) {
         assert.strictEqual(elements.get("startup-recovery-screen").hidden, false);
+        events.push("launch");
         appendedScripts.push(script.textContent);
       },
     },
@@ -298,6 +328,7 @@ const runGate = async (options = {}) => {
     appendedScripts,
     elements,
     events,
+    messages,
     fetchCount,
     sessionValues,
     window,
@@ -344,8 +375,12 @@ async function main() {
     updateHangs: true,
     localCache: true,
   });
+  assert.strictEqual(delayedUpdate.appendedScripts.length, 0);
+  assert.strictEqual(delayedUpdate.elements.get("startup-recovery-message").textContent,
+    catalogs.en["startup.updateUnavailable"]);
+  await delayedUpdate.elements.get("startup-recovery-continue").handler();
   assert.strictEqual(delayedUpdate.appendedScripts.length, 3);
-  assert(delayedUpdate.duration < 1000, "a slow update check does not block coherent local startup beyond status feedback");
+  assert(delayedUpdate.duration < 1000, "a stalled check reaches the bounded safe continuation");
   assert(delayedUpdate.events.includes("register") && delayedUpdate.events.includes("update"));
   const pendingLanguage = await runGate({
     localCache: true,
@@ -380,7 +415,79 @@ async function main() {
     metadataUnavailable.elements.get("startup-recovery-message").textContent,
     catalogs.en["startup.updateUnavailable"],
   );
-  console.log("PASS slow updates do not block; completed online failures offer safe continuation");
+  console.log("PASS completed online failures offer verified safe continuation");
+
+  const normal = await runGate({ localCache: true });
+  assert(normal.events.indexOf("update") < normal.events.indexOf("launch"));
+  assert.strictEqual(normal.appendedScripts.length, 3);
+  assert.strictEqual(normal.elements.get("startup-recovery-code").hidden, true);
+
+  const slower = await runGate({
+    activeRevision: otherRevision,
+    controllerRevision: otherRevision,
+    delayedActivation: 35,
+    activationRevision: revision,
+  });
+  assert(slower.messages.includes("Checking for updates…"));
+  assert(slower.messages.includes("Please wait just a little longer…"));
+  assert.strictEqual(slower.appendedScripts.length, 3);
+  assert.strictEqual(slower.elements.get("startup-recovery-code").hidden, true);
+  assert(!slower.events.includes("reload"), "the older worker must not be reloaded into");
+
+  const automaticRetry = await runGate({
+    activeRevision: otherRevision,
+    controllerRevision: otherRevision,
+    delayedActivation: 10,
+    activationOnAttempt: 2,
+    activationRevision: revision,
+  });
+  assert.strictEqual(automaticRetry.events.filter((event) => event === "update").length, 2);
+  assert.strictEqual(automaticRetry.appendedScripts.length, 3);
+  assert.strictEqual(automaticRetry.elements.get("startup-recovery-code").hidden, true);
+  assert(!automaticRetry.events.includes("reload"));
+  console.log("PASS automatic startup waits for a slower update and retries an older worker without V12");
+
+  for (const [marker, expectedMarker] of [
+    [null, revision],
+    [revision, `${revision}:waiting`],
+  ]) {
+    const waiting = await runGate({
+      activeRevision: otherRevision,
+      controllerRevision: otherRevision,
+      waitingRevision: revision,
+      sessionValues: marker ? [["nrv-startup-reload-target", marker]] : [],
+    });
+    assert.strictEqual(waiting.events.filter((event) => event === "reload").length, 1);
+    assert.strictEqual(waiting.sessionValues.get("nrv-startup-reload-target"), expectedMarker);
+    assert.strictEqual(waiting.appendedScripts.length, 0);
+    assert.strictEqual(waiting.elements.get("startup-recovery-code").hidden, true);
+  }
+  const stuckWaiting = await runGate({
+    activeRevision: otherRevision,
+    controllerRevision: otherRevision,
+    waitingRevision: revision,
+    sessionValues: [["nrv-startup-reload-target", `${revision}:waiting`]],
+  });
+  assert.strictEqual(stuckWaiting.code, "NRV-V12");
+  assert(!stuckWaiting.events.includes("reload"), "waiting-worker recovery must not reload indefinitely");
+  assert.strictEqual(stuckWaiting.appendedScripts.length, 0, "an unresolved worker cannot open saved information");
+  const activationDuringQuery = await runGate({
+    activeRevision: otherRevision,
+    controllerRevision: otherRevision,
+    waitingRevision: revision,
+    activateWhileQueryingWaiting: true,
+  });
+  assert.strictEqual(activationDuringQuery.appendedScripts.length, 3,
+    "activation while querying a waiting worker must be rechecked");
+  assert.strictEqual(activationDuringQuery.elements.get("startup-recovery-code").hidden, true);
+  const unexpectedWaiting = await runGate({
+    activeRevision: otherRevision,
+    controllerRevision: otherRevision,
+    waitingRevision: otherRevision,
+  });
+  assert.strictEqual(unexpectedWaiting.code, "NRV-V12");
+  assert(!unexpectedWaiting.events.includes("reload"), "a worker that differs from deployment metadata is not trusted");
+  console.log("PASS a verified waiting worker gets bounded handoff attempts before V12");
 
   const delayedActivation = await runGate({
     noActive: true,
@@ -397,6 +504,7 @@ async function main() {
     noActive: true,
     noController: true,
     delayedActivation: 10,
+    metadataRevision: otherRevision,
     activeRevision: otherRevision,
     controllerRevision: otherRevision,
   });
@@ -425,12 +533,37 @@ async function main() {
   });
   assert.strictEqual(reloadLoop.events.filter((event) => event === "reload").length, 0);
   assert.strictEqual(reloadLoop.code, "NRV-V12");
+  assert.strictEqual(reloadLoop.elements.get("startup-recovery-title").textContent,
+    "NRV is keeping your information safe");
+  assert.strictEqual(reloadLoop.elements.get("startup-recovery-message").textContent,
+    "NRV could not open safely.");
+  assert.strictEqual(reloadLoop.elements.get("startup-recovery-instruction").textContent,
+    "Please select Check for Updates.");
+  assert.strictEqual(reloadLoop.elements.get("startup-recovery-instruction").hidden, false);
+  assert.strictEqual(reloadLoop.elements.get("startup-recovery-retry").textContent, "Check for Updates");
+  assert.strictEqual(reloadLoop.elements.get("startup-recovery-retry").className, "nrv-v12-retry");
+  assert(html.indexOf('id="startup-recovery-message"') < html.indexOf('id="startup-recovery-instruction"'));
+  assert(html.indexOf('id="startup-recovery-instruction"') < html.indexOf('id="startup-recovery-retry"'));
+  assert(html.indexOf('id="startup-recovery-retry"') < html.indexOf('id="startup-recovery-code"'));
+  assert(html.indexOf('id="startup-recovery-code"') < html.indexOf('id="startup-recovery-read-more"'));
+  const spanishV12 = await runGate({
+    activeRevision: otherRevision,
+    controllerRevision: otherRevision,
+    language: "es",
+  });
+  assert.strictEqual(spanishV12.elements.get("startup-recovery-message").textContent,
+    catalogs.es["startup.verify.NRV-V12"]);
+  assert.strictEqual(spanishV12.elements.get("startup-recovery-instruction").textContent,
+    catalogs.es["startup.instructionV12"]);
+  assert(spanishV12.elements.get("startup-recovery-read-more").href.startsWith("./help-es.html"));
   const updatesBeforeFailedRetry = reloadLoop.events.filter((event) => event === "update").length;
   await reloadLoop.elements.get("startup-recovery-retry").handler();
   assert.strictEqual(reloadLoop.events.filter((event) => event === "update").length,
-    updatesBeforeFailedRetry + 1, "V12 retry directly checks for updates");
-  assert.strictEqual(reloadLoop.code, "NRV-V12",
-    "an unresolved V12 mismatch remains blocked with its diagnostic code");
+    updatesBeforeFailedRetry + 1, "V12 retry checks again before reopening");
+  assert.strictEqual(reloadLoop.events.filter((event) => event === "reload").length, 1,
+    "a deliberate retry permits another guarded reload into the verified update");
+  assert.strictEqual(reloadLoop.appendedScripts.length, 0,
+    "the retry cannot open an unresolved mismatch");
 
   const recoveredV12 = await runGate({
     activeRevision: otherRevision,

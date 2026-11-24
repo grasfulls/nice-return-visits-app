@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title data-i18n="page.welcome">NRV-Welcome</title>
-    <meta name="nrv-build-revision" content="sha256:86cef328c987b9c26dbdd891ada09625ae10ffc4a3a63e1b319a6dfb7c4447df" />
+    <meta name="nrv-build-revision" content="sha256:a3277c879675a3f0eb8574f3b85f28c09ee0bc4816ca6cb1a4ba1935c6bd715f" />
     <meta name="theme-color" content="#004080" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NRV" />
@@ -45,6 +45,17 @@
         width: 100%;
         max-width: 480px;
         box-sizing: border-box;
+      }
+      #startup-recovery-retry.nrv-v12-retry {
+        font-size: 1.1rem;
+        padding: 12px 20px;
+        color: white;
+        background: #004080;
+        border: 1px solid #004080;
+      }
+      #startup-recovery-code:not([hidden]),
+      #startup-recovery-read-more:not([hidden]) {
+        display: block;
       }
       .nrv-error-code {
         background: transparent;
@@ -249,16 +260,17 @@
         <p id="startup-recovery-message">
           Checking for updates…
         </p>
+        <p id="startup-recovery-instruction" hidden></p>
         <a id="startup-recovery-help" href="./help.html#backup" hidden>Backup and recovery help</a>
-        <button type="button" id="startup-recovery-code" class="nrv-error-code"
-          aria-haspopup="dialog" aria-controls="nrv-error-help" hidden></button>
-        <a id="startup-recovery-read-more" href="./help.html#troubleshooting" hidden>Read More</a>
         <button type="button" id="startup-recovery-continue" hidden>
           Continue Offline
         </button>
         <button type="button" id="startup-recovery-retry" hidden>
           Check for Updates
         </button>
+        <button type="button" id="startup-recovery-code" class="nrv-error-code"
+          aria-haspopup="dialog" aria-controls="nrv-error-help" hidden></button>
+        <a id="startup-recovery-read-more" href="./help.html#troubleshooting" hidden>Read More</a>
       </div>
     </section>
     <dialog id="nrv-error-help" aria-labelledby="nrv-error-help-title"
@@ -274,6 +286,7 @@
         var screen = document.getElementById("startup-recovery-screen");
         var title = document.getElementById("startup-recovery-title");
         var message = document.getElementById("startup-recovery-message");
+        var instruction = document.getElementById("startup-recovery-instruction");
         var help = document.getElementById("startup-recovery-help");
         var code = document.getElementById("startup-recovery-code");
         var retry = document.getElementById("startup-recovery-retry");
@@ -283,7 +296,7 @@
         var dataStarted = false;
         var recovering = false;
         var timer;
-        var release = "0.9.070";
+        var release = "0.9.071";
         function spanish() {
           if (/(?:\?|&)lang=es(?:&|$)/.test(window.location.search)) return true;
           if (/(?:\?|&)lang=en(?:&|$)/.test(window.location.search)) return false;
@@ -312,6 +325,7 @@
               ? "NRV no pudo iniciarse. Se detuvo antes de abrir tu información guardada."
               : "NRV couldn’t start. It stopped before opening your saved information.");
           help.hidden = !dataStarted;
+          instruction.hidden = true;
           help.textContent = es
             ? "Ayuda sobre copias de seguridad y recuperación"
             : "Backup and recovery help";
@@ -425,7 +439,7 @@
           "NRV-V09": ["NRV couldn’t read the information it needs to check this copy, so it can’t safely continue.", "NRV no pudo leer la información que necesita para comprobar esta copia, así que no puede continuar de forma segura."],
           "NRV-V10": ["This NRV page doesn’t match the release information NRV checked, so it can’t safely continue.", "Esta página de NRV no coincide con la información de la versión que NRV comprobó, así que no puede continuar de forma segura."],
           "NRV-V11": ["Parts of NRV do not match the same release, so NRV can’t safely open your saved information.", "Partes de NRV no corresponden a la misma versión, así que NRV no puede abrir tu información guardada de forma segura."],
-          "NRV-V12": ["NRV could not complete the update needed to open safely.", "NRV no pudo completar la actualización necesaria para abrir de forma segura."],
+          "NRV-V12": ["NRV could not open safely.", "NRV no pudo abrirse de forma segura."],
           "NRV-V13": ["Parts of NRV do not match the same release, so NRV can’t safely continue.", "Partes de NRV no corresponden a la misma versión, así que NRV no puede continuar de forma segura."],
           "NRV-V14": ["NRV’s version doesn’t match the version information it checked, so it can’t confirm this copy is ready.", "La versión de NRV no coincide con la información de versión que comprobó, así que no puede confirmar que esta copia esté lista."],
           "NRV-V15": ["NRV couldn’t finish checking this copy, so it can’t safely continue.", "NRV no pudo terminar de comprobar esta copia, así que no puede continuar de forma segura."],
@@ -494,7 +508,7 @@
         });
       })();
     </script>
-    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.070"
+    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.071"
       media="print" onload="this.media='all'" onerror="window.NRVStartupFallback.show()" />
     <section
       id="unlock-screen"
@@ -2289,8 +2303,8 @@
 
     <section id="print-container" hidden aria-hidden="true"></section>
 
-    <script src="nrv-dialog.js?nrv-release=0.9.070"></script>
-    <script src="i18n.js?nrv-release=0.9.070"></script>
+    <script src="nrv-dialog.js?nrv-release=0.9.071"></script>
+    <script src="i18n.js?nrv-release=0.9.071"></script>
     <script>
       window.nrvI18nError = null;
       if (window.NRVI18n) {
@@ -2341,6 +2355,7 @@
         const screen = document.getElementById("startup-recovery-screen");
         const title = document.getElementById("startup-recovery-title");
         const message = document.getElementById("startup-recovery-message");
+        const instruction = document.getElementById("startup-recovery-instruction");
         const diagnosticCode = document.getElementById("startup-recovery-code");
         const retryButton = document.getElementById("startup-recovery-retry");
         const continueButton = document.getElementById("startup-recovery-continue");
@@ -2351,7 +2366,7 @@
         const translate = (key, fallback) =>
           window.NRVI18n?.t(key, {}, fallback) || fallback;
         Promise.resolve(window.nrvI18nReady).then(() => {
-          if (!window.NRVStartupFallback?.hasFailed()) {
+          if (!window.NRVStartupFallback?.hasFailed() && diagnosticCode.hidden) {
             retryButton.textContent = translate("startup.retry", "Check for Updates");
           }
         }).catch((error) => {
@@ -2372,7 +2387,12 @@
             "startup.safeTitle",
             "NRV is keeping your information safe",
           );
-          message.textContent = error.code === verificationCodes.serviceWorkerUnavailable
+          message.textContent = error.code === verificationCodes.activeWorkerRevisionMismatch
+            ? translate(
+                "startup.verify.NRV-V12",
+                fallbackSpanish ? "NRV no pudo abrirse de forma segura." : "NRV could not open safely.",
+              )
+            : error.code === verificationCodes.serviceWorkerUnavailable
             ? translate(
                 "startup.verify.NRV-V01.immediate",
                 "Update your browser or device software, then open NRV again.",
@@ -2382,6 +2402,11 @@
                 fallbackMeaning?.[fallbackSpanish ? 1 : 0] ||
                   "NRV couldn’t finish checking this copy, so it can’t safely continue.",
               );
+          instruction.hidden = error.code !== verificationCodes.activeWorkerRevisionMismatch;
+          instruction.textContent = translate(
+            "startup.instructionV12",
+            fallbackSpanish ? "Selecciona Buscar actualizaciones." : "Please select Check for Updates.",
+          );
           diagnosticCode.textContent =
             `${translate("startup.errorCode", "Error code")}: ${error.code}`;
           diagnosticCode.hidden = false;
@@ -2391,11 +2416,12 @@
           retryButton.textContent = error.code === "NRV-V12"
             ? translate("startup.retryV12", "Check for Updates")
             : translate("startup.tryAgain", "Try Again");
+          retryButton.className = error.code === "NRV-V12" ? "nrv-v12-retry" : "";
           const readMore = document.getElementById("startup-recovery-read-more");
           if (readMore) {
             readMore.hidden = false;
             readMore.textContent = translate("startup.readMore", "Read More");
-            readMore.href = `./help.html?nrv_error=${encodeURIComponent(error.code)}#nrv-error-${error.code.toLowerCase()}`;
+            readMore.href = `${fallbackSpanish ? "./help-es.html" : "./help.html"}?nrv_error=${encodeURIComponent(error.code)}#nrv-error-${error.code.toLowerCase()}`;
             readMore.target = "_self";
           }
           screen.hidden = false;
@@ -2606,14 +2632,17 @@
         let workerTransitionCheck = null;
         const observeWorker = (worker) => {
           if (!worker) return;
-          if (worker.state === "installing" || worker.state === "activating") {
+          if (worker.state === "installing" || worker.state === "installed" || worker.state === "activating") {
             markTransition();
           }
           worker.addEventListener?.("statechange", () => {
-            if (worker.state === "installing" || worker.state === "activating") {
+            if (worker.state === "installing" || worker.state === "installed" || worker.state === "activating") {
               markTransition();
             }
             workerTransitionCheck?.();
+            if (worker.state === "installed") {
+              window.setTimeout(() => workerTransitionCheck?.(), 0);
+            }
           });
         };
         const updateRegistration = async () => {
@@ -2701,6 +2730,7 @@
         const waitForWorkerTransition = (registration) =>
           new Promise((resolve) => {
             let finished = false;
+            let activationRequested = null;
             const finish = (result) => {
               if (finished) return;
               finished = true;
@@ -2711,7 +2741,33 @@
               resolve(result);
             };
             const check = async () => {
-              if (registration?.installing || registration?.waiting) return;
+              if (finished) return;
+              if (registration?.installing) return;
+              const waiting = registration?.waiting;
+              if (waiting) {
+                if (activationRequested === waiting) return;
+                activationRequested = waiting;
+                const waitingResult = await workerRevision(waiting);
+                if (finished) return;
+                if (registration?.waiting !== waiting) {
+                  check();
+                  return;
+                }
+                if (waitingResult.status !== "ok") {
+                  finish({ failure: codeForWorkerResult(waitingResult) });
+                  return;
+                }
+                if (waitingResult.revision !== updateState.metadataResult?.metadata?.revision) return;
+                try {
+                  if (await reloadIntoRevision(waitingResult.revision, true)) {
+                    finish({ reloaded: true });
+                  }
+                } catch (error) {
+                  console.error("Unable to reopen NRV for the verified update:", error);
+                  finish({ failure: verificationCodes.unexpectedVerificationFailure });
+                }
+                return;
+              }
               const active = registration?.active || navigator.serviceWorker.controller;
               if (!active || active.state !== "activated") return;
               const controller = navigator.serviceWorker.controller;
@@ -2739,8 +2795,15 @@
               observeWorker(registration?.installing);
               check();
             };
-            const timer = window.setTimeout(() => {
+            const timer = window.setTimeout(async () => {
               const active = registration?.active || navigator.serviceWorker.controller;
+              if (registration?.waiting && active) {
+                const activeResult = await workerRevision(active);
+                if (activeResult.status === "ok" && activeResult.revision !== pageRevision) {
+                  finish({ failure: verificationCodes.activeWorkerRevisionMismatch });
+                  return;
+                }
+              }
               finish({
                 failure: active?.state === "activated"
                   ? verificationCodes.controllerUnavailable
@@ -2768,15 +2831,7 @@
           if (controllerResult.status !== "ok") return { failure: codeForWorkerResult(controllerResult) };
           return { active, activeRevision: activeResult.revision, controllerRevision: controllerResult.revision };
         };
-        const maybeReloadIntoWorker = async (workerState) => {
-          if (
-            !isRevision(pageRevision) ||
-            !workerState.activeRevision ||
-            workerState.activeRevision === pageRevision ||
-            workerState.controllerRevision !== workerState.activeRevision
-          ) {
-            return false;
-          }
+        const reloadIntoRevision = async (revision, allowWaitingRetry = false) => {
           let reloadTarget = null;
           try {
             reloadTarget = window.sessionStorage.getItem(RELOAD_MARKER);
@@ -2786,9 +2841,15 @@
               `The one-time update reload could not be checked: ${error.message || error}`,
             );
           }
-          if (reloadTarget) return false;
+          const waitingRetry = `${revision}:waiting`;
+          if (reloadTarget === waitingRetry || (reloadTarget === revision && !allowWaitingRetry)) {
+            return false;
+          }
           try {
-            window.sessionStorage.setItem(RELOAD_MARKER, workerState.activeRevision);
+            window.sessionStorage.setItem(
+              RELOAD_MARKER,
+              reloadTarget === revision ? waitingRetry : revision,
+            );
           } catch {
             fail(
               verificationCodes.unexpectedVerificationFailure,
@@ -2813,6 +2874,20 @@
             window.removeEventListener("pagehide", onPageHide);
           }
           return true;
+        };
+        const maybeReloadIntoWorker = async (workerState) => {
+          if (
+            !isRevision(pageRevision) ||
+            !workerState.activeRevision ||
+            workerState.activeRevision === pageRevision ||
+            workerState.controllerRevision !== workerState.activeRevision ||
+            (navigator.onLine !== false &&
+              (updateState.metadataResult?.unavailable ||
+                updateState.metadataResult?.metadata?.revision !== workerState.activeRevision))
+          ) {
+            return false;
+          }
+          return reloadIntoRevision(workerState.activeRevision);
         };
         const readBuild = async ({
           metadata = null,
@@ -2914,6 +2989,7 @@
           return build;
         };
         const showOfflineReady = () => {
+          instruction.hidden = true;
           title.textContent = translate(
             "startup.safeTitle",
             "NRV is keeping your information safe",
@@ -2933,6 +3009,7 @@
           window.NRVStartupFallback?.disarm();
         };
         const showUpdateUnavailableReady = () => {
+          instruction.hidden = true;
           title.textContent = translate(
             "startup.safeTitle",
             "NRV is keeping your information safe",
@@ -3078,11 +3155,35 @@
           safeContinuationAllowed = false;
           localVerificationPassed = false;
           pendingBuild = null;
+          Object.assign(updateState, {
+            registration: null,
+            transitionDetected: false,
+            transitionCompleted: false,
+            error: null,
+            promise: null,
+            metadataPromise: null,
+            metadataResult: null,
+            updateSettled: false,
+            metadataSettled: false,
+          });
           retryButton.disabled = true;
           continueButton.disabled = true;
+          instruction.hidden = true;
+          diagnosticCode.hidden = true;
+          retryButton.hidden = true;
+          continueButton.hidden = true;
+          const readMore = document.getElementById("startup-recovery-read-more");
+          if (readMore) readMore.hidden = true;
+          title.textContent = translate(
+            "startup.checkingTitle",
+            window.NRVStartupFallback?.isSpanish()
+              ? "Comprobando Nice Return Visits"
+              : "Checking Nice Return Visits",
+          );
           message.textContent = window.NRVStartupFallback?.isSpanish()
             ? "Comprobando actualizaciones…"
             : "Checking for updates…";
+          let waitMessageTimer;
           try {
             window.NRVStartupFallback?.gateStarted();
             if (window.NRVStartupFallback?.hasFailed()) {
@@ -3094,6 +3195,16 @@
               fail(verificationCodes.serviceWorkerUnavailable);
             }
             const online = navigator.onLine !== false;
+            if (online) {
+              window.NRVStartupFallback?.extend(
+                WORKER_TRANSITION_TIMEOUT_MS + 2 * UPDATE_TIMEOUT_MS + 2 * FETCH_TIMEOUT_MS + 8000,
+              );
+              waitMessageTimer = window.setTimeout(() => {
+                message.textContent = window.NRVStartupFallback?.isSpanish()
+                  ? "Espera un poco más…"
+                  : "Please wait just a little longer…";
+              }, UPDATE_TIMEOUT_MS);
+            }
             startIndependentChecks(online);
             const registrationPromise = hasServiceWorker
               ? getLocalRegistration()
@@ -3113,10 +3224,21 @@
             if (!registration && navigator.serviceWorker?.controller) {
               registration = { active: navigator.serviceWorker.controller };
             }
+            if (online) {
+              await Promise.all([updateState.promise, updateState.metadataPromise]);
+              registration = updateState.registration || registration;
+            }
             observeWorker(registration?.installing);
             observeWorker(registration?.waiting);
 
             let verificationError = registrationReadError;
+            if (updateState.transitionDetected) {
+              const transition = await waitForWorkerTransition(registration);
+              if (transition.reloaded) return;
+              if (transition.failure) fail(transition.failure);
+              updateState.transitionCompleted = true;
+              if (await maybeReloadIntoWorker(transition)) return;
+            }
             if (!verificationError) {
               try {
                 pendingBuild = await verifyLocalBuild(registration, online);
@@ -3132,16 +3254,28 @@
             }
 
             if (verificationError && online) {
-              window.NRVStartupFallback?.extend(UPDATE_TIMEOUT_MS + 2500);
-              await Promise.all([
-                updateState.promise,
-                updateState.metadataPromise,
-              ]);
-              registration = updateState.registration || registration;
-              if (updateState.transitionDetected) {
+              if ([
+                verificationCodes.pageRevisionMismatch,
+                verificationCodes.assetRevisionMismatch,
+                verificationCodes.activeWorkerRevisionMismatch,
+                verificationCodes.controllerRevisionMismatch,
+                verificationCodes.appVersionMismatch,
+              ].includes(verificationError.code)) {
+                updateState.error = null;
+                updateState.transitionDetected = false;
+                updateState.transitionCompleted = false;
+                await updateRegistration();
+                registration = updateState.registration || registration;
+                observeWorker(registration?.installing);
+                observeWorker(registration?.waiting);
+              }
+              if (updateState.transitionDetected && !updateState.transitionCompleted) {
                 const transition = await waitForWorkerTransition(registration);
+                if (transition.reloaded) return;
                 if (transition.failure) {
-                  fail(transition.failure);
+                  fail(verificationError.code === verificationCodes.activeWorkerRevisionMismatch
+                    ? verificationCodes.activeWorkerRevisionMismatch
+                    : transition.failure);
                 }
                 updateState.transitionCompleted = true;
                 if (await maybeReloadIntoWorker(transition)) return;
@@ -3183,6 +3317,7 @@
               if (updateState.promise) await updateState.promise;
               registration = updateState.registration || registration;
               const transition = await waitForWorkerTransition(registration);
+              if (transition.reloaded) return;
               if (transition.failure) fail(transition.failure);
               updateState.transitionCompleted = true;
               if (await maybeReloadIntoWorker(transition)) return;
@@ -3218,6 +3353,7 @@
             message.textContent = window.NRVStartupFallback?.isSpanish()
               ? "NRV está al día."
               : "NRV is up to date.";
+            window.clearTimeout(waitMessageTimer);
             await new Promise((resolve) => window.setTimeout(resolve, 350));
             await launchBuild();
           } catch (error) {
@@ -3231,12 +3367,25 @@
                 ),
             );
           } finally {
+            window.clearTimeout(waitMessageTimer);
             checking = false;
             retryButton.disabled = false;
             continueButton.disabled = false;
           }
         };
-        retryButton.addEventListener("click", start);
+        retryButton.addEventListener("click", () => {
+          if (!diagnosticCode.hidden &&
+              diagnosticCode.textContent.endsWith(verificationCodes.activeWorkerRevisionMismatch)) {
+            try {
+              window.sessionStorage.removeItem(RELOAD_MARKER);
+            } catch (error) {
+              console.error("Unable to restart the NRV update recovery:", error);
+              showFailure(new VerificationFailure(verificationCodes.unexpectedVerificationFailure));
+              return;
+            }
+          }
+          return start();
+        });
         continueButton.addEventListener("click", () => {
           if (!safeContinuationAllowed || checking || window.NRVStartupFallback?.hasFailed()) return;
           safeContinuationAllowed = false;
