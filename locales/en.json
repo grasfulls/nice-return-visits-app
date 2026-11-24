@@ -1273,8 +1273,7 @@
   "map.zoomIn": "Zoom in",
   "map.zoomOut": "Zoom out",
   "map.closePopup": "Close popup",
-  "release.current.title": "Clearer startup updates and V12 recovery",
-  "release.current.change1": "NRV now checks for updates automatically at startup and clearly reports checking, applied, or up-to-date status.",
-  "release.current.change2": "V12 appears only when automatic update recovery leaves the mismatch unresolved.",
-  "release.current.change3": "App Updates uses clearer checking and unsaved-edit wording."
+  "release.current.title": "Automatic App Updates status",
+  "release.current.change1": "App Updates now resolves Current version automatically after startup instead of leaving it at Checking.",
+  "release.current.change2": "Manual update checks still provide the same verified update and unsaved-edit safeguards."
 }

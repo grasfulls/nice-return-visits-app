@@ -1,5 +1,22 @@
 [
   {
+    "version": "0.9.069",
+    "en": {
+      "title": "Automatic App Updates status",
+      "changes": [
+        "App Updates now resolves Current version automatically after startup instead of leaving it at Checking.",
+        "Manual update checks still provide the same verified update and unsaved-edit safeguards."
+      ]
+    },
+    "es": {
+      "title": "Estado automático de Actualizaciones de la aplicación",
+      "changes": [
+        "Actualizaciones de la aplicación ahora resuelve automáticamente la versión actual después del inicio sin dejarla en Comprobando.",
+        "Las comprobaciones manuales conservan las mismas protecciones de actualización verificada y cambios sin guardar."
+      ]
+    }
+  },
+  {
     "version": "0.9.068",
     "en": {
       "title": "Clearer startup updates and V12 recovery",

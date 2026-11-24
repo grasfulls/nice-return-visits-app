@@ -37,15 +37,15 @@ const catalogs = Object.fromEntries(["en", "es"].map((language) => [
 for (const language of ["en", "es"]) i18n._setCatalog(language, catalogs[language]);
 
 async function main() {
-  assert.strictEqual(api.APP_VERSION, "0.9.068");
+  assert.strictEqual(api.APP_VERSION, "0.9.069");
   assert(/^sha256:[a-f0-9]{64}$/.test(api.APP_BUILD_REVISION));
   assert.strictEqual(
     api.publicVersionHistoryUrl(api.APP_VERSION, "en"),
-    "https://nicereturnvisits.org/version-history.html#version-0-9-068",
+    "https://nicereturnvisits.org/version-history.html#version-0-9-069",
   );
   assert.strictEqual(
     api.publicVersionHistoryUrl(api.APP_VERSION, "es"),
-    "https://nicereturnvisits.org/es/version-history.html#version-0-9-068",
+    "https://nicereturnvisits.org/es/version-history.html#version-0-9-069",
   );
   const updatedMessage = { textContent: "" };
   const updatedLink = { href: "" };
@@ -83,7 +83,7 @@ async function main() {
     updatedDialogShown = false;
     showUpdatedNotice();
     assert.strictEqual(updatedMessage.textContent, catalogs[language]["update.done"]);
-    assert(updatedLink.href.endsWith(`${page}#version-0-9-068`));
+    assert(updatedLink.href.endsWith(`${page}#version-0-9-069`));
     assert(updatedDialogShown);
   }
   for (const invalid of ["1.0", "1.2.3.4", "01.2.3", "1.-1.0", "1.2.3-beta", "1.2.3\n", "", null, 123]) {
@@ -192,7 +192,7 @@ async function main() {
   assert(headerNodes.get("app-version-badge").ariaLabel.includes("An update is ready"));
   renderHeader(true, "es");
   assert(headerNodes.get("app-version-badge").ariaLabel.includes("Hay una actualización disponible"));
-  assert(headerNodes.get("app-version-badge").href.endsWith("#version-0-9-068"));
+  assert(headerNodes.get("app-version-badge").href.endsWith("#version-0-9-069"));
   assert.throws(() => release.checkMetadata('{"version":"1.0.0"}', version, api.APP_BUILD_REVISION));
   assert.throws(() => release.checkMetadata("not json", version));
   assert.throws(() => release.checkMetadata('{"version":"0.9.0","revision":"invalid"}', version, api.APP_BUILD_REVISION));
@@ -320,7 +320,7 @@ async function main() {
   deployed = { version: api.APP_VERSION, revision: updatedRevision };
   worker = { state: "activated" };
   await check();
-  assert.strictEqual(api.APP_VERSION, "0.9.068");
+  assert.strictEqual(api.APP_VERSION, "0.9.069");
   assert.strictEqual(reloads, 0, "a changed internal revision is offered through Get Update");
   assert.deepStrictEqual(removedLocalStorageKeys, []);
   worker = null;
@@ -409,6 +409,34 @@ async function main() {
     assert(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('id="app-current-version"'));
     assert.strictEqual(i18n.t("update.versionCheckFailed"), catalogs[language]["update.versionCheckFailed"]);
   }
+
+  const resolverStart = source.indexOf("  const resolveAppCurrentVersion = async () => {");
+  const resolverEnd = source.indexOf("\n\n  document\n    .getElementById(\"app-updates-section\")", resolverStart);
+  assert(resolverStart >= 0 && resolverEnd > resolverStart);
+  const resolverElements = {
+    "app-current-version": { textContent: "Current version: Checking…" },
+    "app-running-version": { textContent: "" },
+  };
+  const resolverContext = {
+    document: { getElementById: (id) => resolverElements[id] },
+    APP_VERSION: api.APP_VERSION,
+    appText: (key, fallback, vars) => i18n.t(key, vars, fallback),
+    fetchDeployedAppMetadata: async () => ({
+      version: api.APP_VERSION,
+      revision: api.APP_BUILD_REVISION,
+    }),
+    compareAppVersions: api.compareAppVersions,
+    console: { error() {} },
+  };
+  const resolveCurrentVersion = vm.runInNewContext(
+    `${source.slice(resolverStart, resolverEnd)}\nresolveAppCurrentVersion;`,
+    resolverContext,
+  );
+  await resolveCurrentVersion();
+  assert.strictEqual(
+    resolverElements["app-current-version"].textContent,
+    i18n.t("update.currentRunning", { version: api.APP_VERSION }),
+  );
   assert.strictEqual(
     catalogs.en["update.notReady"],
     "An update isn’t ready yet. Please try again later.",

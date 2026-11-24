@@ -16,8 +16,8 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 // Set to true to require a passphrase when no encryption has been set up yet.
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
-const APP_VERSION = "0.9.068";
-const APP_BUILD_REVISION = "sha256:8a476964d1e8fa72e317bb5c5415e51e5031edbd12f5b60215f105b61b3dbb16";
+const APP_VERSION = "0.9.069";
+const APP_BUILD_REVISION = "sha256:1d7923e939afff9183d4b6829fec3983c3af77349b8d96382a24ad8e00bf06c2";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -9041,6 +9041,50 @@ const initializeApp = async () => {
     }
   };
 
+  const resolveAppCurrentVersion = async () => {
+    const currentVersion = document.getElementById("app-current-version");
+    const runningVersion = document.getElementById("app-running-version");
+    currentVersion.textContent = appText(
+      "update.currentChecking",
+      "Current version: Checking…",
+    );
+    runningVersion.textContent = appText(
+      "update.runningVersion",
+      `Your version: ${APP_VERSION}`,
+      { version: APP_VERSION },
+    );
+    try {
+      const deployedMetadata = await fetchDeployedAppMetadata();
+      const comparison = compareAppVersions(deployedMetadata.version, APP_VERSION);
+      if (comparison <= 0) {
+        currentVersion.textContent = appText(
+          "update.currentRunning",
+          `Current version: ${APP_VERSION}`,
+          { version: APP_VERSION },
+        );
+        return;
+      }
+      currentVersion.textContent = appText(
+        "update.currentAvailable",
+        `Current version: ${deployedMetadata.version}`,
+        { version: deployedMetadata.version },
+      );
+    } catch (error) {
+      console.error("Unable to resolve the current deployed app version:", error);
+      currentVersion.textContent = appText(
+        "update.currentNotAvailable",
+        "Current version: Not available right now",
+      );
+    }
+  };
+
+  document
+    .getElementById("app-updates-section")
+    .addEventListener("toggle", () => {
+      const section = document.getElementById("app-updates-section");
+      if (section.open) resolveAppCurrentVersion();
+    });
+
   document
     .getElementById("btn-check-updates")
     .addEventListener("click", async (event) => {
@@ -14037,6 +14081,7 @@ const startApplication = async () => {
       appReadyForUpdates = true;
       window.NRVStartupFallback?.operational(successor);
       showJustUpdatedNotice();
+      resolveAppCurrentVersion();
       if (appUpdateAvailable) appUpdatePromptHandler();
     })
     .catch(async (error) => {

@@ -1273,8 +1273,7 @@
   "map.zoomIn": "Acercar",
   "map.zoomOut": "Alejar",
   "map.closePopup": "Cerrar ventana emergente",
-  "release.current.title": "Actualizaciones de inicio y recuperación V12 más claras",
-  "release.current.change1": "NRV ahora busca actualizaciones automáticamente al iniciarse y informa claramente cuándo está comprobando, aplicada o al día.",
-  "release.current.change2": "V12 aparece solo cuando la recuperación automática deja sin resolver la diferencia.",
-  "release.current.change3": "Actualizaciones de la aplicación usa instrucciones más claras al comprobar y al haber cambios sin guardar."
+  "release.current.title": "Estado automático de Actualizaciones de la aplicación",
+  "release.current.change1": "Actualizaciones de la aplicación ahora resuelve automáticamente la versión actual después del inicio sin dejarla en Comprobando.",
+  "release.current.change2": "Las comprobaciones manuales conservan las mismas protecciones de actualización verificada y cambios sin guardar."
 }
