@@ -16,8 +16,8 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 // Set to true to require a passphrase when no encryption has been set up yet.
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
-const APP_VERSION = "0.9.066";
-const APP_BUILD_REVISION = "sha256:4597861b072fa10fc04e65fcd64be36ac6faf5afcc42c36e761e85eb4b49738d";
+const APP_VERSION = "0.9.067";
+const APP_BUILD_REVISION = "sha256:ab41bde10d13a85f6241f71584ba7692ddf13cfa6ce0b58cfe8c0a60050d40f0";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -1113,6 +1113,7 @@ const runStartFreshFlow = async ({
 };
 let appUpdateAvailable = false;
 let appReadyForUpdates = false;
+let verifiedAppUpdate = null;
 let appUpdatePromptDismissed = false;
 let appUpdatePromptTimer = null;
 let getAppRefreshBlockMessage = () => "";
@@ -1200,13 +1201,26 @@ try {
   console.error("Unable to clear the pending app update status:", error);
 }
 document.addEventListener("app-update-available", () => {
-  appUpdateAvailable = true;
-  try {
-    localStorage.setItem(APP_UPDATE_PENDING_KEY, "true");
-  } catch (error) {
-    console.error("Unable to save the pending app update status:", error);
-  }
-  appUpdatePromptHandler?.();
+  (async () => {
+    try {
+      const deployedMetadata = await fetchDeployedAppMetadata();
+      const comparison = compareAppVersions(deployedMetadata.version, APP_VERSION);
+      const revisionDiffers = deployedMetadata.revision !== APP_BUILD_REVISION;
+      if (comparison < 0) return;
+      if (comparison === 0 && !revisionDiffers) return;
+      appUpdateAvailable = true;
+      verifiedAppUpdate = deployedMetadata;
+      renderAppWhatsNew(deployedMetadata.version);
+      try {
+        localStorage.setItem(APP_UPDATE_PENDING_KEY, "true");
+      } catch (error) {
+        console.error("Unable to save the pending app update status:", error);
+      }
+      appUpdatePromptHandler?.();
+    } catch (error) {
+      console.error("Unable to verify the offered app update:", error);
+    }
+  })();
 });
 const US_STATE_ABBREVIATIONS = {
   alabama: "AL",
@@ -8956,7 +8970,8 @@ const initializeApp = async () => {
     if (!appUpdateAvailable) return;
     renderBottomNav();
     document.getElementById("app-update-notice").hidden = false;
-    document.getElementById("btn-check-updates").textContent = appText("update.nowTitle", "Update Now");
+    document.getElementById("btn-check-updates").textContent = appText("update.checkRefresh", "Check for Updates");
+    document.getElementById("btn-get-app-update").hidden = false;
     if (getAppRefreshBlockMessage()) {
       if (currentViewId === "settings-view") {
         appUpdateStatus.textContent = appText("update.finishEdits", "An app update is ready. Save or finish your edits before refreshing.");
@@ -8983,8 +8998,12 @@ const initializeApp = async () => {
   };
   appUpdatePromptHandler = showAppUpdatePrompt;
   document.getElementById("app-current-version").textContent = appText(
-    "update.currentVersion",
-    `Current NRV version: ${APP_VERSION}`,
+    "update.currentNotAvailable",
+    "Current version: Not available right now",
+  );
+  document.getElementById("app-running-version").textContent = appText(
+    "update.runningVersion",
+    `Your version: ${APP_VERSION}`,
     { version: APP_VERSION },
   );
 
@@ -8993,6 +9012,34 @@ const initializeApp = async () => {
     .addEventListener("click", () =>
       document.getElementById("app-no-update-dialog").close(),
     );
+
+  const renderAppWhatsNew = async (version) => {
+    const title = document.getElementById("app-whats-new-title");
+    const list = document.getElementById("app-whats-new-list");
+    try {
+      const response = await fetch(new URL("release-history.json", document.baseURI),
+        { cache: "no-store" });
+      if (!response.ok) throw new Error("Release history unavailable");
+      const history = await response.json();
+      const release = history.find((entry) => entry.version === version);
+      if (!release) throw new Error("Release notes unavailable");
+      const language = window.NRVI18n?.getLanguage?.() === "es" ? "es" : "en";
+      const localized = release[language] || release.en;
+      if (!localized) throw new Error("Release notes unavailable");
+      title.textContent = localized.title;
+      list.replaceChildren(...localized.changes.map((change) => {
+        const item = document.createElement("li");
+        item.textContent = change;
+        return item;
+      }));
+    } catch (error) {
+      title.textContent = appText(
+        "update.notesUnavailable",
+        "Release notes for this update aren’t available right now.",
+      );
+      list.replaceChildren();
+    }
+  };
 
   document
     .getElementById("btn-check-updates")
@@ -9003,22 +9050,33 @@ const initializeApp = async () => {
         "btn-open-backup-restore",
       );
       backupRestoreAction.hidden = true;
+      const getUpdateButton = document.getElementById("btn-get-app-update");
+      getUpdateButton.hidden = true;
+      document.getElementById("app-current-version").textContent =
+        appText("update.currentNotAvailable", "Current version: Not available right now");
+      document.getElementById("app-running-version").textContent =
+        appText("update.runningVersion", `Your version: ${APP_VERSION}`, { version: APP_VERSION });
       if (!navigator.onLine) {
-        status.textContent = appText("update.offline", "Connect to the internet before checking for app updates.");
+        status.textContent = appText(
+          "update.offline",
+          "You’re offline. Connect to the internet, then choose Check for Updates.",
+        );
         return;
       }
       const blockMessage = getAppRefreshBlockMessage();
       if (blockMessage) {
-        status.textContent = blockMessage;
+        status.textContent = appText(
+          "update.unsavedEdits",
+          "You have changes that haven’t been saved. Please finish or save them before updating.",
+        );
         revealAppRefreshBlock();
         return;
       }
       if (!("serviceWorker" in navigator)) {
         status.textContent = appText(
-          "update.unsupported",
-          "This browser can’t check for NRV updates. Before using NRV in another browser, make a backup of your saved information.",
+          "update.checkUnable",
+          "NRV can’t check for updates right now. Please make sure you’re connected to the internet, then choose Check for Updates.",
         );
-        backupRestoreAction.hidden = false;
         return;
       }
 
@@ -9036,9 +9094,12 @@ const initializeApp = async () => {
           APP_VERSION,
         );
         if (versionComparison < 0) {
+          document.getElementById("app-current-version").textContent =
+            appText("update.currentRunning", `Current version: ${APP_VERSION}`, { version: APP_VERSION });
+          renderAppWhatsNew(APP_VERSION);
           status.textContent = appText(
-            "update.notReady",
-            "NRV couldn’t confirm that an update is ready yet. Please try again later.",
+            "update.latest",
+            "You have the current version of NRV.",
           );
           button.disabled = false;
           return;
@@ -9050,14 +9111,16 @@ const initializeApp = async () => {
           if (versionComparison > 0 || !revisionMatches) {
             status.textContent = appText(
               "update.notReady",
-              "NRV couldn’t confirm that an update is ready yet. Please try again later.",
+              "An update isn’t ready yet. Please try again later.",
             );
             button.disabled = false;
             return;
           }
-          status.textContent = appText("update.latest", "You have the latest version.");
+          document.getElementById("app-current-version").textContent =
+            appText("update.currentRunning", `Current version: ${APP_VERSION}`, { version: APP_VERSION });
+          status.textContent = appText("update.latest", "You have the current version of NRV.");
+          renderAppWhatsNew(APP_VERSION);
           button.disabled = false;
-          document.getElementById("app-no-update-dialog").showModal();
           return;
         }
         let updateActivated = !incoming || incoming.state === "activated";
@@ -9083,7 +9146,7 @@ const initializeApp = async () => {
         if (!updateActivated) {
           status.textContent = appText(
             "update.notReady",
-            "NRV couldn’t confirm that an update is ready yet. Please try again later.",
+            "An update isn’t ready yet. Please try again later.",
           );
           button.disabled = false;
           return;
@@ -9095,19 +9158,41 @@ const initializeApp = async () => {
           revealAppRefreshBlock();
           return;
         }
-        status.textContent = appText("update.refreshing", "Update check complete. Refreshing the app now; saved contacts are kept on this device.");
-        try {
-          localStorage.removeItem(APP_UPDATE_PENDING_KEY);
-        } catch (error) {
-          console.error("Unable to clear the pending app update status:", error);
-        }
-        reloadAfterUpdate();
+        appUpdateAvailable = true;
+        verifiedAppUpdate = deployedMetadata;
+        document.getElementById("app-current-version").textContent =
+          appText("update.currentAvailable", `Current version: ${deployedMetadata.version}`, { version: deployedMetadata.version });
+        document.getElementById("btn-get-app-update").hidden = false;
+        renderAppWhatsNew(deployedMetadata.version);
+        status.textContent = appText(
+          "update.availableState",
+          "A new version of NRV is available.",
+        );
+        button.disabled = false;
       } catch (error) {
         console.error("Unable to check for app updates:", error);
-        status.textContent =
-          appText("update.versionCheckFailed", "NRV couldn’t complete the update check. Please try again.");
+        status.textContent = appText(
+          "update.checkUnable",
+          "NRV can’t check for updates right now. Please make sure you’re connected to the internet, then choose Check for Updates.",
+        );
         button.disabled = false;
       }
+    });
+
+  document
+    .getElementById("btn-get-app-update")
+    .addEventListener("click", () => {
+      if (!appUpdateAvailable || !verifiedAppUpdate) return;
+      const blockMessage = getAppRefreshBlockMessage();
+      if (blockMessage) {
+        appUpdateStatus.textContent = appText(
+          "update.unsavedEdits",
+          "You have changes that haven’t been saved. Please finish or save them before updating.",
+        );
+        revealAppRefreshBlock();
+        return;
+      }
+      reloadAfterUpdate();
     });
 
   new MutationObserver(updateHeaderTitle).observe(modal, {

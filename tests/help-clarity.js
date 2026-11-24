@@ -73,8 +73,8 @@ for (const language of ["en", "es"]) {
   );
   assert(
     language === "en"
-      ? text.includes("NRV couldn’t confirm that an update is ready yet. Please try again later.")
-      : text.includes("NRV aún no pudo confirmar que haya una actualización lista. Vuelve a intentarlo más tarde."),
+      ? text.includes("An update isn’t ready yet. Please try again later.")
+      : text.includes("Una actualización aún no está lista. Vuelve a intentarlo más tarde."),
     `${language}: update-readiness wording states only what NRV knows`,
   );
   assert.doesNotMatch(text, /published version|file was made by a newer version|versión más reciente/);
@@ -84,14 +84,12 @@ for (const language of ["en", "es"]) {
   );
 }
 
-assert.doesNotMatch(help.en, /\binstalled icon\b|\bnew icon\b|\binstalled copy\b|\bbrowser copy\b/i);
-assert.doesNotMatch(help.es, /icono instalado|nuevo icono|copia instalada|copia del navegador/i);
 assert.doesNotMatch(help.en, /contacts will not appear automatically|may be separate copies and do not sync/i);
 assert.doesNotMatch(help.es, /no aparecerán automáticamente|copias separadas|no se transfiere automáticamente/i);
 
 for (const language of ["en", "es"]) {
   const note = locales[language]["release.current.change1"];
-  assert(/error code|código de error/i.test(note), `${language}: What's New mentions error codes`);
+  assert(/error code|código(s)? de error/i.test(note), `${language}: What's New mentions error codes`);
   assert(/what NRV found|qué encontró NRV/i.test(note), `${language}: What's New describes known condition`);
   assert(/available next step|siguiente paso disponible/i.test(note), `${language}: What's New describes next step`);
   assert(!/how long|cuánto esperar|cuánto tiempo/i.test(note), `${language}: no unsupported retry timing claim`);

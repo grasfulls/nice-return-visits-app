@@ -116,8 +116,12 @@ async function main() {
       late.element("startup-recovery-message").textContent,
       catalogs[language]["startup.verify.NRV-S02"],
     );
-    assert.match(catalogs[language]["startup.verify.NRV-S02"], /restore a backup|restaurar una copia/);
-    assert.match(catalogs[language]["startup.verify.NRV-S02"], /only if the recovery guidance recommends it|solo si la guía de recuperación lo recomienda/);
+    assert(
+      /This does not mean your information has been lost|Esto no significa que tu información se haya perdido/.test(
+        catalogs[language]["startup.verify.NRV-S02"],
+      ),
+      "S02 is concise and preserves the no-data-loss warning",
+    );
     assert.strictEqual(late.fallback.operational(late.element("app-container")), false);
     assert.strictEqual(late.element("startup-recovery-screen").hidden, false);
   }

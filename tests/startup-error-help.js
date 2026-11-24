@@ -79,9 +79,9 @@ for (const language of ["en", "es"]) {
       assert.strictEqual(action.hidden, false, code);
       assert.strictEqual(
         action.textContent,
-        /NRV-S|NRV-A01/.test(code)
-          ? (language === "es" ? "Intentar de nuevo" : "Try Again")
-          : catalogs[language]["startup.retry"],
+        code === "NRV-V12"
+          ? (language === "es" ? "Buscar actualizaciones" : "Check for Updates")
+          : (language === "es" ? "Intentar de nuevo" : "Try Again"),
         code,
       );
       action.click();

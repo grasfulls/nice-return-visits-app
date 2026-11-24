@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title data-i18n="page.welcome">NRV-Welcome</title>
-    <meta name="nrv-build-revision" content="sha256:4597861b072fa10fc04e65fcd64be36ac6faf5afcc42c36e761e85eb4b49738d" />
+    <meta name="nrv-build-revision" content="sha256:ab41bde10d13a85f6241f71584ba7692ddf13cfa6ce0b58cfe8c0a60050d40f0" />
     <meta name="theme-color" content="#004080" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NRV" />
@@ -252,6 +252,7 @@
         <a id="startup-recovery-help" href="./help.html#backup" hidden>Backup and recovery help</a>
         <button type="button" id="startup-recovery-code" class="nrv-error-code"
           aria-haspopup="dialog" aria-controls="nrv-error-help" hidden></button>
+        <a id="startup-recovery-read-more" href="./help.html#troubleshooting" hidden>Read More</a>
         <button type="button" id="startup-recovery-continue" hidden>
           Continue Offline
         </button>
@@ -265,6 +266,7 @@
       <h2 id="nrv-error-help-title"></h2>
       <p id="nrv-error-help-code"></p>
       <button type="button" id="nrv-error-help-action-button" hidden></button>
+      <a id="nrv-error-help-read-more" href="./help.html#troubleshooting">Read More</a>
       <form method="dialog"><button id="nrv-error-help-close" autofocus>Close</button></form>
     </dialog>
     <script>
@@ -281,7 +283,7 @@
         var dataStarted = false;
         var recovering = false;
         var timer;
-        var release = "0.9.066";
+        var release = "0.9.067";
         function spanish() {
           if (/(?:\?|&)lang=es(?:&|$)/.test(window.location.search)) return true;
           if (/(?:\?|&)lang=en(?:&|$)/.test(window.location.search)) return false;
@@ -304,8 +306,8 @@
             : (es ? "NRV no pudo iniciarse." : "NRV could not start.");
           message.textContent = dataStarted
             ? (es
-              ? "NRV comenzó a abrir tu información guardada, pero no pudo terminar de iniciarse. Intentar de nuevo actualiza NRV; no borra tu información. Este mensaje no significa que hayas perdido tu información. Si Intentar de nuevo no funciona, consulta la ayuda de copias de seguridad y recuperación para localizar y restaurar una copia. Reinstala NRV solo si la guía de recuperación lo recomienda."
-              : "NRV began opening your saved information but couldn’t finish starting. Try Again refreshes NRV; it does not erase your information. This message does not mean your information is lost. If Try Again does not work, use Backup and recovery help to find and restore a backup. Reinstall NRV only if the recovery guidance recommends it.")
+              ? "NRV comenzó a abrir tu información guardada, pero no pudo terminar de iniciarse. Esto no significa que tu información se haya perdido."
+              : "NRV began opening your saved information but couldn’t finish starting. This does not mean your information has been lost.")
             : (es
               ? "NRV no pudo iniciarse. Se detuvo antes de abrir tu información guardada."
               : "NRV couldn’t start. It stopped before opening your saved information.");
@@ -320,6 +322,13 @@
           retry.textContent = es ? "Intentar de nuevo" : "Try Again";
           retry.hidden = false;
           retry.disabled = false;
+          var readMore = document.getElementById("startup-recovery-read-more");
+          if (readMore) {
+            readMore.hidden = false;
+            readMore.textContent = es ? "Leer más" : "Read More";
+            readMore.href = (es ? "./help-es.html" : "./help.html") +
+              (dataStarted ? "#nrv-error-s02" : "#nrv-error-s01");
+          }
           screen.hidden = false;
         }
         function arm(delay) {
@@ -405,7 +414,7 @@
       (function () {
         // Keep recovery help independent of files that may have failed to load.
         var meanings = {
-          "NRV-V01": ["This installed copy can’t run the check it needs, so NRV can’t safely continue here.", "Esta copia instalada no puede realizar la comprobación que necesita, así que NRV no puede continuar de forma segura aquí."],
+          "NRV-V01": ["Update your browser or device software, then open NRV again.", "Actualiza el software del navegador o del dispositivo y vuelve a abrir NRV."],
           "NRV-V02": ["NRV couldn’t set up its update check, so it can’t confirm this copy is ready.", "NRV no pudo preparar su comprobación de actualizaciones, así que no puede confirmar que esta copia esté lista."],
           "NRV-V03": ["NRV couldn’t complete its update check, so it can’t confirm this copy is ready.", "NRV no pudo completar su comprobación de actualizaciones, así que no puede confirmar que esta copia esté lista."],
           "NRV-V04": ["NRV’s update check didn’t become ready in time, so NRV can’t confirm this copy is ready.", "La comprobación de actualizaciones de NRV no estuvo lista a tiempo, así que NRV no puede confirmar que esta copia esté lista."],
@@ -426,7 +435,7 @@
           "NRV-V19": ["NRV couldn’t read an answer it needed for its app check, so it can’t confirm this copy is ready.", "NRV no pudo leer una respuesta necesaria para comprobar la aplicación, así que no puede confirmar que esta copia esté lista."],
           "NRV-V20": ["NRV couldn’t get a file it needs before its app check timed out, so it can’t safely continue.", "NRV no pudo obtener un archivo que necesita antes de que terminara el tiempo de la comprobación, así que no puede continuar de forma segura."],
           "NRV-S01": ["NRV couldn’t start. It stopped before opening your saved information.", "NRV no pudo iniciarse. Se detuvo antes de abrir tu información guardada."],
-          "NRV-S02": ["NRV began opening your saved information but couldn’t finish starting. Try Again refreshes NRV; it does not erase your information. This message does not mean your information is lost. If Try Again does not work, use Backup and recovery help to find and restore a backup. Reinstall NRV only if the recovery guidance recommends it.", "NRV comenzó a abrir tu información guardada, pero no pudo terminar de iniciarse. Intentar de nuevo actualiza NRV; no borra tu información. Este mensaje no significa que hayas perdido tu información. Si Intentar de nuevo no funciona, consulta la ayuda de copias de seguridad y recuperación para localizar y restaurar una copia. Reinstala NRV solo si la guía de recuperación lo recomienda."],
+          "NRV-S02": ["NRV began opening your saved information but couldn’t finish starting. This does not mean your information has been lost.", "NRV comenzó a abrir tu información guardada, pero no pudo terminar de iniciarse. Esto no significa que tu información se haya perdido."],
           "NRV-A01": ["NRV couldn’t continue setup to the next step. This attempt didn’t save your setup progress.", "NRV no pudo continuar con la configuración al siguiente paso. Este intento no guardó el progreso de configuración."]
         };
         window.NRVStartupMessages = meanings;
@@ -447,10 +456,15 @@
           document.getElementById("nrv-error-help-code").textContent =
             (es ? "Código de error: " : "Error code: ") + code;
           actionButton.hidden = code === "NRV-V01";
-          actionButton.textContent = /NRV-S|NRV-A01/.test(code)
-            ? (es ? "Intentar de nuevo" : "Try Again")
-            : (es ? "Buscar actualizaciones" : "Check for Updates");
+          actionButton.textContent = code === "NRV-V12"
+            ? (es ? "Buscar actualizaciones" : "Check for Updates")
+            : (es ? "Intentar de nuevo" : "Try Again");
           actionButton.dataset.code = code;
+          var readMore = document.getElementById("nrv-error-help-read-more");
+          readMore.textContent = es ? "Leer más" : "Read More";
+          readMore.href = (es ? "./help-es.html" : "./help.html") +
+            "?nrv_error=" + encodeURIComponent(code) +
+            "#nrv-error-" + code.toLowerCase();
           document.getElementById("nrv-error-help-close").textContent = es ? "Cerrar" : "Close";
           dialog.lang = es ? "es" : "en";
           previousFocus = button;
@@ -480,7 +494,7 @@
         });
       })();
     </script>
-    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.066"
+    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.067"
       media="print" onload="this.media='all'" onerror="window.NRVStartupFallback.show()" />
     <section
       id="unlock-screen"
@@ -615,8 +629,8 @@
             </aside>
             <h3 data-i18n="install.ipad.proceedHeading">Proceed as follows</h3>
             <ol id="ipad-safari-following-steps" start="2">
-              <li data-i18n="install.wizard.safariShare">Tap Share: the square with an arrow pointing up.</li>
-              <li data-i18n="install.wizard.safariHome">Scroll down and tap Add to Home Screen.</li>
+              <li data-i18n="install.wizard.safariShare">If you can see Share, tap it. Share is a square with an arrow pointing up. If you can’t see Share, tap the page once to bring back Safari’s controls and look again. If it is still missing, look for Safari’s three-dot menu, tap it, and choose Share.</li>
+              <li data-i18n="install.wizard.safariHome">Look for Add to Home Screen in the Share sheet.</li>
               <li data-i18n="install.wizard.safariAdd">Turn on Open as Web App if offered, then tap Add.</li>
             </ol>
           </section>
@@ -1409,14 +1423,15 @@
             <details class="settings-section" id="app-updates-section">
               <summary data-i18n="settings.updates">App Updates</summary>
               <p id="app-current-version"></p>
+              <p id="app-running-version"></p>
               <details class="settings-section">
                 <summary data-i18n="update.whatsNew">What's New</summary>
                 <!-- release-notes:start -->
-                <p data-i18n="release.current.title">Safer backups, reminders, and recovery</p>
+                <p data-i18n="release.current.title">Clearer errors, Help, and app updates</p>
                 <ul>
-                  <li data-i18n="release.current.change1">Dropbox keeps up to three automatic recovery copies and protects the latest backup when space is limited.</li>
-                  <li data-i18n="release.current.change2">Track contact Reminders / Follow-ups separately from visit notes and print a private NRV information record.</li>
-                  <li data-i18n="release.current.change3">Get clearer backup confirmations and safer guidance when moving devices or recovering from startup problems.</li>
+                  <li data-i18n="release.current.change1">Error codes explain what NRV found and show the available next step with Try Again or Check for Updates.</li>
+                  <li data-i18n="release.current.change2">App Updates distinguishes Your version from the verified Current version and shows Get Update only for a verified release.</li>
+                  <li data-i18n="release.current.change3">Help provides code-specific recovery guidance and clearer iPhone Safari installation steps.</li>
                 </ul>
                 <!-- release-notes:end -->
               </details>
@@ -1428,7 +1443,10 @@
                 An app update is ready. Choose Update Now to install it.
               </p>
               <button type="button" id="btn-check-updates" data-i18n="update.checkRefresh">
-                Check for Updates &amp; Refresh
+                Check for Updates
+              </button>
+              <button type="button" id="btn-get-app-update" hidden>
+                Get Update
               </button>
               <p id="app-update-status" role="status" aria-live="polite"></p>
               <button type="button" id="btn-open-backup-restore" hidden data-i18n="update.openBackupRestore">
@@ -1614,6 +1632,8 @@
           <button type="button" id="setup-error-code" class="nrv-error-code"
             aria-haspopup="dialog" aria-controls="nrv-error-help"
             data-i18n="setup.continueFailureCode">Error code: NRV-A01</button>
+          <a id="setup-error-read-more" href="./help.html?nrv_error=NRV-A01#nrv-error-a01"
+            data-i18n="startup.readMore">Read More</a>
           <button type="button" id="btn-retry-setup-progress" hidden data-i18n="common.tryAgain">
             Try Again
           </button>
@@ -2271,8 +2291,8 @@
 
     <section id="print-container" hidden aria-hidden="true"></section>
 
-    <script src="nrv-dialog.js?nrv-release=0.9.066"></script>
-    <script src="i18n.js?nrv-release=0.9.066"></script>
+    <script src="nrv-dialog.js?nrv-release=0.9.067"></script>
+    <script src="i18n.js?nrv-release=0.9.067"></script>
     <script>
       window.nrvI18nError = null;
       if (window.NRVI18n) {
@@ -2354,17 +2374,32 @@
             "startup.safeTitle",
             "NRV is keeping your information safe",
           );
-          message.textContent = translate(
-            `startup.verify.${error.code}`,
-            fallbackMeaning?.[fallbackSpanish ? 1 : 0] ||
-              "NRV couldn’t finish checking this copy, so it can’t safely continue.",
-          );
+          message.textContent = error.code === verificationCodes.serviceWorkerUnavailable
+            ? translate(
+                "startup.verify.NRV-V01.immediate",
+                "Update your browser or device software, then open NRV again.",
+              )
+            : translate(
+                `startup.verify.${error.code}`,
+                fallbackMeaning?.[fallbackSpanish ? 1 : 0] ||
+                  "NRV couldn’t finish checking this copy, so it can’t safely continue.",
+              );
           diagnosticCode.textContent =
             `${translate("startup.errorCode", "Error code")}: ${error.code}`;
           diagnosticCode.hidden = false;
           continueButton.hidden = true;
           retryButton.hidden = error.code === verificationCodes.serviceWorkerUnavailable;
           retryButton.disabled = retryButton.hidden;
+          retryButton.textContent = error.code === "NRV-V12"
+            ? translate("startup.retryV12", "Check for Updates")
+            : translate("startup.tryAgain", "Try Again");
+          const readMore = document.getElementById("startup-recovery-read-more");
+          if (readMore) {
+            readMore.hidden = false;
+            readMore.textContent = translate("startup.readMore", "Read More");
+            readMore.href = `./help.html?nrv_error=${encodeURIComponent(error.code)}#nrv-error-${error.code.toLowerCase()}`;
+            readMore.target = "_self";
+          }
           screen.hidden = false;
           window.NRVStartupFallback?.disarm();
         };

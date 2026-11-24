@@ -37,15 +37,15 @@ const catalogs = Object.fromEntries(["en", "es"].map((language) => [
 for (const language of ["en", "es"]) i18n._setCatalog(language, catalogs[language]);
 
 async function main() {
-  assert.strictEqual(api.APP_VERSION, "0.9.066");
+  assert.strictEqual(api.APP_VERSION, "0.9.067");
   assert(/^sha256:[a-f0-9]{64}$/.test(api.APP_BUILD_REVISION));
   assert.strictEqual(
     api.publicVersionHistoryUrl(api.APP_VERSION, "en"),
-    "https://nicereturnvisits.org/version-history.html#version-0-9-066",
+    "https://nicereturnvisits.org/version-history.html#version-0-9-067",
   );
   assert.strictEqual(
     api.publicVersionHistoryUrl(api.APP_VERSION, "es"),
-    "https://nicereturnvisits.org/es/version-history.html#version-0-9-066",
+    "https://nicereturnvisits.org/es/version-history.html#version-0-9-067",
   );
   const updatedMessage = { textContent: "" };
   const updatedLink = { href: "" };
@@ -83,7 +83,7 @@ async function main() {
     updatedDialogShown = false;
     showUpdatedNotice();
     assert(updatedMessage.textContent.includes(api.APP_VERSION), updatedMessage.textContent);
-    assert(updatedLink.href.endsWith(`${page}#version-0-9-066`));
+    assert(updatedLink.href.endsWith(`${page}#version-0-9-067`));
     assert(updatedDialogShown);
   }
   for (const invalid of ["1.0", "1.2.3.4", "01.2.3", "1.-1.0", "1.2.3-beta", "1.2.3\n", "", null, 123]) {
@@ -192,7 +192,7 @@ async function main() {
   assert(headerNodes.get("app-version-badge").ariaLabel.includes("An update is ready"));
   renderHeader(true, "es");
   assert(headerNodes.get("app-version-badge").ariaLabel.includes("Hay una actualización disponible"));
-  assert(headerNodes.get("app-version-badge").href.endsWith("#version-0-9-066"));
+  assert(headerNodes.get("app-version-badge").href.endsWith("#version-0-9-067"));
   assert.throws(() => release.checkMetadata('{"version":"1.0.0"}', version, api.APP_BUILD_REVISION));
   assert.throws(() => release.checkMetadata("not json", version));
   assert.throws(() => release.checkMetadata('{"version":"0.9.0","revision":"invalid"}', version, api.APP_BUILD_REVISION));
@@ -267,6 +267,13 @@ async function main() {
       if (id === "btn-check-updates") return { addEventListener(event, callback) { handler = callback; } };
       if (id === "btn-open-backup-restore") return backupRestoreAction;
       if (id === "app-no-update-dialog") return { showModal() { dialogs += 1; } };
+      if (id === "btn-get-app-update") return { hidden: true, addEventListener() {} };
+      if (id === "app-current-version") return { textContent: "" };
+      if (id === "app-running-version") return { textContent: "" };
+      if (id === "app-update-status") return status;
+      if (id === "app-whats-new-title") return { textContent: "" };
+      if (id === "app-whats-new-list") return { replaceChildren() {} };
+      if (id === "app-update-notice") return { hidden: true };
       throw new Error(`Unexpected element ${id}`);
     } },
     navigator: { onLine: true, serviceWorker: { getRegistration: async () => registration } },
@@ -287,58 +294,56 @@ async function main() {
     },
     compareAppVersions: api.compareAppVersions,
     reloadAfterUpdate: () => { reloads += 1; },
+    renderAppWhatsNew: () => {},
     console: { error() {} },
   };
   vm.runInNewContext(source.slice(handlerStart, handlerEnd), handlerContext);
   const check = async () => { button.disabled = false; status.textContent = ""; await handler({ currentTarget: button }); };
   i18n._setCurrent("en");
   await check();
-  assert.strictEqual(dialogs, 1);
   assert.strictEqual(status.textContent, catalogs.en["update.latest"]);
   deployed = { version: "0.10.0", revision: updatedRevision };
   await check();
   assert.strictEqual(status.textContent, catalogs.en["update.notReady"]);
-  assert.strictEqual(dialogs, 1);
   assert.strictEqual(reloads, 0);
   deployed = { version: "0.8.9", revision: updatedRevision };
   await check();
-  assert.strictEqual(status.textContent, catalogs.en["update.notReady"]);
+  assert.strictEqual(status.textContent, catalogs.en["update.latest"]);
   deployed = new Error("invalid metadata");
   await check();
-  assert.strictEqual(status.textContent, catalogs.en["update.versionCheckFailed"]);
+  assert.strictEqual(status.textContent, catalogs.en["update.checkUnable"]);
   assert(!button.disabled);
   deployed = { version: api.APP_VERSION, revision: updatedRevision };
   await check();
   assert.strictEqual(status.textContent, catalogs.en["update.notReady"]);
-  assert.strictEqual(dialogs, 1);
   assert.strictEqual(reloads, 0);
   deployed = { version: api.APP_VERSION, revision: updatedRevision };
   worker = { state: "activated" };
   await check();
-  assert.strictEqual(api.APP_VERSION, "0.9.066");
-  assert.strictEqual(reloads, 1, "a changed internal revision updates the same displayed version");
-  assert.deepStrictEqual(removedLocalStorageKeys, ["pending"]);
+  assert.strictEqual(api.APP_VERSION, "0.9.067");
+  assert.strictEqual(reloads, 0, "a changed internal revision is offered through Get Update");
+  assert.deepStrictEqual(removedLocalStorageKeys, []);
   worker = null;
   available = true;
   deployed = { version: api.APP_VERSION, revision: cachedRevision };
   await check();
-  assert.strictEqual(reloads, 2, "previously activated update still refreshes");
+  assert.strictEqual(reloads, 0, "the verified update remains pending until Get Update");
   editDuringLookup = true;
   await check();
   assert.strictEqual(status.textContent, "new unsaved edit");
-  assert.strictEqual(reloads, 2, "edits made during the lookup block refresh");
+  assert.strictEqual(reloads, 0, "edits made during the lookup block prevent the update");
   editDuringLookup = false;
   available = false;
   block = "unsaved";
   const callsBeforeBlock = updateCalls;
   await check();
-  assert.strictEqual(status.textContent, "unsaved");
+  assert.strictEqual(status.textContent, catalogs.en["update.unsavedEdits"]);
   assert.strictEqual(updateCalls, callsBeforeBlock);
   block = "";
   delete handlerContext.navigator.serviceWorker;
   await check();
-  assert.strictEqual(status.textContent, catalogs.en["update.unsupported"]);
-  assert.strictEqual(backupRestoreAction.hidden, false);
+  assert.strictEqual(status.textContent, catalogs.en["update.checkUnable"]);
+  assert.strictEqual(backupRestoreAction.hidden, true);
   handlerContext.navigator.serviceWorker = { getRegistration: async () => registration };
   handlerContext.navigator.onLine = false;
   await check();
@@ -347,9 +352,8 @@ async function main() {
   handlerContext.navigator.onLine = true;
   updateError = true;
   await check();
-  assert.strictEqual(status.textContent, catalogs.en["update.versionCheckFailed"]);
-  assert.strictEqual(dialogs, 1);
-  assert.strictEqual(reloads, 2);
+  assert.strictEqual(status.textContent, catalogs.en["update.checkUnable"]);
+  assert.strictEqual(reloads, 0);
 
   const sectionStart = source.indexOf("  const openSettingsSection = async (sectionId) => {");
   const sectionEnd = source.indexOf('\n  document\n    .getElementById("btn-setup-wizard-next")', sectionStart);
@@ -401,13 +405,13 @@ async function main() {
       APP_VERSION: api.APP_VERSION,
       appText: (key, fallback, vars) => i18n.t(key, vars, fallback),
     });
-    assert.strictEqual(versionLabel.textContent, i18n.t("update.currentVersion", { version: api.APP_VERSION }));
+    assert.strictEqual(versionLabel.textContent, i18n.t("update.currentNotAvailable"));
     assert(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('id="app-current-version"'));
     assert.strictEqual(i18n.t("update.versionCheckFailed"), catalogs[language]["update.versionCheckFailed"]);
   }
   assert.strictEqual(
     catalogs.en["update.notReady"],
-    "NRV couldn’t confirm that an update is ready yet. Please try again later.",
+    "An update isn’t ready yet. Please try again later.",
   );
   assert.strictEqual(
     catalogs.en["update.unsupported"],
@@ -416,7 +420,7 @@ async function main() {
   assert.strictEqual(catalogs.en["update.openBackupRestore"], "Open Backup/Restore");
   assert.strictEqual(
     catalogs.es["update.notReady"],
-    "NRV aún no pudo confirmar que haya una actualización lista. Vuelve a intentarlo más tarde.",
+    "Una actualización aún no está lista. Vuelve a intentarlo más tarde.",
   );
   assert.strictEqual(
     catalogs.es["update.unsupported"],

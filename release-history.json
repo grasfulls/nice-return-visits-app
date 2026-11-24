@@ -1,10 +1,30 @@
 [
   {
+    "version": "0.9.067",
+    "en": {
+      "title": "Clearer errors, Help, and app updates",
+      "changes": [
+        "Error codes explain what NRV found and show the available next step with Try Again or Check for Updates.",
+        "App Updates distinguishes Your version from the verified Current version and shows Get Update only for a verified release.",
+        "Help provides code-specific recovery guidance and clearer iPhone Safari installation steps."
+      ]
+    },
+    "es": {
+      "title": "Errores, ayuda y actualizaciones más claros",
+      "changes": [
+        "Los códigos de error explican qué encontró NRV y muestran el siguiente paso disponible con Intentar de nuevo o Buscar actualizaciones.",
+        "Actualizaciones de la aplicación distingue Tu versión de la versión actual verificada y muestra Obtener actualización solo para una versión verificada.",
+        "La ayuda ofrece instrucciones específicas para cada código y pasos más claros para instalar en iPhone con Safari."
+      ]
+    }
+  },
+  {
     "version": "0.9.066",
     "en": {
       "title": "Safer backups, reminders, and recovery",
       "changes": [
         "Dropbox keeps up to three automatic recovery copies and protects the latest backup when space is limited.",
+        "Error codes now show what NRV found and the available next step.",
         "Track contact Reminders / Follow-ups separately from visit notes and print a private NRV information record.",
         "Get clearer backup confirmations and safer guidance when moving devices or recovering from startup problems."
       ]
@@ -13,6 +33,7 @@
       "title": "Copias de seguridad, recordatorios y recuperación más seguros",
       "changes": [
         "Dropbox conserva hasta tres copias automáticas de recuperación y protege la última copia de seguridad cuando el espacio es limitado.",
+        "Cada código de error ahora muestra qué encontró NRV y el siguiente paso disponible.",
         "Registra recordatorios y seguimientos de contactos por separado de las notas de visita e imprime un registro privado de información de NRV.",
         "Recibe confirmaciones más claras de las copias de seguridad e instrucciones más seguras al cambiar de dispositivo o recuperarte de problemas de inicio."
       ]
