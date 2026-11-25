@@ -45,13 +45,15 @@ assert.deepStrictEqual(
     "participate",
     "auxiliary",
     "regular",
+    "signUpAuxiliary",
+    "signUpRegular",
     "returnVisits",
     "informal",
     "skills",
     "needGreater",
     "unassigned",
   ],
-  "all users receive the same nine ordered standard paths",
+  "all users receive the same eleven ordered standard paths",
 );
 assert.strictEqual(GOAL_PATHS.seldomWorked.selectable, false);
 assert.deepStrictEqual(

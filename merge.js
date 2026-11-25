@@ -158,7 +158,9 @@
       merged.achievedAt = new Date(
         Math.max(...completionDates, time(local.achievedAt), time(remote.achievedAt)),
       ).toISOString();
-    } else {
+    } else if (items.length) {
+      // Goals without steps (simplified goals) keep the winner's status and
+      // achievedAt: completion is the user's explicit choice, not derived.
       delete merged.achievedAt;
       if (merged.status === "achieved") {
         merged.status = merged.periodEndsAt && time(merged.periodEndsAt) <= Date.now()

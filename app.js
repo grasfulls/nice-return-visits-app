@@ -17,7 +17,7 @@ const ENCRYPTION_META_KEY = "encryption-meta";
 // Applies to newly created passphrases only; existing 8+ character ones still unlock.
 const MIN_PASSPHRASE_LENGTH = 12;
 const APP_VERSION = "0.9.071";
-const APP_BUILD_REVISION = "sha256:a3277c879675a3f0eb8574f3b85f28c09ee0bc4816ca6cb1a4ba1935c6bd715f";
+const APP_BUILD_REVISION = "sha256:e68155087e958c0b5c533f1fcaec6364be25cb74bd6dcb5a991ae2b432eba400";
 const appText = (key, fallback, vars) =>
   window.NRVI18n?.t(key, vars, fallback) || fallback;
 const publicVersionHistoryUrl = (version, language) => {
@@ -307,9 +307,17 @@ const locationTypeDisplay = (type) => ({
 // Bump on any change to the stored data shape, and add a migration in
 // normalizeRegionData. Version 3 added country; version 5 added postal codes.
 // Version 6 added independent addressing; version 7 added working designations;
-// version 8 adds goals, milestones, and occurrence history.
-const SCHEMA_VERSION = 10;
+// version 8 adds goals, milestones, and occurrence history. Version 11 adds the
+// simplified goals experience: sign-up paths and auxiliary pioneer months.
+const SCHEMA_VERSION = 11;
 const EPOCH_TIMESTAMP = "1970-01-01T00:00:00.000Z";
+// Simplified Goals experience. While true, the active interface offers the
+// streamlined picker (checkbox goals with Completed/Clear and the Auxiliary
+// Pioneer month table) and the advanced Goals implementation below (steps,
+// editors, periods, lifecycle, encouragements, acknowledgements, history,
+// Create My Own Path) stays dormant for possible future refinement. Do not
+// delete the dormant code paths; they are intentionally preserved.
+const GOALS_SIMPLIFIED = true;
 const GOAL_PATHS = {
   beginMinistry: {
     nameKey: "goals.path.beginMinistry",
@@ -341,6 +349,18 @@ const GOAL_PATHS = {
     type: "target",
     items: ["learnRegular", "planSustainable", "reviewProgress"],
   },
+  signUpAuxiliary: {
+    nameKey: "goals.path.signUpAuxiliary",
+    icon: "🗓️",
+    type: "target",
+    items: [],
+  },
+  signUpRegular: {
+    nameKey: "goals.path.signUpRegular",
+    icon: "📝",
+    type: "target",
+    items: [],
+  },
   returnVisits: {
     nameKey: "goals.path.returnVisits",
     icon: "↩️",
@@ -371,6 +391,10 @@ const GOAL_PATHS = {
     type: "repeatable",
     items: ["chooseTerritory", "planSessions", "recordCompletion"],
   },
+  // Legacy compatibility definition. "Work Seldom-Worked Territory" is
+  // intentionally retained so previously saved goals keep rendering, but it is
+  // not part of the current selectable Goals interface. Do not re-expose,
+  // migrate, or delete it.
   seldomWorked: {
     nameKey: "goals.path.seldomWorked",
     icon: "🗺️",
@@ -420,6 +444,28 @@ const GOAL_METHODS = {
   smpw: "goals.method.smpw",
   informal: "goals.method.informal",
   other: "goals.method.other",
+};
+// Simplified Goals: the Sign Up for Auxiliary Pioneer Service goal keeps a
+// rolling window of device-local calendar months keyed "YYYY-MM" — the
+// current month plus the next 11. Past months are discarded without history.
+const AUX_PIONEER_PATH_ID = "signUpAuxiliary";
+const getAuxMonthKeys = (now = new Date()) =>
+  Array.from({ length: 12 }, (_unused, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() + index, 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  });
+// Month checkbox rules: checking Completed also checks Try; unchecking
+// Completed also unchecks Try; unchecking Try leaves an already checked
+// Completed checked (Try unchecked with Completed checked is a valid state).
+const applyAuxMonthChange = (months, monthKey, field, checked) => {
+  const current = (months && months[monthKey]) || { try: false, completed: false };
+  const next =
+    field === "completed"
+      ? checked === true
+        ? { try: true, completed: true }
+        : { try: false, completed: false }
+      : { ...current, try: checked === true };
+  return { ...(months || {}), [monthKey]: next };
 };
 
 class NewerDataVersionError extends Error {
@@ -2321,10 +2367,12 @@ const normalizeGoalsAndMilestones = (value) => {
         ? goal.status
         : "active";
       const completedCount = items.filter((item) => item.completed).length;
+      // Goals without steps (simplified goals) keep their stored status; the
+      // Completed checkbox is the user's explicit choice.
       const normalizedStatus =
         items.length > 0 && completedCount === items.length
           ? "achieved"
-          : status === "achieved"
+          : status === "achieved" && items.length > 0
             ? "review"
             : status;
       const dayDurations = {};
@@ -2335,13 +2383,34 @@ const normalizeGoalsAndMilestones = (value) => {
         );
         if (minutes) dayDurations[day] = minutes;
       }
+      const pathId =
+        typeof goal.pathId === "string" &&
+        (Object.hasOwn(GOAL_PATHS, goal.pathId) || goal.pathId === "custom")
+          ? goal.pathId
+          : "custom";
       return {
         id: String(goal.id),
-        pathId:
-          typeof goal.pathId === "string" &&
-          (Object.hasOwn(GOAL_PATHS, goal.pathId) || goal.pathId === "custom")
-            ? goal.pathId
-            : "custom",
+        pathId,
+        ...(pathId === "signUpAuxiliary"
+          ? {
+              months: Object.fromEntries(
+                Object.entries(
+                  goal.months && typeof goal.months === "object"
+                    ? goal.months
+                    : {},
+                )
+                  .filter(([key]) => /^\d{4}-(0[1-9]|1[0-2])$/.test(key))
+                  .slice(0, 24)
+                  .map(([key, month]) => [
+                    key,
+                    {
+                      try: month?.try === true,
+                      completed: month?.completed === true,
+                    },
+                  ]),
+              ),
+            }
+          : {}),
         pathName:
           typeof goal.pathName === "string"
             ? goal.pathName.trim().slice(0, 120)
@@ -6391,11 +6460,15 @@ const initializeApp = async () => {
           </label>`,
       )
       .join("") +
-      `<label class="goals-path-option">
+      // Create My Own Path is postponed from the simplified interface but its
+      // implementation is preserved for possible future refinement.
+      (GOALS_SIMPLIFIED
+        ? ""
+        : `<label class="goals-path-option">
         <input type="checkbox" data-goal-path-choice="custom">
         <span class="goals-path-icon" aria-hidden="true">🧭</span>
         <span>${escapeHtml(appText("goals.path.custom", "Create My Own Path"))}</span>
-      </label>`;
+      </label>`);
   };
   const rememberGoalDrafts = () => {
     document
@@ -6551,6 +6624,14 @@ const initializeApp = async () => {
         </section>`;
   };
   const renderGoalPathEditors = () => {
+    if (GOALS_SIMPLIFIED) {
+      // Simplified goals need no configuration before they are added; the
+      // advanced per-path editors below stay dormant.
+      document.getElementById("goals-path-editors").innerHTML = "";
+      document.getElementById("btn-create-goals").disabled =
+        document.querySelectorAll("[data-goal-path-choice]:checked").length === 0;
+      return;
+    }
     rememberGoalDrafts();
     const selected = [
       ...document.querySelectorAll("[data-goal-path-choice]:checked"),
@@ -6563,6 +6644,12 @@ const initializeApp = async () => {
   };
   const renderGoalAcknowledgement = () => {
     const notice = document.getElementById("goals-latest-notice");
+    if (GOALS_SIMPLIFIED) {
+      // Milestone/goal acknowledgement notices are postponed from the
+      // simplified experience; the implementation below stays dormant.
+      notice.hidden = true;
+      return;
+    }
     const acknowledgement = goalsData().latestAcknowledgement;
     notice.hidden = !acknowledgement || acknowledgement.dismissed;
     if (notice.hidden) return;
@@ -6675,7 +6762,113 @@ const initializeApp = async () => {
       <div data-goal-edit-form hidden></div>
     </article>`;
   };
+  const auxMonthLabel = (monthKey) =>
+    new Date(`${monthKey}-01T12:00:00`).toLocaleDateString(
+      document.documentElement.lang || undefined,
+      { month: "long", year: "numeric" },
+    );
+  const renderAuxMonthsTable = (goal) => {
+    const active = Boolean(goal);
+    const tryLabel = appText("goals.try", "Try");
+    const completedLabel = appText("goals.completed", "Completed");
+    const rows = getAuxMonthKeys()
+      .map((monthKey) => {
+        const month = (active && goal.months?.[monthKey]) || {
+          try: false,
+          completed: false,
+        };
+        const cell = (field, checked, label) =>
+          `<td><input type="checkbox" id="aux-month-${monthKey}-${field}"
+            data-aux-month="${monthKey}" data-aux-field="${field}"
+            ${active ? `data-goal-id="${escapeHtml(goal.id)}"` : "disabled"}
+            ${checked ? "checked" : ""}
+            aria-label="${escapeHtml(`${auxMonthLabel(monthKey)} — ${label}`)}"></td>`;
+        return `<tr><th scope="row">${escapeHtml(auxMonthLabel(monthKey))}</th>
+          ${cell("try", month.try, tryLabel)}
+          ${cell("completed", month.completed, completedLabel)}</tr>`;
+      })
+      .join("");
+    return `<section class="goals-aux-months${active ? "" : " goals-aux-months-inactive"}" aria-labelledby="goals-aux-months-title">
+      <h4 id="goals-aux-months-title">${escapeHtml(appText(GOAL_PATHS[AUX_PIONEER_PATH_ID].nameKey, "Sign Up for Auxiliary Pioneer Service"))}</h4>
+      <table>
+        <thead><tr>
+          <th scope="col">${escapeHtml(appText("goals.month", "Month"))}</th>
+          <th scope="col">${escapeHtml(tryLabel)}</th>
+          <th scope="col">${escapeHtml(completedLabel)}</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </section>`;
+  };
+  const renderSimplifiedGoalRow = (goal) => {
+    const name = getGoalPathName(goal);
+    const completedLabel = appText("goals.completed", "Completed");
+    // The Auxiliary Pioneer sign-up goal has no overall Completed checkbox;
+    // its monthly Completed checkboxes are its only completion controls.
+    const completeControl =
+      goal.pathId === AUX_PIONEER_PATH_ID
+        ? ""
+        : `<label class="goals-simple-complete">
+            <input type="checkbox" id="goal-complete-${escapeHtml(goal.id)}"
+              data-goal-simple-complete data-goal-id="${escapeHtml(goal.id)}"
+              ${goal.status === "achieved" ? "checked" : ""}
+              aria-label="${escapeHtml(`${completedLabel} — ${name}`)}">
+            <span>${escapeHtml(completedLabel)}</span>
+          </label>`;
+    return `<div class="goals-simple-row" data-goal-card="${escapeHtml(goal.id)}">
+      <span class="goals-path-icon" aria-hidden="true">${GOAL_PATHS[goal.pathId]?.icon || "🧭"}</span>
+      <span class="goals-simple-name">${escapeHtml(name)}</span>
+      ${completeControl}
+      <button type="button" class="goals-simple-clear" data-goal-action="clear"
+        data-goal-id="${escapeHtml(goal.id)}"
+        aria-label="${escapeHtml(`${appText("goals.clear", "Clear")} — ${name}`)}">${escapeHtml(appText("goals.clear", "Clear"))}</button>
+    </div>`;
+  };
+  const renderSimplifiedGoalsView = async () => {
+    const auxGoal = goalsData().goals.find(
+      (goal) =>
+        goal.pathId === AUX_PIONEER_PATH_ID &&
+        (goal.status === "active" || goal.status === "achieved"),
+    );
+    // Rolling window: discard months that are no longer displayed, keeping no
+    // history for past months.
+    if (auxGoal?.months) {
+      const displayed = new Set(getAuxMonthKeys());
+      const stale = Object.keys(auxGoal.months).filter(
+        (monthKey) => !displayed.has(monthKey),
+      );
+      if (stale.length) {
+        const previous = cloneGoalData();
+        stale.forEach((monthKey) => delete auxGoal.months[monthKey]);
+        await saveGoalData(previous);
+      }
+    }
+    const listed = goalsData().goals.filter(
+      (goal) => goal.status === "active" || goal.status === "achieved",
+    );
+    document.getElementById("goals-active-list").innerHTML =
+      (listed.length
+        ? listed.map((goal) => renderSimplifiedGoalRow(goal)).join("")
+        : `<p class="goals-empty">${escapeHtml(appText("goals.noGoals", "No goals here yet."))}</p>`) +
+      renderAuxMonthsTable(auxGoal || null);
+    // A goal that is currently listed cannot be added again until cleared.
+    document.querySelectorAll("[data-goal-path-choice]").forEach((input) => {
+      const taken = listed.some(
+        (goal) => goal.pathId === input.dataset.goalPathChoice,
+      );
+      input.disabled = taken;
+      if (taken) input.checked = false;
+    });
+    renderGoalPathEditors();
+    renderGoalAcknowledgement();
+  };
   const renderGoalsView = async () => {
+    if (GOALS_SIMPLIFIED) {
+      // The advanced sections (paused, review, history) are postponed; their
+      // rendering below stays dormant.
+      await renderSimplifiedGoalsView();
+      return;
+    }
     const expired = goalsData().goals.filter(
       (goal) =>
         goal.status === "active" &&
@@ -6823,6 +7016,51 @@ const initializeApp = async () => {
     };
   };
   const addSelectedGoals = async () => {
+    if (GOALS_SIMPLIFIED) {
+      // Simplified goals are added without any required steps, targets,
+      // periods, dates, or other configuration.
+      const selected = [
+        ...document.querySelectorAll("[data-goal-path-choice]:checked"),
+      ]
+        .map((input) => input.dataset.goalPathChoice)
+        .filter(
+          (pathId) =>
+            Object.hasOwn(GOAL_PATHS, pathId) &&
+            !goalsData().goals.some(
+              (goal) =>
+                goal.pathId === pathId &&
+                (goal.status === "active" || goal.status === "achieved"),
+            ),
+        );
+      if (!selected.length) return;
+      const previous = cloneGoalData();
+      const now = new Date().toISOString();
+      selected.forEach((pathId) => {
+        settings.goalsAndMilestones.goals.unshift({
+          id: goalId(),
+          pathId,
+          pathName: "",
+          type: GOAL_PATHS[pathId].type,
+          status: "active",
+          frequency: "weekly",
+          periodDays: 0,
+          periodEndsAt: null,
+          durationMinutes: 0,
+          dayDurations: {},
+          createdAt: now,
+          updatedAt: now,
+          items: [],
+          ...(pathId === AUX_PIONEER_PATH_ID ? { months: {} } : {}),
+        });
+      });
+      if (!(await saveGoalData(previous))) return;
+      document
+        .querySelectorAll("[data-goal-path-choice]")
+        .forEach((input) => (input.checked = false));
+      document.getElementById("goals-status").textContent = "";
+      await renderGoalsView();
+      return;
+    }
     const selected = [
       ...document.querySelectorAll("[data-goal-path-choice]:checked"),
     ].map((input) => input.dataset.goalPathChoice);
@@ -7160,6 +7398,15 @@ const initializeApp = async () => {
         "goals.adjustedNotice",
         "A new goal occurrence was created. Your previous progress is preserved.",
       );
+    } else if (action === "clear") {
+      // Simplified Clear: removes the goal from the active goals display
+      // (clearing any Auxiliary Pioneer month selections with it). The goal
+      // may be selected and added again later.
+      settings.goalsAndMilestones.deletedGoalIds.push(goal.id);
+      settings.goalsAndMilestones.goals =
+        settings.goalsAndMilestones.goals.filter(
+          (entry) => entry.id !== goal.id,
+        );
     } else if (action === "remove") {
       settings.goalsAndMilestones.deletedGoalIds.push(goal.id);
       settings.goalsAndMilestones.goals =
@@ -7227,6 +7474,60 @@ const initializeApp = async () => {
         .getElementById(id)
         .addEventListener("click", handleGoalAction),
     );
+  // Simplified Goals controls: the user manually controls completion. NRV
+  // never determines completion automatically.
+  const handleSimplifiedGoalChange = async (event) => {
+    const input = event.target;
+    const refresh = async (focusId) => {
+      await renderGoalsView();
+      const focused = focusId && document.getElementById(focusId);
+      if (focused) focused.focus();
+    };
+    if (input.matches("[data-goal-simple-complete]")) {
+      const goal = goalsData().goals.find(
+        (entry) => entry.id === input.dataset.goalId,
+      );
+      if (!goal) return;
+      const previous = cloneGoalData();
+      const now = new Date().toISOString();
+      if (input.checked) {
+        goal.status = "achieved";
+        goal.achievedAt = now;
+      } else {
+        goal.status = "active";
+        delete goal.achievedAt;
+      }
+      goal.updatedAt = now;
+      if (!(await saveGoalData(previous))) {
+        input.checked = !input.checked;
+        return;
+      }
+      await refresh(input.id);
+      return;
+    }
+    if (input.matches("[data-aux-month]")) {
+      const goal = goalsData().goals.find(
+        (entry) => entry.id === input.dataset.goalId,
+      );
+      if (!goal) return;
+      const previous = cloneGoalData();
+      goal.months = applyAuxMonthChange(
+        goal.months,
+        input.dataset.auxMonth,
+        input.dataset.auxField,
+        input.checked,
+      );
+      goal.updatedAt = new Date().toISOString();
+      if (!(await saveGoalData(previous))) {
+        input.checked = !input.checked;
+        return;
+      }
+      await refresh(input.id);
+    }
+  };
+  document
+    .getElementById("goals-active-list")
+    .addEventListener("change", handleSimplifiedGoalChange);
   document
     .getElementById("settings-goals-encouragement")
     .addEventListener("change", async (event) => {

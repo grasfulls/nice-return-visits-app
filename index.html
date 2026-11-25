@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title data-i18n="page.welcome">NRV-Welcome</title>
-    <meta name="nrv-build-revision" content="sha256:a3277c879675a3f0eb8574f3b85f28c09ee0bc4816ca6cb1a4ba1935c6bd715f" />
+    <meta name="nrv-build-revision" content="sha256:e68155087e958c0b5c533f1fcaec6364be25cb74bd6dcb5a991ae2b432eba400" />
     <meta name="theme-color" content="#004080" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NRV" />
@@ -865,17 +865,24 @@
         <div id="goals-view" class="view">
           <div class="goals-container">
             <h2 data-i18n="goals.title">Goals &amp; Milestones</h2>
-            <section class="goals-reminder" aria-labelledby="goals-reminder-title">
+            <section class="goals-intro">
+              <p data-i18n="goals.introStatus">Goals are still being developed. You are welcome to try them, but some features may change or may not yet work as expected.</p>
+              <p data-i18n="goals.introUse">Use Goals in whatever way is helpful to you. You can select the goals you want, mark them complete, or clear them when you no longer want them.</p>
+              <p data-i18n="goals.privateNote">These goals are private planning tools. NRV does not compare people or determine official service status or qualifications.</p>
+            </section>
+            <!-- Postponed advanced Goals interface below (dormant; see GOALS_SIMPLIFIED in app.js). Preserved for possible future refinement. -->
+            <section class="goals-reminder" aria-labelledby="goals-reminder-title" hidden>
               <h3 id="goals-reminder-title" data-i18n="goals.reminderTitle">Choose goals that fit your circumstances.</h3>
               <p data-i18n="goals.reminderText">Ministry goals can be encouraging when they are reasonable and attainable. Select only the goals and steps that are appropriate for you. You may change, pause, or remove a goal at any time.</p>
               <p data-i18n="goals.reminderDisclaimer">NRV provides planning tools and suggested goal paths. It does not determine what goals are appropriate for you or evaluate your circumstances.</p>
             </section>
-            <p class="goals-private-note" data-i18n="goals.privateNote">These goals are private planning tools. NRV does not compare people or determine official service status or qualifications.</p>
+            <p class="goals-private-note" data-i18n="goals.privateNote" hidden>These goals are private planning tools. NRV does not compare people or determine official service status or qualifications.</p>
             <fieldset class="goals-path-picker">
               <legend data-i18n="goals.choosePaths">Choose one or more paths</legend>
               <div id="goals-path-options"></div>
             </fieldset>
-            <section aria-labelledby="goals-progress-help-title">
+            <!-- Postponed step-progress guidance (dormant; simplified goals have no steps). -->
+            <section aria-labelledby="goals-progress-help-title" hidden>
               <h3 id="goals-progress-help-title" data-i18n="goals.howProgress">How progress works</h3>
               <p data-i18n="goals.manualProgress">When you complete a step, tap "Mark complete." NRV will keep track of your progress for you.</p>
             </section>
@@ -886,15 +893,16 @@
               <h3 id="goals-active-title" tabindex="-1" data-i18n="goals.active">In progress</h3>
               <div id="goals-active-list"></div>
             </section>
-            <section id="goals-paused-section" aria-labelledby="goals-paused-title">
+            <!-- Postponed lifecycle sections (dormant; see GOALS_SIMPLIFIED in app.js). -->
+            <section id="goals-paused-section" aria-labelledby="goals-paused-title" hidden>
               <h3 id="goals-paused-title" data-i18n="goals.paused">Paused for now</h3>
               <div id="goals-paused-list"></div>
             </section>
-            <section id="goals-review-section" aria-labelledby="goals-review-title">
+            <section id="goals-review-section" aria-labelledby="goals-review-title" hidden>
               <h3 id="goals-review-title" data-i18n="goals.review">Would you like to continue?</h3>
               <div id="goals-review-list"></div>
             </section>
-            <section id="goals-history-section" aria-labelledby="goals-history-title">
+            <section id="goals-history-section" aria-labelledby="goals-history-title" hidden>
               <h3 id="goals-history-title" data-i18n="goals.history">Achievement history</h3>
               <div id="goals-history-list"></div>
             </section>
@@ -1493,7 +1501,10 @@
                 <summary data-i18n="goals.title">Goals &amp; Milestones</summary>
                 <button type="button" id="btn-open-goals" data-i18n="goals.view">View Goals</button>
               </details>
-              <details class="settings-section" id="encouragement-option-section">
+              <!-- Encouragement messages are postponed from the simplified Goals
+                   experience; this option stays dormant for possible future
+                   reactivation (see GOALS_SIMPLIFIED in app.js). -->
+              <details class="settings-section" id="encouragement-option-section" hidden>
                 <summary data-i18n="goals.encouragementToggle">Encouragement messages</summary>
                 <label class="checkbox-row">
                   <input type="checkbox" id="settings-goals-encouragement" />

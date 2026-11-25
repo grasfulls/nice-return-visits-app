@@ -336,111 +336,119 @@ async function main() {
     await evaluate(`document.getElementById("btn-open-goals").click()`);
     await waitFor(`document.getElementById("goals-view").classList.contains("active")`, "Goals view did not open");
     const catalog = JSON.parse(fs.readFileSync(path.join(root, "locales", language + ".json"), "utf8"));
-    assert.strictEqual(await evaluate(`document.querySelector('[data-i18n="goals.manualProgress"]').textContent`), catalog["goals.manualProgress"]);
+    // Simplified Goals experience: approved introductory wording is visible above the picker.
+    assert.strictEqual(await evaluate(`document.querySelector('[data-i18n="goals.introStatus"]').textContent`), catalog["goals.introStatus"]);
+    assert.strictEqual(await evaluate(`document.querySelector('[data-i18n="goals.introUse"]').textContent`), catalog["goals.introUse"]);
     assert(await evaluate(`(() => {
-      const help = document.querySelector('[data-i18n="goals.manualProgress"]');
-      return help.getBoundingClientRect().height > 0 &&
-        !!(help.compareDocumentPosition(document.getElementById("btn-create-goals")) & Node.DOCUMENT_POSITION_FOLLOWING);
-    })()`), "Progress guidance must be visible before creating a goal");
-    const before = await evaluate(`document.querySelectorAll("[data-goal-card]").length`);
-    await evaluate(`(() => {
-      const path = document.querySelector('[data-goal-path-choice="returnVisits"]');
-      path.checked = true;
-      path.dispatchEvent(new Event("change", { bubbles: true }));
-      const editor = document.querySelector("#goals-path-editors [data-goal-path-editor]");
-      editor.querySelector("[data-goal-duration]").value = "30";
-      editor.querySelector('[data-goal-day-duration="mon"]').value = "10";
-      document.getElementById("btn-create-goals").click();
-    })()`);
-    await waitFor(`document.querySelectorAll("[data-goal-card]").length===${before + 1}`, "Goal creation did not save");
-    const id = await evaluate(`document.querySelector("#goals-active-list [data-goal-card]").dataset.goalCard`);
-    const card = `document.querySelector('[data-goal-card="${id}"]')`;
-    const progress = count => language === "en" ? `${count} of 6 steps completed` : `${count} de 6 pasos completados`;
-    assert.strictEqual(await evaluate(`${card}.querySelector(".goal-progress").textContent`), progress(0));
-    await evaluate(`${card}.querySelector('[data-goal-action="complete"]').click()`);
-    await waitFor(`${card}.querySelector(".goal-progress").textContent===${JSON.stringify(progress(1))}`, "Completion count did not update");
-    await evaluate(`${card}.querySelector('[data-goal-action="edit"]').click()`);
-    assert.strictEqual(await evaluate(`${card}.querySelector("[data-goal-duration]").value`), "30");
-    assert(await evaluate(`(() => {
-      const input = ${card}.querySelector("[data-goal-duration]");
-      const notes = input.parentElement.querySelectorAll("small");
-      return notes.length === 2 && notes[1].getBoundingClientRect().bottom <= input.getBoundingClientRect().top;
-    })()`), "Time-goal explanations must appear above the control");
-    assert.strictEqual(await evaluate(`${card}.querySelector("[data-goal-duration]").previousElementSibling.textContent`), catalog["goals.durationManual"]);
-    await evaluate(`(() => {
-      ${card}.querySelector("[data-goal-duration]").value = "45";
-      ${card}.querySelector('[data-goal-action="edit-save"]').click();
-    })()`);
-    await waitFor(`${card}.querySelector("[data-goal-edit-form]").hidden`, "Edit save did not close");
-    assert.strictEqual(await evaluate(`document.querySelectorAll("[data-goal-card]").length`), before + 1);
-    assert.strictEqual(await evaluate(`${card}.querySelector(".goal-progress").textContent`), progress(1));
-    await evaluate(`(() => {
-      ${card}.querySelector('[data-goal-action="edit"]').click();
-      ${card}.querySelector('[data-goal-item-choice="planFollowUp"]').checked = false;
-      ${card}.querySelector('[data-goal-action="edit-save"]').click();
-    })()`);
-    assert.strictEqual(await evaluate(`${card}.querySelector("[data-goal-edit-status]").textContent`), catalog["goals.editConflict"]);
-    await evaluate(`${card}.querySelector('[data-goal-action="edit-cancel"]').click()`);
-    await evaluate(`${card}.querySelector('[data-goal-action="undo"]').click()`);
-    await waitFor(`${card}.querySelector(".goal-progress").textContent===${JSON.stringify(progress(0))}`, "Undo count did not update");
-    for (let step = 1; step <= 6; step++) {
-      await evaluate(`${card}.querySelector('[data-goal-action="complete"]').click()`);
-      await waitFor(`${card}.querySelectorAll('[data-goal-action="undo"]').length===${step}`, "Completion did not persist");
-    }
-    assert(await evaluate(`!!document.querySelector('#goals-history-list [data-goal-card="${id}"]')`));
-    await evaluate(`${card}.querySelector('[data-goal-action="set-again"]').click()`);
-    await waitFor(`document.querySelectorAll("[data-goal-card]").length===${before + 2}`, "Repeat occurrence not created");
-    assert(await evaluate(`!!document.querySelector('#goals-history-list [data-goal-card="${id}"]')`), "Repeat must retain the accomplishment");
-    await evaluate(`${card}.querySelector('[data-goal-action="undo"]').click()`);
-    await waitFor(`!!document.querySelector('#goals-active-list [data-goal-card="${id}"]')`, "Undo must reopen the same achieved occurrence");
-    assert.strictEqual(await evaluate(`${card}.querySelector(".goal-progress").textContent`), progress(5));
-    const customBefore = await evaluate(`document.querySelectorAll("[data-goal-card]").length`);
-    await evaluate(`(() => {
-      const path = document.querySelector('[data-goal-path-choice="custom"]');
-      path.checked = true;
-      path.dispatchEvent(new Event("change", { bubbles: true }));
-      const editor = document.querySelector('#goals-path-editors [data-goal-path-editor="custom"]');
-      editor.querySelector("[data-custom-path-name]").value = "Synthetic custom goal";
-      for (const index of [0, 2]) {
-        const input = editor.querySelector('[data-custom-step="' + index + '"]');
-        input.value = "Step " + index;
-        input.dispatchEvent(new Event("input", { bubbles: true }));
-      }
-      document.getElementById("btn-create-goals").click();
-    })()`);
-    await waitFor(`document.querySelectorAll("[data-goal-card]").length===${customBefore + 1}`, "Custom goal did not save");
-    const customId = await evaluate(`document.querySelector("#goals-active-list [data-goal-card]").dataset.goalCard`);
-    const customCard = `document.querySelector('[data-goal-card="${customId}"]')`;
-    await evaluate(`${customCard}.querySelector('[data-goal-action="complete"]').click()`);
-    await waitFor(`${customCard}.querySelectorAll('[data-goal-action="undo"]').length===1`, "Custom completion did not save");
-    await evaluate(`(() => {
-      ${customCard}.querySelector('[data-goal-action="edit"]').click();
-      ${customCard}.querySelector("[data-custom-path-name]").value = "Edited custom goal";
-      ${customCard}.querySelector('[data-custom-step="1"]').value = "Updated unfinished step";
-      const added = ${customCard}.querySelector('[data-custom-step="2"]');
-      added.value = "An additional step";
-      added.dispatchEvent(new Event("input", { bubbles: true }));
-      ${customCard}.querySelector('[data-goal-action="edit-save"]').click();
-    })()`);
-    await waitFor(`${customCard}.querySelector("[data-goal-edit-form]").hidden`, "Custom edit did not save");
-    assert.strictEqual(await evaluate(`${customCard}.querySelector("h4").textContent`), "Edited custom goal");
-    assert.strictEqual(await evaluate(`${customCard}.querySelector(".goal-progress").textContent`),
-      language === "en" ? "1 of 3 steps completed" : "1 de 3 pasos completados");
-    assert(await evaluate(`(() => {
-      const ids = [...${customCard}.querySelectorAll("[data-goal-item-id]")].map(b => b.dataset.goalItemId);
-      return ids.length === 3 && new Set(ids).size === 3;
-    })()`), "Editing a sparse custom goal must keep distinct item IDs");
+      const intro = document.querySelector('[data-i18n="goals.introStatus"]');
+      return intro.getBoundingClientRect().height > 0 &&
+        !!(intro.compareDocumentPosition(document.getElementById("goals-path-options")) & Node.DOCUMENT_POSITION_FOLLOWING);
+    })()`), "Approved introductory wording must be visible before the picker");
+    // Start each language pass from a clean slate (goals persist across passes).
     await evaluate(`(async () => {
-      const db = await openAppDatabase();
-      const saved = await readStoredValue(db, "settings");
-      const goal = saved.goalsAndMilestones.goals.find(g => g.id === ${JSON.stringify(id)});
-      if (!goal || goal.items.length !== 6) throw new Error("Missing synthetic legacy fixture");
-      for (const item of goal.items) {
-        if (item.key === "durationTarget" || item.key === "durationDay") delete item.key;
+      while (document.querySelector('#goals-active-list [data-goal-action="clear"]')) {
+        document.querySelector('#goals-active-list [data-goal-action="clear"]').click();
+        await new Promise(resolve => setTimeout(resolve, 150));
       }
-      await writeStoredValue(db, "settings", saved);
-      db.close();
     })()`);
+    await waitFor(`!document.querySelector('#goals-active-list [data-goal-action="clear"]')`, "Could not clear existing goals");
+    // Exactly the intended eleven goals; custom and legacy paths are not offered.
+    assert.strictEqual(await evaluate(`document.querySelectorAll("[data-goal-path-choice]").length`), 11);
+    assert(await evaluate(`!document.querySelector('[data-goal-path-choice="custom"]') && !document.querySelector('[data-goal-path-choice="seldomWorked"]')`),
+      "Create My Own Path and legacy Work Seldom-Worked Territory must not be selectable");
+    assert(await evaluate(`document.getElementById("goals-path-editors").childElementCount === 0`),
+      "No configuration editors appear in the simplified experience");
+    assert(await evaluate(`document.getElementById("goals-paused-section").hidden &&
+      document.getElementById("goals-review-section").hidden &&
+      document.getElementById("goals-history-section").hidden`), "Postponed lifecycle sections stay hidden");
+    assert(await evaluate(`document.getElementById("encouragement-option-section").hidden`),
+      "Encouragement messages option is hidden");
+    assert(await evaluate(`document.getElementById("btn-create-goals").disabled`),
+      "Add selected goals is unavailable until a goal is chosen");
+    assert(await evaluate(`(() => {
+      const table = document.querySelector(".goals-aux-months");
+      return table.classList.contains("goals-aux-months-inactive") &&
+        table.querySelectorAll("tbody tr").length === 12 &&
+        [...table.querySelectorAll("input")].every(input => input.disabled && !input.checked);
+    })()`), "Inactive Auxiliary Pioneer month controls must be greyed out and unavailable");
+    // Multiple goals are added together with no required configuration.
+    await evaluate(`(() => {
+      for (const pathId of ["returnVisits", "signUpAuxiliary", "signUpRegular"]) {
+        const choice = document.querySelector('[data-goal-path-choice="' + pathId + '"]');
+        choice.checked = true;
+        choice.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      document.getElementById("btn-create-goals").click();
+    })()`);
+    await waitFor(`document.querySelectorAll("#goals-active-list .goals-simple-row").length===3`, "Simplified goals were not added");
+    assert(await evaluate(`document.querySelector('[data-goal-path-choice="signUpAuxiliary"]').disabled`),
+      "A listed goal cannot be added again until cleared");
+    const rowFor = (pathName) =>
+      `[...document.querySelectorAll("#goals-active-list .goals-simple-row")].find(row => row.textContent.includes(${JSON.stringify(pathName)}))`;
+    assert(await evaluate(`(() => {
+      const row = ${rowFor(catalog["goals.path.signUpRegular"])};
+      return !!row.querySelector("[data-goal-simple-complete]") &&
+        !!row.querySelector('[data-goal-action="clear"]') &&
+        !row.querySelector("[data-aux-month]") &&
+        !row.querySelector('[data-goal-action="edit"]') &&
+        !row.querySelector('[data-goal-action="pause"]') &&
+        !row.querySelector('[data-goal-action="complete"]');
+    })()`), "Sign Up for Regular Pioneer is a normal simplified goal with Completed and Clear only");
+    assert(await evaluate(`(() => {
+      const row = ${rowFor(catalog["goals.path.signUpAuxiliary"])};
+      return !row.querySelector("[data-goal-simple-complete]") &&
+        !!row.querySelector('[data-goal-action="clear"]');
+    })()`), "Auxiliary Pioneer has no overall Completed checkbox");
+    assert(await evaluate(`(() => {
+      const table = document.querySelector(".goals-aux-months");
+      return !table.classList.contains("goals-aux-months-inactive") &&
+        [...table.querySelectorAll("input")].every(input => !input.disabled);
+    })()`), "Month controls become usable once the Auxiliary Pioneer goal is added");
+    const monthKeys = await evaluate(`[...new Set([...document.querySelectorAll("[data-aux-month]")].map(input => input.dataset.auxMonth))]`);
+    assert.strictEqual(monthKeys.length, 12, "Rolling window shows twelve months");
+    const monthBox = (key, field) => `document.getElementById("aux-month-${key}-${field}")`;
+    // Checking Completed automatically checks Try.
+    await evaluate(`${monthBox(monthKeys[0], "completed")}.click()`);
+    await waitFor(`${monthBox(monthKeys[0], "try")}.checked && ${monthBox(monthKeys[0], "completed")}.checked`,
+      "Completed did not automatically check Try");
+    // Unchecking Try leaves an already checked Completed checked (valid state).
+    await evaluate(`${monthBox(monthKeys[0], "try")}.click()`);
+    await waitFor(`!${monthBox(monthKeys[0], "try")}.checked && ${monthBox(monthKeys[0], "completed")}.checked`,
+      "Unchecking Try must leave Completed checked");
+    // Unchecking Completed automatically unchecks Try.
+    await evaluate(`${monthBox(monthKeys[1], "completed")}.click()`);
+    await waitFor(`${monthBox(monthKeys[1], "completed")}.checked`, "Second month Completed did not save");
+    await evaluate(`${monthBox(monthKeys[1], "completed")}.click()`);
+    await waitFor(`!${monthBox(monthKeys[1], "completed")}.checked && !${monthBox(monthKeys[1], "try")}.checked`,
+      "Unchecking Completed must also uncheck Try");
+    // Manual completion of a normal goal.
+    await evaluate(`${rowFor(catalog["goals.path.signUpRegular"])}.querySelector("[data-goal-simple-complete]").click()`);
+    await waitFor(`(() => {
+      const row = ${rowFor(catalog["goals.path.signUpRegular"])};
+      return !!(row && row.querySelector("[data-goal-simple-complete]").checked);
+    })()`, "Manual completion did not save");
+    assert(await evaluate(`!document.querySelector(".goals-encouragement") && document.getElementById("goals-latest-notice").hidden`),
+      "Postponed encouragement/acknowledgement messages must not appear");
+    // Clearing Auxiliary Pioneer clears every month selection and greys the table.
+    await evaluate(`${rowFor(catalog["goals.path.signUpAuxiliary"])}.querySelector('[data-goal-action="clear"]').click()`);
+    await waitFor(`document.querySelectorAll("#goals-active-list .goals-simple-row").length===2`, "Clear did not remove the goal");
+    assert(await evaluate(`(() => {
+      const table = document.querySelector(".goals-aux-months");
+      return table.classList.contains("goals-aux-months-inactive") &&
+        [...table.querySelectorAll("input")].every(input => input.disabled && !input.checked);
+    })()`), "Clearing Auxiliary Pioneer must clear all month selections and grey out the table");
+    // A cleared goal may be selected and added again, with nothing retained.
+    assert(await evaluate(`!document.querySelector('[data-goal-path-choice="signUpAuxiliary"]').disabled`),
+      "A cleared goal must become selectable again");
+    await evaluate(`(() => {
+      const choice = document.querySelector('[data-goal-path-choice="signUpAuxiliary"]');
+      choice.checked = true;
+      choice.dispatchEvent(new Event("change", { bubbles: true }));
+      document.getElementById("btn-create-goals").click();
+    })()`);
+    await waitFor(`document.querySelectorAll("#goals-active-list .goals-simple-row").length===3`, "Cleared goal could not be added again");
+    assert(await evaluate(`[...document.querySelectorAll(".goals-aux-months input")].every(input => !input.disabled && !input.checked)`),
+      "Re-added Auxiliary Pioneer starts with no Try or Completed selections");
     await send("Network.emulateNetworkConditions", { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
     await navigate(origin + "/app/?lang=" + language);
     await waitFor(`!document.getElementById("startup-recovery-continue").hidden`, "Offline startup did not offer safe OK");
@@ -448,17 +456,13 @@ async function main() {
     await evaluate(`document.getElementById("startup-recovery-continue").click()`);
     await waitFor(`document.getElementById("startup-recovery-screen").hidden && !document.getElementById("unlock-screen")`, "Offline OK did not safely resume");
     await evaluate(`document.getElementById("btn-open-goals").click()`);
-    await waitFor(`${card}?.querySelector(".goal-progress").textContent===${JSON.stringify(progress(5))}`, "Offline restart lost partial progress");
-    assert(await evaluate(`${card}.textContent.includes(${JSON.stringify(catalog["goals.durationTargetStep"].replace("{minutes}", "45"))})`),
-      "Legacy saved time-goal keys must recover without losing completed progress");
-    await evaluate(`${card}.querySelector('[data-goal-action="edit"]').click()`);
-    assert.strictEqual(await evaluate(`${card}.querySelector("[data-goal-duration]").value`), "45");
-    assert.strictEqual(await evaluate(`${card}.querySelector('[data-goal-day-duration="mon"]').value`), "10");
-    await evaluate(`${card}.querySelector('[data-goal-action="edit-cancel"]').click()`);
-    assert.strictEqual(await evaluate(`${customCard}.querySelector(".goal-progress").textContent`),
-      language === "en" ? "1 of 3 steps completed" : "1 de 3 pasos completados");
+    await waitFor(`document.querySelectorAll("#goals-active-list .goals-simple-row").length===3`, "Offline restart lost simplified goals");
+    assert(await evaluate(`(() => {
+      const row = ${rowFor(catalog["goals.path.signUpRegular"])};
+      return !!(row && row.querySelector("[data-goal-simple-complete]").checked);
+    })()`), "Offline restart lost manual completion");
     await send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
-    console.log(`PASS ${language} real Goals setup/edit/conflict/cancel/undo/repeat/history and offline restart persistence`);
+    console.log(`PASS ${language} simplified Goals picker/add/months/completion/clear/re-add and offline restart persistence`);
   }
   await evaluate(`(async () => {
     const passphrase = "NRV-integration-passphrase-90210";
