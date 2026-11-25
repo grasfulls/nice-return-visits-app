@@ -37,15 +37,15 @@ const catalogs = Object.fromEntries(["en", "es"].map((language) => [
 for (const language of ["en", "es"]) i18n._setCatalog(language, catalogs[language]);
 
 async function main() {
-  assert.strictEqual(api.APP_VERSION, "0.9.071");
+  assert.strictEqual(api.APP_VERSION, "0.9.100");
   assert(/^sha256:[a-f0-9]{64}$/.test(api.APP_BUILD_REVISION));
   assert.strictEqual(
     api.publicVersionHistoryUrl(api.APP_VERSION, "en"),
-    "https://nicereturnvisits.org/version-history.html#version-0-9-071",
+    "https://nicereturnvisits.org/version-history.html#version-0-9-100",
   );
   assert.strictEqual(
     api.publicVersionHistoryUrl(api.APP_VERSION, "es"),
-    "https://nicereturnvisits.org/es/version-history.html#version-0-9-071",
+    "https://nicereturnvisits.org/es/version-history.html#version-0-9-100",
   );
   const updatedMessage = { textContent: "" };
   const updatedLink = { href: "" };
@@ -83,7 +83,7 @@ async function main() {
     updatedDialogShown = false;
     showUpdatedNotice();
     assert.strictEqual(updatedMessage.textContent, catalogs[language]["update.done"]);
-    assert(updatedLink.href.endsWith(`${page}#version-0-9-071`));
+    assert(updatedLink.href.endsWith(`${page}#version-0-9-100`));
     assert(updatedDialogShown);
   }
   for (const invalid of ["1.0", "1.2.3.4", "01.2.3", "1.-1.0", "1.2.3-beta", "1.2.3\n", "", null, 123]) {
@@ -192,7 +192,7 @@ async function main() {
   assert(headerNodes.get("app-version-badge").ariaLabel.includes("An update is ready"));
   renderHeader(true, "es");
   assert(headerNodes.get("app-version-badge").ariaLabel.includes("Hay una actualización disponible"));
-  assert(headerNodes.get("app-version-badge").href.endsWith("#version-0-9-071"));
+  assert(headerNodes.get("app-version-badge").href.endsWith("#version-0-9-100"));
   assert.throws(() => release.checkMetadata('{"version":"1.0.0"}', version, api.APP_BUILD_REVISION));
   assert.throws(() => release.checkMetadata("not json", version));
   assert.throws(() => release.checkMetadata('{"version":"0.9.0","revision":"invalid"}', version, api.APP_BUILD_REVISION));
@@ -320,7 +320,7 @@ async function main() {
   deployed = { version: api.APP_VERSION, revision: updatedRevision };
   worker = { state: "activated" };
   await check();
-  assert.strictEqual(api.APP_VERSION, "0.9.071");
+  assert.strictEqual(api.APP_VERSION, "0.9.100");
   assert.strictEqual(reloads, 0, "a changed internal revision is offered through Get Update");
   assert.deepStrictEqual(removedLocalStorageKeys, []);
   worker = null;

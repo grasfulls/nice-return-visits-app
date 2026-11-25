@@ -1281,7 +1281,7 @@
   "map.zoomIn": "Acercar",
   "map.zoomOut": "Alejar",
   "map.closePopup": "Cerrar ventana emergente",
-  "release.current.title": "Estado automático de Actualizaciones de la aplicación",
-  "release.current.change1": "Actualizaciones de la aplicación ahora resuelve automáticamente la versión actual después del inicio sin dejarla en Comprobando.",
-  "release.current.change2": "Las comprobaciones manuales conservan las mismas protecciones de actualización verificada y cambios sin guardar."
+  "release.current.title": "Metas simplificadas",
+  "release.current.change1": "Las metas ahora son más sencillas: elige entre 11 metas, márcalas como completadas o quítalas cuando ya no las quieras.",
+  "release.current.change2": "Nuevas metas: Inscribirse para el servicio de precursor auxiliar con una tabla de 12 meses Intentar/Completado, e Inscribirse para el servicio de precursor regular."
 }

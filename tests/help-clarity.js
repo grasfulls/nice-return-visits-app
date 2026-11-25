@@ -89,10 +89,11 @@ assert.doesNotMatch(help.es, /no aparecerán automáticamente|copias separadas|n
 
 for (const language of ["en", "es"]) {
   const note = locales[language]["release.current.change1"];
-  assert(/App Updates|Actualizaciones de la aplicación/i.test(note), `${language}: What's New names App Updates`);
-  assert(/automatically|automáticamente/i.test(note), `${language}: What's New describes automatic resolution`);
-  assert(/Checking|Comprobando/i.test(note), `${language}: What's New describes stale Checking state`);
-  assert(!/how long|cuánto esperar|cuánto tiempo/i.test(note), `${language}: no unsupported retry timing claim`);
+  assert(/Goals|metas/i.test(note), `${language}: What's New names Goals`);
+  assert(/11/.test(note), `${language}: What's New states the eleven available goals`);
+  assert(/complete|completadas/i.test(note), `${language}: What's New describes marking goals complete`);
+  assert(/clear|quítalas/i.test(note), `${language}: What's New describes clearing goals`);
+  assert(!/automatic|automátic/i.test(note), `${language}: no automatic-completion claim`);
 }
 
 console.log("PASS bilingual Help clarity, recovery guidance, browser wording, and What's New");

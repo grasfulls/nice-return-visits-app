@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title data-i18n="page.welcome">NRV-Welcome</title>
-    <meta name="nrv-build-revision" content="sha256:e68155087e958c0b5c533f1fcaec6364be25cb74bd6dcb5a991ae2b432eba400" />
+    <meta name="nrv-build-revision" content="sha256:0be641ef161b5f670e115d11dc644a82a29734db5e2eea4aa18b042a827079e7" />
     <meta name="theme-color" content="#004080" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NRV" />
@@ -296,7 +296,7 @@
         var dataStarted = false;
         var recovering = false;
         var timer;
-        var release = "0.9.071";
+        var release = "0.9.100";
         function spanish() {
           if (/(?:\?|&)lang=es(?:&|$)/.test(window.location.search)) return true;
           if (/(?:\?|&)lang=en(?:&|$)/.test(window.location.search)) return false;
@@ -508,7 +508,7 @@
         });
       })();
     </script>
-    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.071"
+    <link id="nrv-styles" rel="stylesheet" href="styles.css?nrv-release=0.9.100"
       media="print" onload="this.media='all'" onerror="window.NRVStartupFallback.show()" />
     <section
       id="unlock-screen"
@@ -1449,10 +1449,10 @@
               <details class="settings-section">
                 <summary data-i18n="update.whatsNew">What's New</summary>
                 <!-- release-notes:start -->
-                <p data-i18n="release.current.title">Automatic App Updates status</p>
+                <p data-i18n="release.current.title">Simplified Goals</p>
                 <ul>
-                  <li data-i18n="release.current.change1">App Updates now resolves Current version automatically after startup instead of leaving it at Checking.</li>
-                  <li data-i18n="release.current.change2">Manual update checks still provide the same verified update and unsaved-edit safeguards.</li>
+                  <li data-i18n="release.current.change1">Goals are now simpler: choose from 11 goals, mark them complete, or clear them when you no longer want them.</li>
+                  <li data-i18n="release.current.change2">New goals: Sign Up for Auxiliary Pioneer Service with a 12-month Try/Completed table, and Sign Up for Regular Pioneer Service.</li>
                 </ul>
                 <!-- release-notes:end -->
               </details>
@@ -2314,8 +2314,8 @@
 
     <section id="print-container" hidden aria-hidden="true"></section>
 
-    <script src="nrv-dialog.js?nrv-release=0.9.071"></script>
-    <script src="i18n.js?nrv-release=0.9.071"></script>
+    <script src="nrv-dialog.js?nrv-release=0.9.100"></script>
+    <script src="i18n.js?nrv-release=0.9.100"></script>
     <script>
       window.nrvI18nError = null;
       if (window.NRVI18n) {

@@ -1,5 +1,22 @@
 [
   {
+    "version": "0.9.100",
+    "en": {
+      "title": "Simplified Goals",
+      "changes": [
+        "Goals are now simpler: choose from 11 goals, mark them complete, or clear them when you no longer want them.",
+        "New goals: Sign Up for Auxiliary Pioneer Service with a 12-month Try/Completed table, and Sign Up for Regular Pioneer Service."
+      ]
+    },
+    "es": {
+      "title": "Metas simplificadas",
+      "changes": [
+        "Las metas ahora son más sencillas: elige entre 11 metas, márcalas como completadas o quítalas cuando ya no las quieras.",
+        "Nuevas metas: Inscribirse para el servicio de precursor auxiliar con una tabla de 12 meses Intentar/Completado, e Inscribirse para el servicio de precursor regular."
+      ]
+    }
+  },
+  {
     "version": "0.9.071",
     "en": {
       "title": "Automatic App Updates status",

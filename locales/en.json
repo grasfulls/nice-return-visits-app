@@ -1281,7 +1281,7 @@
   "map.zoomIn": "Zoom in",
   "map.zoomOut": "Zoom out",
   "map.closePopup": "Close popup",
-  "release.current.title": "Automatic App Updates status",
-  "release.current.change1": "App Updates now resolves Current version automatically after startup instead of leaving it at Checking.",
-  "release.current.change2": "Manual update checks still provide the same verified update and unsaved-edit safeguards."
+  "release.current.title": "Simplified Goals",
+  "release.current.change1": "Goals are now simpler: choose from 11 goals, mark them complete, or clear them when you no longer want them.",
+  "release.current.change2": "New goals: Sign Up for Auxiliary Pioneer Service with a 12-month Try/Completed table, and Sign Up for Regular Pioneer Service."
 }
